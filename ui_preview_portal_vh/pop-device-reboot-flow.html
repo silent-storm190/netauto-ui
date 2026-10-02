@@ -1,0 +1,605 @@
+<div id="pop-reboot-preview">
+  <style>
+    #pop-reboot-preview {
+      color-scheme: light dark;
+      --pr-bg: light-dark(#eef2f7, #0a101b);
+      --pr-shell: light-dark(#ffffff, #111927);
+      --pr-nav: light-dark(#0b1f3a, #0a1424);
+      --pr-nav-soft: light-dark(#153152, #14253c);
+      --pr-panel: light-dark(#ffffff, #151f2f);
+      --pr-soft: light-dark(#f4f7fb, #1b2738);
+      --pr-softer: light-dark(#f8fafc, #111a28);
+      --pr-text: light-dark(#142033, #ecf3fb);
+      --pr-muted: light-dark(#64748b, #96a8bd);
+      --pr-line: light-dark(#dce3ec, #2a394d);
+      --pr-blue: light-dark(#1769e0, #5d9cff);
+      --pr-blue-soft: light-dark(#e9f2ff, #132c50);
+      --pr-green: light-dark(#14804a, #4bd08b);
+      --pr-green-soft: light-dark(#e8f7ef, #123b2b);
+      --pr-amber: light-dark(#9a6500, #ffc75c);
+      --pr-amber-soft: light-dark(#fff5d9, #432f08);
+      --pr-red: light-dark(#bf2f3b, #ff7882);
+      --pr-red-soft: light-dark(#ffedf0, #461c26);
+      --pr-purple: light-dark(#6c4bd3, #b59cff);
+      --pr-shadow: light-dark(0 16px 44px rgba(36, 54, 80, .13), 0 20px 50px rgba(0, 0, 0, .34));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--pr-text);
+      background: var(--pr-bg);
+      min-height: 820px;
+    }
+    #pop-reboot-preview * { box-sizing: border-box; }
+    #pop-reboot-preview button,
+    #pop-reboot-preview input,
+    #pop-reboot-preview select { font: inherit; }
+    #pop-reboot-preview button { cursor: pointer; }
+    #pop-reboot-preview .pr-app { min-height: 820px; display: grid; grid-template-columns: 208px minmax(0, 1fr); background: var(--pr-shell); box-shadow: var(--pr-shadow); overflow: hidden; }
+    #pop-reboot-preview .pr-side { background: var(--pr-nav); color: #eef6ff; padding: 22px 14px; display: flex; flex-direction: column; gap: 24px; }
+    #pop-reboot-preview .pr-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+    #pop-reboot-preview .pr-brandmark { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: #2f80ed; color: #fff; }
+    #pop-reboot-preview .pr-brand strong { display: block; font-size: 15px; font-weight: 500; }
+    #pop-reboot-preview .pr-brand span { display: block; font-size: 11px; color: #a9bdd3; margin-top: 2px; }
+    #pop-reboot-preview .pr-nav { display: grid; gap: 5px; }
+    #pop-reboot-preview .pr-nav-label { color: #7f99b7; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; padding: 0 10px 8px; }
+    #pop-reboot-preview .pr-nav-item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 8px; color: #b8c9da; font-size: 13px; }
+    #pop-reboot-preview .pr-nav-item.active { background: var(--pr-nav-soft); color: #fff; }
+    #pop-reboot-preview .pr-nav-item svg { width: 17px; height: 17px; }
+    #pop-reboot-preview .pr-side-foot { margin-top: auto; border-top: 1px solid rgba(255,255,255,.1); padding: 16px 8px 0; }
+    #pop-reboot-preview .pr-user { display: flex; gap: 9px; align-items: center; }
+    #pop-reboot-preview .pr-avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #32567e; font-size: 11px; }
+    #pop-reboot-preview .pr-user strong { font-size: 12px; font-weight: 500; display: block; }
+    #pop-reboot-preview .pr-user span { font-size: 10px; color: #91a9c0; display: block; margin-top: 2px; }
+    #pop-reboot-preview .pr-main { min-width: 0; background: var(--pr-bg); }
+    #pop-reboot-preview .pr-topbar { height: 64px; background: var(--pr-shell); border-bottom: 1px solid var(--pr-line); display: flex; align-items: center; justify-content: space-between; padding: 0 26px; }
+    #pop-reboot-preview .pr-breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--pr-muted); font-size: 12px; }
+    #pop-reboot-preview .pr-breadcrumb strong { color: var(--pr-text); font-weight: 500; }
+    #pop-reboot-preview .pr-top-actions { display: flex; gap: 8px; align-items: center; }
+    #pop-reboot-preview .pr-window-chip { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: var(--pr-green-soft); color: var(--pr-green); border-radius: 999px; font-size: 11px; font-weight: 500; }
+    #pop-reboot-preview .pr-content { padding: 24px 26px 34px; max-width: 1320px; margin: 0 auto; }
+    #pop-reboot-preview .pr-title-row { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 20px; }
+    #pop-reboot-preview h1 { font-size: 23px; line-height: 1.3; margin: 0; font-weight: 500; letter-spacing: -.02em; }
+    #pop-reboot-preview .pr-subtitle { color: var(--pr-muted); font-size: 12px; margin: 6px 0 0; }
+    #pop-reboot-preview .pr-job-id { color: var(--pr-muted); font-size: 11px; text-align: right; }
+    #pop-reboot-preview .pr-job-id strong { display: block; color: var(--pr-text); font-size: 12px; margin-top: 3px; }
+    #pop-reboot-preview .pr-steps { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--pr-shell); border: 1px solid var(--pr-line); border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+    #pop-reboot-preview .pr-step { border: 0; background: transparent; color: var(--pr-muted); min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 0 16px; text-align: left; border-right: 1px solid var(--pr-line); }
+    #pop-reboot-preview .pr-step:last-child { border-right: 0; }
+    #pop-reboot-preview .pr-step.active { background: var(--pr-blue-soft); color: var(--pr-blue); }
+    #pop-reboot-preview .pr-step.done { color: var(--pr-green); }
+    #pop-reboot-preview .pr-step-num { width: 25px; height: 25px; border-radius: 50%; border: 1px solid currentColor; display: grid; place-items: center; font-size: 11px; flex: 0 0 auto; }
+    #pop-reboot-preview .pr-step strong { display: block; font-size: 12px; font-weight: 500; }
+    #pop-reboot-preview .pr-step span { display: block; font-size: 10px; margin-top: 2px; color: var(--pr-muted); }
+    #pop-reboot-preview .pr-view[hidden] { display: none; }
+    #pop-reboot-preview .pr-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, .65fr); gap: 16px; align-items: start; }
+    #pop-reboot-preview .pr-panel { background: var(--pr-panel); border: 1px solid var(--pr-line); border-radius: 10px; overflow: hidden; }
+    #pop-reboot-preview .pr-panel-head { min-height: 55px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--pr-line); }
+    #pop-reboot-preview .pr-panel-title { display: flex; align-items: center; gap: 9px; }
+    #pop-reboot-preview .pr-panel-title svg { width: 17px; height: 17px; color: var(--pr-blue); }
+    #pop-reboot-preview .pr-panel-title strong { display: block; font-size: 13px; font-weight: 500; }
+    #pop-reboot-preview .pr-panel-title span { display: block; color: var(--pr-muted); font-size: 10px; margin-top: 2px; }
+    #pop-reboot-preview .pr-panel-body { padding: 16px; }
+    #pop-reboot-preview .pr-label { display: block; font-size: 11px; color: var(--pr-muted); margin-bottom: 6px; }
+    #pop-reboot-preview .pr-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    #pop-reboot-preview .pr-input, #pop-reboot-preview .pr-select { width: 100%; min-height: 38px; color: var(--pr-text); background: var(--pr-softer); border: 1px solid var(--pr-line); border-radius: 7px; padding: 0 11px; outline: none; }
+    #pop-reboot-preview .pr-input:focus, #pop-reboot-preview .pr-select:focus { border-color: var(--pr-blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pr-blue) 15%, transparent); }
+    #pop-reboot-preview .pr-btn { min-height: 38px; border-radius: 7px; border: 1px solid var(--pr-line); background: var(--pr-panel); color: var(--pr-text); padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; font-weight: 500; }
+    #pop-reboot-preview .pr-btn:hover { background: var(--pr-soft); }
+    #pop-reboot-preview .pr-btn.primary { background: var(--pr-blue); color: #fff; border-color: var(--pr-blue); }
+    #pop-reboot-preview .pr-btn.danger { color: var(--pr-red); }
+    #pop-reboot-preview .pr-btn svg { width: 15px; height: 15px; }
+    #pop-reboot-preview .pr-error { display: none; color: var(--pr-red); background: var(--pr-red-soft); border-radius: 7px; padding: 9px 10px; font-size: 11px; margin-top: 9px; }
+    #pop-reboot-preview .pr-error.show { display: block; }
+    #pop-reboot-preview .pr-pops { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+    #pop-reboot-preview .pr-pop-chip { border: 1px solid var(--pr-line); background: var(--pr-soft); color: var(--pr-text); border-radius: 7px; min-height: 31px; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 8px; font-size: 11px; }
+    #pop-reboot-preview .pr-pop-chip button { width: 21px; height: 21px; padding: 0; border: 0; background: transparent; color: var(--pr-muted); display: grid; place-items: center; }
+    #pop-reboot-preview .pr-pop-chip svg { width: 13px; height: 13px; }
+    #pop-reboot-preview .pr-table-wrap { overflow-x: auto; }
+    #pop-reboot-preview table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    #pop-reboot-preview th { color: var(--pr-muted); font-weight: 500; background: var(--pr-softer); text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--pr-line); white-space: nowrap; }
+    #pop-reboot-preview td { padding: 10px 12px; border-bottom: 1px solid var(--pr-line); vertical-align: middle; }
+    #pop-reboot-preview tr:last-child td { border-bottom: 0; }
+    #pop-reboot-preview .pr-check { accent-color: var(--pr-blue); width: 15px; height: 15px; }
+    #pop-reboot-preview .pr-device { display: flex; gap: 8px; align-items: center; min-width: 172px; }
+    #pop-reboot-preview .pr-device-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--pr-blue-soft); color: var(--pr-blue); display: grid; place-items: center; flex: 0 0 auto; }
+    #pop-reboot-preview .pr-device-icon.olt { color: var(--pr-purple); background: color-mix(in srgb, var(--pr-purple) 13%, transparent); }
+    #pop-reboot-preview .pr-device-icon svg { width: 15px; height: 15px; }
+    #pop-reboot-preview .pr-device strong { display: block; font-weight: 500; color: var(--pr-text); }
+    #pop-reboot-preview .pr-device span { display: block; color: var(--pr-muted); font-size: 10px; margin-top: 2px; }
+    #pop-reboot-preview .pr-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 7px; border-radius: 999px; background: var(--pr-soft); color: var(--pr-muted); font-size: 10px; font-weight: 500; }
+    #pop-reboot-preview .pr-tag.olt { color: var(--pr-purple); background: color-mix(in srgb, var(--pr-purple) 13%, transparent); }
+    #pop-reboot-preview .pr-tag.switch { color: var(--pr-blue); background: var(--pr-blue-soft); }
+    #pop-reboot-preview .pr-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    #pop-reboot-preview .pr-stat { background: var(--pr-soft); padding: 12px; border-radius: 8px; }
+    #pop-reboot-preview .pr-stat span { color: var(--pr-muted); font-size: 10px; display: block; }
+    #pop-reboot-preview .pr-stat strong { font-size: 19px; font-weight: 500; margin-top: 4px; display: block; }
+    #pop-reboot-preview .pr-rule-list { display: grid; gap: 10px; margin-top: 14px; }
+    #pop-reboot-preview .pr-rule { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; align-items: start; }
+    #pop-reboot-preview .pr-rule-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--pr-soft); color: var(--pr-blue); display: grid; place-items: center; }
+    #pop-reboot-preview .pr-rule-icon svg { width: 14px; height: 14px; }
+    #pop-reboot-preview .pr-rule strong { font-size: 11px; font-weight: 500; display: block; }
+    #pop-reboot-preview .pr-rule span { color: var(--pr-muted); font-size: 10px; line-height: 1.5; display: block; margin-top: 2px; }
+    #pop-reboot-preview .pr-footer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    #pop-reboot-preview .pr-notice { display: flex; align-items: flex-start; gap: 9px; background: var(--pr-amber-soft); color: var(--pr-amber); border-radius: 8px; padding: 11px 12px; font-size: 11px; line-height: 1.5; }
+    #pop-reboot-preview .pr-notice svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; }
+    #pop-reboot-preview .pr-plan { display: grid; gap: 12px; }
+    #pop-reboot-preview .pr-pop-plan { border: 1px solid var(--pr-line); border-radius: 9px; overflow: hidden; }
+    #pop-reboot-preview .pr-pop-plan-head { background: var(--pr-softer); padding: 11px 13px; display: flex; justify-content: space-between; gap: 12px; align-items: center; border-bottom: 1px solid var(--pr-line); }
+    #pop-reboot-preview .pr-pop-plan-head strong { font-size: 12px; font-weight: 500; }
+    #pop-reboot-preview .pr-pop-plan-head span { color: var(--pr-muted); font-size: 10px; }
+    #pop-reboot-preview .pr-flow { display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr 28px 1fr; align-items: center; padding: 13px; }
+    #pop-reboot-preview .pr-node { min-height: 70px; border-radius: 8px; background: var(--pr-soft); padding: 10px; }
+    #pop-reboot-preview .pr-node strong { font-size: 10px; font-weight: 500; display: block; }
+    #pop-reboot-preview .pr-node span { font-size: 9px; color: var(--pr-muted); line-height: 1.45; display: block; margin-top: 4px; }
+    #pop-reboot-preview .pr-arrow { color: var(--pr-muted); text-align: center; }
+    #pop-reboot-preview .pr-arrow svg { width: 15px; height: 15px; }
+    #pop-reboot-preview .pr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #pop-reboot-preview .pr-time-state { margin-top: 9px; font-size: 11px; border-radius: 7px; padding: 9px 10px; }
+    #pop-reboot-preview .pr-time-state.ok { color: var(--pr-green); background: var(--pr-green-soft); }
+    #pop-reboot-preview .pr-time-state.fail { color: var(--pr-red); background: var(--pr-red-soft); }
+    #pop-reboot-preview .pr-monitor-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, .7fr); gap: 16px; align-items: start; }
+    #pop-reboot-preview .pr-progress { height: 7px; background: var(--pr-soft); overflow: hidden; border-radius: 999px; }
+    #pop-reboot-preview .pr-progress > div { height: 100%; width: 0; background: var(--pr-blue); transition: width .3s ease; }
+    #pop-reboot-preview .pr-live-table .pr-state { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    #pop-reboot-preview .pr-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pr-muted); }
+    #pop-reboot-preview .pr-state.running { color: var(--pr-blue); }
+    #pop-reboot-preview .pr-state.running .pr-dot { background: var(--pr-blue); box-shadow: 0 0 0 4px color-mix(in srgb, var(--pr-blue) 15%, transparent); }
+    #pop-reboot-preview .pr-state.ok { color: var(--pr-green); }
+    #pop-reboot-preview .pr-state.ok .pr-dot { background: var(--pr-green); }
+    #pop-reboot-preview .pr-state.fail { color: var(--pr-red); }
+    #pop-reboot-preview .pr-state.fail .pr-dot { background: var(--pr-red); }
+    #pop-reboot-preview .pr-state.blocked { color: var(--pr-amber); }
+    #pop-reboot-preview .pr-state.blocked .pr-dot { background: var(--pr-amber); }
+    #pop-reboot-preview .pr-event-list { max-height: 465px; overflow: auto; display: grid; }
+    #pop-reboot-preview .pr-event { display: grid; grid-template-columns: 54px minmax(0,1fr); gap: 8px; padding: 10px 13px; border-bottom: 1px solid var(--pr-line); }
+    #pop-reboot-preview .pr-event:last-child { border-bottom: 0; }
+    #pop-reboot-preview .pr-event time { color: var(--pr-muted); font-size: 10px; }
+    #pop-reboot-preview .pr-event strong { font-size: 10px; font-weight: 500; display: block; }
+    #pop-reboot-preview .pr-event span { display: block; color: var(--pr-muted); font-size: 9px; margin-top: 3px; line-height: 1.45; word-break: break-word; }
+    #pop-reboot-preview .pr-pop-status { display: flex; align-items: center; gap: 7px; font-size: 10px; }
+    #pop-reboot-preview .pr-pop-status svg { width: 14px; height: 14px; }
+    #pop-reboot-preview .pr-pop-status.running { color: var(--pr-blue); }
+    #pop-reboot-preview .pr-pop-status.ok { color: var(--pr-green); }
+    #pop-reboot-preview .pr-pop-status.fail { color: var(--pr-red); }
+    #pop-reboot-preview .pr-empty { padding: 34px 16px; text-align: center; color: var(--pr-muted); font-size: 11px; }
+    @media (max-width: 900px) {
+      #pop-reboot-preview .pr-app { grid-template-columns: 64px minmax(0,1fr); }
+      #pop-reboot-preview .pr-side { padding: 18px 10px; }
+      #pop-reboot-preview .pr-brand span, #pop-reboot-preview .pr-brand strong, #pop-reboot-preview .pr-nav-label, #pop-reboot-preview .pr-nav-item span, #pop-reboot-preview .pr-user > div:last-child { display: none; }
+      #pop-reboot-preview .pr-brand, #pop-reboot-preview .pr-nav-item, #pop-reboot-preview .pr-user { justify-content: center; padding-left: 0; padding-right: 0; }
+      #pop-reboot-preview .pr-grid, #pop-reboot-preview .pr-monitor-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 650px) {
+      #pop-reboot-preview { min-height: auto; }
+      #pop-reboot-preview .pr-app { min-height: auto; display: block; }
+      #pop-reboot-preview .pr-side { display: none; }
+      #pop-reboot-preview .pr-topbar { padding: 0 14px; }
+      #pop-reboot-preview .pr-content { padding: 18px 12px 28px; }
+      #pop-reboot-preview .pr-title-row { display: block; }
+      #pop-reboot-preview .pr-job-id { text-align: left; margin-top: 10px; }
+      #pop-reboot-preview .pr-step { padding: 0 9px; }
+      #pop-reboot-preview .pr-step span { display: none; }
+      #pop-reboot-preview .pr-summary, #pop-reboot-preview .pr-form-grid { grid-template-columns: 1fr; }
+      #pop-reboot-preview .pr-flow { grid-template-columns: 1fr; gap: 7px; }
+      #pop-reboot-preview .pr-arrow { transform: rotate(90deg); }
+    }
+  </style>
+
+  <div class="pr-app" aria-label="Bản mô phỏng công cụ reboot thiết bị theo POP">
+    <aside class="pr-side">
+      <div class="pr-brand">
+        <div class="pr-brandmark"><i data-lucide="network" aria-hidden="true"></i></div>
+        <div><strong>NetAuto</strong><span>Operations Portal</span></div>
+      </div>
+      <nav class="pr-nav" aria-label="Điều hướng chính">
+        <div class="pr-nav-label">Nghiệp vụ</div>
+        <div class="pr-nav-item"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Tổng quan</span></div>
+        <div class="pr-nav-item"><i data-lucide="workflow" aria-hidden="true"></i><span>Ops Flow</span></div>
+        <div class="pr-nav-item active"><i data-lucide="rotate-cw" aria-hidden="true"></i><span>Reboot theo POP</span></div>
+        <div class="pr-nav-item"><i data-lucide="server" aria-hidden="true"></i><span>Thiết bị</span></div>
+        <div class="pr-nav-item"><i data-lucide="file-clock" aria-hidden="true"></i><span>Lịch sử</span></div>
+      </nav>
+      <div class="pr-side-foot">
+        <div class="pr-user"><div class="pr-avatar">MB</div><div><strong>minhbq3</strong><span>PKTHT · MN</span></div></div>
+      </div>
+    </aside>
+
+    <main class="pr-main">
+      <header class="pr-topbar">
+        <div class="pr-breadcrumb"><span>Ops Flow</span><span>/</span><strong>Reboot thiết bị theo POP</strong></div>
+        <div class="pr-top-actions"><div class="pr-window-chip" id="pr-window-chip"><i data-lucide="clock-3" aria-hidden="true"></i><span>Trong cửa sổ 02:00–05:00</span></div></div>
+      </header>
+
+      <div class="pr-content">
+        <div class="pr-title-row">
+          <div><h1>Reboot thiết bị theo POP</h1><p class="pr-subtitle">Kiểm tra inventory, xếp thứ tự OLT → Switch và theo dõi trạng thái đến từng thiết bị.</p></div>
+          <div class="pr-job-id">Mã kế hoạch mô phỏng<strong>RBP-260929-001</strong></div>
+        </div>
+
+        <div class="pr-steps" role="tablist" aria-label="Các bước thực hiện">
+          <button class="pr-step active" type="button" data-step="1" aria-selected="true"><span class="pr-step-num">1</span><span><strong>Chọn phạm vi</strong><span>POP và thiết bị</span></span></button>
+          <button class="pr-step" type="button" data-step="2" aria-selected="false"><span class="pr-step-num">2</span><span><strong>Duyệt kế hoạch</strong><span>Thứ tự và điều kiện</span></span></button>
+          <button class="pr-step" type="button" data-step="3" aria-selected="false"><span class="pr-step-num">3</span><span><strong>Theo dõi</strong><span>Realtime theo thiết bị</span></span></button>
+        </div>
+
+        <section class="pr-view" data-view="1">
+          <div class="pr-grid">
+            <div class="pr-panel">
+              <div class="pr-panel-head">
+                <div class="pr-panel-title"><i data-lucide="map-pin" aria-hidden="true"></i><div><strong>Chọn POP</strong><span>POP hợp lệ được đối chiếu trực tiếp từ DeviceTable</span></div></div>
+              </div>
+              <div class="pr-panel-body">
+                <label class="pr-label" for="pr-pop-input">Tên POP</label>
+                <div class="pr-input-row">
+                  <input class="pr-input" id="pr-pop-input" list="pr-pop-list" value="" placeholder="Ví dụ: HCMP400" autocomplete="off">
+                  <datalist id="pr-pop-list"><option value="HCMP400"></option><option value="DNIP024"></option><option value="VLGP003"></option></datalist>
+                  <button class="pr-btn" id="pr-add-pop" type="button"><i data-lucide="plus" aria-hidden="true"></i>Thêm POP</button>
+                </div>
+                <div class="pr-error" id="pr-pop-error" role="alert">Không tìm thấy POP này trên hạ tầng.</div>
+                <div class="pr-pops" id="pr-pop-chips"></div>
+              </div>
+              <div class="pr-panel-head">
+                <div class="pr-panel-title"><i data-lucide="list-checks" aria-hidden="true"></i><div><strong>Danh sách thiết bị</strong><span>Bỏ chọn những thiết bị không muốn reboot</span></div></div>
+                <span class="pr-tag" id="pr-selected-label">0 thiết bị đã chọn</span>
+              </div>
+              <div class="pr-table-wrap">
+                <table aria-label="Danh sách thiết bị theo POP">
+                  <thead><tr><th style="width:40px"><input class="pr-check" id="pr-check-all" type="checkbox" checked aria-label="Chọn tất cả thiết bị"></th><th>Thiết bị</th><th>POP</th><th>Loại</th><th>Vendor / Model</th><th>Trạng thái DB</th></tr></thead>
+                  <tbody id="pr-device-body"></tbody>
+                </table>
+                <div class="pr-empty" id="pr-device-empty" hidden>Chọn ít nhất một POP để tải danh sách thiết bị.</div>
+              </div>
+            </div>
+
+            <aside class="pr-panel">
+              <div class="pr-panel-head"><div class="pr-panel-title"><i data-lucide="shield-check" aria-hidden="true"></i><div><strong>Điều kiện vận hành</strong><span>Áp dụng trước và sau reboot</span></div></div></div>
+              <div class="pr-panel-body">
+                <div class="pr-summary"><div class="pr-stat"><span>POP</span><strong id="pr-pop-count">0</strong></div><div class="pr-stat"><span>OLT</span><strong id="pr-olt-count">0</strong></div><div class="pr-stat"><span>Switch</span><strong id="pr-switch-count">0</strong></div></div>
+                <div class="pr-rule-list">
+                  <div class="pr-rule"><div class="pr-rule-icon"><i data-lucide="clock" aria-hidden="true"></i></div><div><strong>Giới hạn giờ chạy</strong><span>Chỉ cho phép bắt đầu từ 02:00 đến trước 05:00.</span></div></div>
+                  <div class="pr-rule"><div class="pr-rule-icon"><i data-lucide="layers-3" aria-hidden="true"></i></div><div><strong>Thứ tự trong từng POP</strong><span>Reboot toàn bộ OLT, chờ xác minh xong rồi mới mở batch Switch.</span></div></div>
+                  <div class="pr-rule"><div class="pr-rule-icon"><i data-lucide="timer-off" aria-hidden="true"></i></div><div><strong>Timeout độc lập</strong><span>Quá 5 phút không ping được: dừng riêng POP đó, không khởi động thêm thiết bị.</span></div></div>
+                  <div class="pr-rule"><div class="pr-rule-icon"><i data-lucide="activity" aria-hidden="true"></i></div><div><strong>Xác minh sau reboot</strong><span>Ping OK chưa đủ; uptime bắt buộc nhỏ hơn 10 phút.</span></div></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <div class="pr-footer-actions"><button class="pr-btn primary" id="pr-to-review" type="button">Duyệt kế hoạch <i data-lucide="arrow-right" aria-hidden="true"></i></button></div>
+        </section>
+
+        <section class="pr-view" data-view="2" hidden>
+          <div class="pr-grid">
+            <div class="pr-panel">
+              <div class="pr-panel-head"><div class="pr-panel-title"><i data-lucide="git-merge" aria-hidden="true"></i><div><strong>Luồng thực thi dự kiến</strong><span>Các POP độc lập; từng POP luôn khóa OLT trước Switch</span></div></div></div>
+              <div class="pr-panel-body"><div class="pr-plan" id="pr-plan"></div></div>
+            </div>
+            <aside class="pr-panel">
+              <div class="pr-panel-head"><div class="pr-panel-title"><i data-lucide="settings-2" aria-hidden="true"></i><div><strong>Điều kiện chạy mô phỏng</strong><span>Đổi giờ hoặc kịch bản để duyệt trạng thái UI</span></div></div></div>
+              <div class="pr-panel-body">
+                <div class="pr-form-grid">
+                  <label><span class="pr-label">Giờ bắt đầu</span><input class="pr-input" id="pr-start-time" type="time" value="03:15"></label>
+                  <label><span class="pr-label">Kịch bản</span><select class="pr-select" id="pr-scenario"><option value="success">Tất cả thành công</option><option value="timeout">Một OLT timeout</option><option value="uptime">Uptime không hợp lệ</option></select></label>
+                </div>
+                <div class="pr-time-state ok" id="pr-time-state">Hợp lệ — kế hoạch nằm trong cửa sổ 02:00–05:00.</div>
+                <div class="pr-notice" style="margin-top:12px"><i data-lucide="triangle-alert" aria-hidden="true"></i><span>Trong sản phẩm thật, nút chạy sẽ gửi lệnh reboot. Bản này chỉ mô phỏng trạng thái và không kết nối thiết bị.</span></div>
+                <div class="pr-rule-list">
+                  <div class="pr-rule"><div class="pr-rule-icon"><i data-lucide="database-zap" aria-hidden="true"></i></div><div><strong>Realtime DB</strong><span>Mỗi chuyển trạng thái thiết bị phát sinh một atomic update vào OpsFlowJobDetails.</span></div></div>
+                  <div class="pr-rule"><div class="pr-rule-icon"><i data-lucide="file-text" aria-hidden="true"></i></div><div><strong>Log theo run / POP / device</strong><span>Event log gọn để tra cứu; terminal transcript tách riêng theo thiết bị.</span></div></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+          <div class="pr-footer-actions"><button class="pr-btn" data-back="1" type="button"><i data-lucide="arrow-left" aria-hidden="true"></i>Quay lại</button><button class="pr-btn primary" id="pr-run" type="button"><i data-lucide="play" aria-hidden="true"></i>Chạy mô phỏng</button></div>
+        </section>
+
+        <section class="pr-view" data-view="3" hidden>
+          <div class="pr-monitor-grid">
+            <div class="pr-panel">
+              <div class="pr-panel-head">
+                <div class="pr-panel-title"><i data-lucide="radio-tower" aria-hidden="true"></i><div><strong>Trạng thái thực thi</strong><span id="pr-monitor-subtitle">Sẵn sàng chạy mô phỏng</span></div></div>
+                <button class="pr-btn" id="pr-replay" type="button"><i data-lucide="refresh-cw" aria-hidden="true"></i>Chạy lại</button>
+              </div>
+              <div class="pr-panel-body"><div class="pr-progress" role="progressbar" aria-label="Tiến độ mô phỏng" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="pr-progress-bar"></div></div></div>
+              <div class="pr-table-wrap pr-live-table"><table aria-label="Trạng thái reboot từng thiết bị"><thead><tr><th>Thiết bị</th><th>POP</th><th>Giai đoạn</th><th>Ping</th><th>Uptime</th><th>Kết quả</th></tr></thead><tbody id="pr-live-body"></tbody></table></div>
+            </div>
+            <aside class="pr-panel">
+              <div class="pr-panel-head"><div class="pr-panel-title"><i data-lucide="list-tree" aria-hidden="true"></i><div><strong>Realtime event</strong><span>Event và DB update mới nhất</span></div></div></div>
+              <div class="pr-event-list" id="pr-events" aria-live="polite"></div>
+            </aside>
+          </div>
+          <div class="pr-footer-actions"><button class="pr-btn" data-back="2" type="button"><i data-lucide="arrow-left" aria-hidden="true"></i>Xem kế hoạch</button></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('pop-reboot-preview');
+      if (!root) return;
+
+      const inventory = {
+        HCMP400: [
+          { id: 'HCMP40003HA58', ip: '11.53.61.12', type: 'OLT', vendor: 'Huawei', model: 'HA58' },
+          { id: 'HCMP40004GC16', ip: '11.53.61.13', type: 'OLT', vendor: 'GCOM', model: 'GC16' },
+          { id: 'DI701001HCMP40001HW61', ip: '11.53.81.11', type: 'SWITCH', vendor: 'Huawei', model: 'HW61' },
+          { id: 'CE701001HCMP40002CH52', ip: '11.53.81.21', type: 'SWITCH', vendor: 'H3C', model: 'CH52' }
+        ],
+        DNIP024: [
+          { id: 'DNIP02404HA58', ip: '11.55.124.71', type: 'OLT', vendor: 'Huawei', model: 'HA58' },
+          { id: 'DNIP02405ZA62', ip: '11.55.124.72', type: 'OLT', vendor: 'ZTE', model: 'ZA62' },
+          { id: 'DI701001DNIP02401HW57', ip: '11.55.84.31', type: 'SWITCH', vendor: 'Huawei', model: 'HW57' }
+        ],
+        VLGP003: [
+          { id: 'VLGP00302GC16', ip: '11.64.61.12', type: 'OLT', vendor: 'GCOM', model: 'GC16' },
+          { id: 'CE701001VLGP00302CH52', ip: '11.64.61.21', type: 'SWITCH', vendor: 'H3C', model: 'CH52' }
+        ]
+      };
+
+      const saved = (window.openai && window.openai.widgetState && window.openai.widgetState.privateContent) || {};
+      const state = {
+        pops: Array.isArray(saved.pops) ? saved.pops.filter(p => inventory[p]) : ['HCMP400', 'DNIP024'],
+        excluded: new Set(Array.isArray(saved.excluded) ? saved.excluded : ['CE701001HCMP40002CH52']),
+        view: Number(saved.view) || 1,
+        timers: []
+      };
+
+      const $ = (selector) => root.querySelector(selector);
+      const $$ = (selector) => Array.from(root.querySelectorAll(selector));
+      const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
+      const allDevices = () => state.pops.flatMap(pop => inventory[pop].map(device => ({ ...device, pop })));
+      const selectedDevices = () => allDevices().filter(device => !state.excluded.has(device.id));
+
+      function persist() {
+        if (window.openai && window.openai.setWidgetState) {
+          window.openai.setWidgetState({
+            modelContent: { selectedPops: state.pops, selectedDeviceCount: selectedDevices().length, activeStep: state.view },
+            privateContent: { pops: state.pops, excluded: Array.from(state.excluded), view: state.view }
+          }).catch(() => {});
+        }
+      }
+
+      function refreshIcons() {
+        if (globalThis.lucide) globalThis.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+      }
+
+      function renderSelection() {
+        const chips = $('#pr-pop-chips');
+        chips.innerHTML = state.pops.map(pop => `<div class="pr-pop-chip"><span>${pop}</span><button type="button" data-remove-pop="${pop}" aria-label="Bỏ POP ${pop}">${icon('x')}</button></div>`).join('');
+        const devices = allDevices();
+        $('#pr-device-body').innerHTML = devices.map(device => {
+          const checked = !state.excluded.has(device.id);
+          const deviceIcon = device.type === 'OLT' ? 'radio-tower' : 'network';
+          return `<tr>
+            <td><input class="pr-check pr-device-check" type="checkbox" data-device="${device.id}" ${checked ? 'checked' : ''} aria-label="Chọn ${device.id}"></td>
+            <td><div class="pr-device"><div class="pr-device-icon ${device.type.toLowerCase()}">${icon(deviceIcon)}</div><div><strong>${device.id}</strong><span>${device.ip}</span></div></div></td>
+            <td>${device.pop}</td><td><span class="pr-tag ${device.type.toLowerCase()}">${device.type}</span></td><td>${device.vendor} · ${device.model}</td><td><span class="pr-state ok"><span class="pr-dot"></span>Active</span></td>
+          </tr>`;
+        }).join('');
+        $('#pr-device-empty').hidden = devices.length > 0;
+        $('#pr-check-all').checked = devices.length > 0 && devices.every(device => !state.excluded.has(device.id));
+        updateCounts();
+        refreshIcons();
+      }
+
+      function updateCounts() {
+        const devices = selectedDevices();
+        $('#pr-selected-label').textContent = `${devices.length} thiết bị đã chọn`;
+        $('#pr-pop-count').textContent = new Set(devices.map(d => d.pop)).size;
+        $('#pr-olt-count').textContent = devices.filter(d => d.type === 'OLT').length;
+        $('#pr-switch-count').textContent = devices.filter(d => d.type === 'SWITCH').length;
+      }
+
+      function showView(view) {
+        state.view = view;
+        $$('.pr-view').forEach(section => { section.hidden = Number(section.dataset.view) !== view; });
+        $$('.pr-step').forEach((step, index) => {
+          const stepNo = index + 1;
+          step.classList.toggle('active', stepNo === view);
+          step.classList.toggle('done', stepNo < view);
+          step.setAttribute('aria-selected', stepNo === view ? 'true' : 'false');
+        });
+        if (view === 2) renderPlan();
+        persist();
+        refreshIcons();
+      }
+
+      function renderPlan() {
+        const devices = selectedDevices();
+        const pops = Array.from(new Set(devices.map(d => d.pop)));
+        $('#pr-plan').innerHTML = pops.map(pop => {
+          const popDevices = devices.filter(d => d.pop === pop);
+          const olts = popDevices.filter(d => d.type === 'OLT');
+          const switches = popDevices.filter(d => d.type === 'SWITCH');
+          const names = list => list.length ? list.map(d => d.id).join(', ') : 'Không có thiết bị';
+          return `<article class="pr-pop-plan">
+            <div class="pr-pop-plan-head"><strong>${pop}</strong><span>${popDevices.length} thiết bị · lane độc lập</span></div>
+            <div class="pr-flow">
+              <div class="pr-node"><strong>1 · Reboot OLT (${olts.length})</strong><span>${names(olts)}</span></div><div class="pr-arrow">${icon('arrow-right')}</div>
+              <div class="pr-node"><strong>2 · Ping + uptime</strong><span>Loop tối đa 5 phút; uptime &lt; 10 phút</span></div><div class="pr-arrow">${icon('arrow-right')}</div>
+              <div class="pr-node"><strong>3 · Reboot Switch (${switches.length})</strong><span>${names(switches)}</span></div><div class="pr-arrow">${icon('arrow-right')}</div>
+              <div class="pr-node"><strong>4 · Hoàn tất POP</strong><span>Ghi kết quả từng thiết bị và tổng hợp</span></div>
+            </div>
+          </article>`;
+        }).join('') || '<div class="pr-empty">Chưa có thiết bị trong kế hoạch.</div>';
+        refreshIcons();
+      }
+
+      function validateTime() {
+        const value = $('#pr-start-time').value || '00:00';
+        const [hours, minutes] = value.split(':').map(Number);
+        const minuteOfDay = hours * 60 + minutes;
+        const valid = minuteOfDay >= 120 && minuteOfDay < 300;
+        const box = $('#pr-time-state');
+        box.className = `pr-time-state ${valid ? 'ok' : 'fail'}`;
+        box.textContent = valid ? 'Hợp lệ — kế hoạch nằm trong cửa sổ 02:00–05:00.' : 'Không hợp lệ — chỉ được bắt đầu từ 02:00 đến trước 05:00.';
+        $('#pr-run').disabled = !valid;
+        $('#pr-run').style.opacity = valid ? '1' : '.45';
+        return valid;
+      }
+
+      function statusMarkup(status, text) {
+        return `<span class="pr-state ${status}"><span class="pr-dot"></span>${text}</span>`;
+      }
+
+      function addEvent(title, detail, tone = '') {
+        const now = new Date();
+        const time = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const el = document.createElement('div');
+        el.className = 'pr-event';
+        el.innerHTML = `<time>${time}</time><div><strong${tone ? ` style="color:var(--pr-${tone})"` : ''}>${title}</strong><span>${detail}</span></div>`;
+        $('#pr-events').prepend(el);
+      }
+
+      function clearTimers() {
+        state.timers.forEach(timer => clearTimeout(timer));
+        state.timers = [];
+      }
+
+      function renderLiveRows() {
+        $('#pr-live-body').innerHTML = selectedDevices().map(device => `<tr data-live-device="${device.id}">
+          <td><div class="pr-device"><div class="pr-device-icon ${device.type.toLowerCase()}">${icon(device.type === 'OLT' ? 'radio-tower' : 'network')}</div><div><strong>${device.id}</strong><span>${device.ip}</span></div></div></td>
+          <td>${device.pop}</td><td data-col="stage">Chờ thực thi</td><td data-col="ping">—</td><td data-col="uptime">—</td><td data-col="result">${statusMarkup('', 'Pending')}</td>
+        </tr>`).join('');
+        refreshIcons();
+      }
+
+      function updateDevice(id, values) {
+        const row = root.querySelector(`[data-live-device="${id}"]`);
+        if (!row) return;
+        Object.entries(values).forEach(([key, value]) => {
+          const cell = row.querySelector(`[data-col="${key}"]`);
+          if (cell) cell.innerHTML = value;
+        });
+      }
+
+      function schedule(delay, callback) {
+        state.timers.push(setTimeout(callback, delay));
+      }
+
+      function runSimulation() {
+        if (!validateTime()) return;
+        clearTimers();
+        showView(3);
+        renderLiveRows();
+        $('#pr-events').innerHTML = '';
+        const scenario = $('#pr-scenario').value;
+        const devices = selectedDevices();
+        const popNames = Array.from(new Set(devices.map(d => d.pop)));
+        const progress = $('#pr-progress-bar');
+        const progressWrap = progress.parentElement;
+        progress.style.width = '4%';
+        progressWrap.setAttribute('aria-valuenow', '4');
+        $('#pr-monitor-subtitle').textContent = `${popNames.length} POP đang chạy độc lập · cập nhật realtime`;
+        addEvent('RUN_STARTED', `${devices.length} thiết bị · ${popNames.length} POP · cửa sổ hợp lệ`, 'blue');
+        addEvent('DB_UPDATE', 'OpsFlowJobDetails.execution.status = running');
+
+        popNames.forEach((pop, popIndex) => {
+          const popDevices = devices.filter(d => d.pop === pop);
+          const olts = popDevices.filter(d => d.type === 'OLT');
+          const switches = popDevices.filter(d => d.type === 'SWITCH');
+          const base = popIndex * 280;
+          schedule(350 + base, () => {
+            addEvent(`${pop} · OLT_BATCH`, `Gửi reboot tới ${olts.length} OLT`, 'blue');
+            olts.forEach(d => updateDevice(d.id, { stage: 'Đã nhận lệnh reboot', result: statusMarkup('running', 'Rebooting') }));
+          });
+          schedule(1000 + base, () => {
+            olts.forEach(d => updateDevice(d.id, { stage: 'Chờ thiết bị lên', ping: statusMarkup('running', 'Polling'), result: statusMarkup('running', 'Verifying') }));
+            addEvent(`${pop} · PING_POLL`, 'Bắt đầu loop ping OLT; deadline 5 phút');
+          });
+          schedule(1850 + base, () => {
+            const failing = scenario !== 'success' && popIndex === 0 ? olts[olts.length - 1] : null;
+            olts.forEach((d, idx) => {
+              if (d === failing && scenario === 'timeout') {
+                updateDevice(d.id, { stage: 'Hết thời gian chờ', ping: statusMarkup('fail', 'Timeout 5m'), uptime: '—', result: statusMarkup('fail', 'Failed') });
+                return;
+              }
+              const uptimeBad = d === failing && scenario === 'uptime';
+              updateDevice(d.id, {
+                stage: 'Đã xác minh',
+                ping: statusMarkup('ok', 'Ping OK'),
+                uptime: uptimeBad ? statusMarkup('fail', '18m 42s') : statusMarkup('ok', `${3 + idx}m ${12 + idx * 7}s`),
+                result: uptimeBad ? statusMarkup('fail', 'Uptime > 10m') : statusMarkup('ok', 'Success')
+              });
+              addEvent('DB_UPDATE', `devices.${d.id}.status = ${uptimeBad ? 'failed_uptime' : 'verified'}`);
+            });
+            if (failing) {
+              switches.forEach(d => updateDevice(d.id, { stage: 'Không khởi động', result: statusMarkup('blocked', 'Blocked by OLT') }));
+              const reason = scenario === 'timeout' ? `${failing.id} không ping sau 5 phút` : `${failing.id} uptime lớn hơn 10 phút`;
+              addEvent(`${pop} · POP_STOPPED`, `${reason}; không start batch Switch`, 'red');
+            } else {
+              addEvent(`${pop} · OLT_VERIFIED`, 'Tất cả OLT ping OK và uptime hợp lệ', 'green');
+              switches.forEach(d => updateDevice(d.id, { stage: 'Đã nhận lệnh reboot', result: statusMarkup('running', 'Rebooting') }));
+              if (switches.length) addEvent(`${pop} · SWITCH_BATCH`, `Mở batch ${switches.length} Switch`, 'blue');
+            }
+          });
+          schedule(2750 + base, () => {
+            const popFailed = scenario !== 'success' && popIndex === 0;
+            if (popFailed) return;
+            switches.forEach((d, idx) => {
+              updateDevice(d.id, { stage: 'Đã xác minh', ping: statusMarkup('ok', 'Ping OK'), uptime: statusMarkup('ok', `${4 + idx}m 08s`), result: statusMarkup('ok', 'Success') });
+              addEvent('DB_UPDATE', `devices.${d.id}.status = verified`);
+            });
+            addEvent(`${pop} · COMPLETED`, 'Toàn bộ thiết bị trong POP đã xác minh', 'green');
+          });
+        });
+        schedule(3750 + popNames.length * 280, () => {
+          const failed = scenario !== 'success' && popNames.length > 0;
+          progress.style.width = '100%';
+          progress.style.background = failed ? 'var(--pr-amber)' : 'var(--pr-green)';
+          progressWrap.setAttribute('aria-valuenow', '100');
+          $('#pr-monitor-subtitle').textContent = failed ? 'Hoàn tất có lỗi · các POP khác không bị ảnh hưởng' : 'Hoàn tất · tất cả thiết bị đã xác minh';
+          addEvent('RUN_FINISHED', failed ? 'Kết thúc với 1 POP lỗi; các POP còn lại hoàn tất' : 'Tất cả POP hoàn tất thành công', failed ? 'amber' : 'green');
+          addEvent('DB_UPDATE', `OpsFlowJobDetails.execution.status = ${failed ? 'partial_failed' : 'finished'}`);
+        });
+      }
+
+      $('#pr-add-pop').addEventListener('click', () => {
+        const input = $('#pr-pop-input');
+        const pop = input.value.trim().toUpperCase();
+        const error = $('#pr-pop-error');
+        if (!inventory[pop]) { error.classList.add('show'); return; }
+        error.classList.remove('show');
+        if (!state.pops.includes(pop)) state.pops.push(pop);
+        input.value = '';
+        renderSelection();
+        persist();
+      });
+      $('#pr-pop-input').addEventListener('keydown', event => { if (event.key === 'Enter') $('#pr-add-pop').click(); });
+      $('#pr-pop-chips').addEventListener('click', event => {
+        const button = event.target.closest('[data-remove-pop]');
+        if (!button) return;
+        const pop = button.dataset.removePop;
+        state.pops = state.pops.filter(item => item !== pop);
+        inventory[pop].forEach(device => state.excluded.delete(device.id));
+        renderSelection();
+        persist();
+      });
+      $('#pr-device-body').addEventListener('change', event => {
+        if (!event.target.matches('.pr-device-check')) return;
+        const id = event.target.dataset.device;
+        if (event.target.checked) state.excluded.delete(id); else state.excluded.add(id);
+        renderSelection();
+        persist();
+      });
+      $('#pr-check-all').addEventListener('change', event => {
+        allDevices().forEach(device => { if (event.target.checked) state.excluded.delete(device.id); else state.excluded.add(device.id); });
+        renderSelection();
+        persist();
+      });
+      $('#pr-to-review').addEventListener('click', () => { if (selectedDevices().length) showView(2); });
+      $$('.pr-step').forEach(step => step.addEventListener('click', () => showView(Number(step.dataset.step))));
+      $$('[data-back]').forEach(button => button.addEventListener('click', () => showView(Number(button.dataset.back))));
+      $('#pr-start-time').addEventListener('input', validateTime);
+      $('#pr-run').addEventListener('click', runSimulation);
+      $('#pr-replay').addEventListener('click', runSimulation);
+
+      window.addEventListener('openai:set_globals', event => {
+        const next = event.detail && event.detail.globals && event.detail.globals.widgetState;
+        if (!next || !next.privateContent) return;
+      });
+
+      renderSelection();
+      validateTime();
+      showView(Math.min(3, Math.max(1, state.view)));
+    })();
+  </script>
+</div>

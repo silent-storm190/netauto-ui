@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NetAuto · Portal Vận hành</title>
+  <link rel="stylesheet" href="shared/netauto-shell.css">
+</head>
+<body>
+  <div class="na-shell" id="netautoApp">
+    <aside class="na-rail" aria-label="Thanh công cụ NetAuto">
+      <div class="na-rail-logo">◆</div>
+      <button class="na-rail-app is-active" type="button" aria-label="Portal Vận hành">▦</button>
+      <div class="na-rail-separator"></div>
+      <button class="na-rail-icon" type="button" aria-label="Tài khoản">B</button>
+      <button class="na-rail-icon" type="button" aria-label="Bảo mật">◈</button>
+      <button class="na-rail-icon" type="button" aria-label="Kho ứng dụng">⌂</button>
+      <button class="na-rail-icon" type="button" aria-label="Giám sát">◎</button>
+      <button class="na-rail-icon" type="button" aria-label="Cài đặt">⚙</button>
+      <span class="na-rail-grow"></span>
+      <button class="na-rail-icon" type="button" aria-label="Thống kê">▥</button>
+    </aside>
+
+    <header class="na-globalbar">
+      <button class="na-apps-button" type="button" aria-label="Danh sách ứng dụng">▦</button>
+      <div class="na-global-spacer"></div>
+      <label class="na-environment"><input type="checkbox"><span></span><b>FILENAME</b></label>
+      <label class="na-environment is-staging"><input type="checkbox"><span></span><b>STAGING</b></label>
+      <button class="na-code-button" type="button" aria-label="Developer tools">‹›</button>
+      <button class="na-command-button" id="commandButton" type="button"><span>⌕</span><span>Tìm nhanh</span><kbd>Ctrl+K</kbd><small>hay</small><kbd>/</kbd></button>
+      <button class="na-top-icon" id="themeButton" type="button" aria-label="Đổi chế độ sáng tối">◐</button>
+      <button class="na-top-icon" type="button" aria-label="Chụp màn hình">▣</button>
+      <div class="na-avatar">B</div>
+    </header>
+
+    <section class="na-portal" id="portalWindow">
+      <header class="na-portalbar">
+        <button class="na-sidebar-toggle" id="sidebarToggle" type="button" aria-label="Thu gọn menu">◧</button>
+        <div class="na-portal-brand"><span>ϟ</span><b>Portal Vận hành</b></div>
+        <button class="na-fullscreen" id="fullscreenButton" type="button">↗ <span>Mở Fullscreen</span></button>
+      </header>
+
+      <aside class="na-sidebar" aria-label="Danh mục vận hành">
+        <div class="na-sidebar-label">Danh mục vận hành</div>
+        <nav>
+          <button class="na-nav-item is-active" type="button" data-module="pop"><span class="na-nav-icon">⬡</span><span>Quản lý POP và Thiết bị</span></button>
+          <button class="na-nav-item" type="button" data-module="business"><span class="na-nav-icon">▣</span><span>Quản lý Nghiệp vụ</span></button>
+        </nav>
+        <div class="na-sidebar-info"><span>NETAUTO</span><strong>Production UI mockup</strong><small>Đối chiếu screenshot 02/10/2026</small></div>
+      </aside>
+
+      <main class="na-content">
+        <section class="na-page" id="popPage" data-page="pop">
+          <div class="na-page-heading">
+            <div><div class="na-breadcrumb">Vận hành <span>/</span> POP & Thiết bị</div><h1>Quản lý POP và Thiết bị</h1><p>Chọn vùng, chi nhánh hoặc tìm trực tiếp POP và thiết bị.</p></div>
+            <div class="na-heading-actions"><button class="na-button" id="refreshPop" type="button">↻ Tải lại</button><button class="na-button is-primary" id="registerDevice" type="button">＋ Đăng ký thiết bị</button></div>
+          </div>
+
+          <section class="na-filter-panel" aria-label="Bộ lọc khu vực">
+            <div class="na-region-row"><button class="na-region-name is-selected" type="button" data-area="MB">Miền Bắc</button><div class="na-province-list" id="northProvinces"></div></div>
+            <div class="na-region-row"><button class="na-region-name" type="button" data-area="MN">Miền Nam</button><div class="na-province-list" id="southProvinces"></div></div>
+          </section>
+
+          <section class="na-summary-row" aria-label="Thống kê POP và thiết bị">
+            <label class="na-search-card"><b>Tìm POP, thiết bị, IP hoặc model</b><span><i>⌕</i><input id="popSearch" type="search" placeholder="Ví dụ: HCMP160, GC16, 11.68.209.11"></span></label>
+            <article class="na-stat-card"><span>POP theo bộ lọc</span><strong id="popTotal">3.896</strong><small>trên 3.896 POP</small></article>
+            <article class="na-stat-card is-blue"><span>Tổng thiết bị</span><strong id="deviceTotal">19.162</strong><small>từ dữ liệu production</small></article>
+            <article class="na-stat-card is-cyan"><span>Switch · OLT</span><strong id="networkStats">4.671 · 7.394</strong><small>theo loại thiết bị</small></article>
+            <article class="na-stat-card is-warm"><span>Nguồn · IPMS · OPMS</span><strong id="powerStats">5.539 · 452 · 1.104</strong><small>theo function và nameDev</small></article>
+          </section>
+
+          <div class="na-section-head"><div><h2>Danh sách POP</h2><p>Chọn POP để xem danh sách thiết bị và thông tin inventory.</p></div><span id="popResultCount">Hiển thị 14 / 3.896 POP</span></div>
+          <div class="na-pop-grid" id="popGrid" aria-live="polite"></div>
+          <div class="na-empty" id="popEmpty" hidden><b>Không tìm thấy dữ liệu phù hợp</b><span>Thử bỏ bớt điều kiện lọc hoặc tìm theo IP thiết bị.</span></div>
+        </section>
+
+        <section class="na-page" id="businessPage" data-page="business" hidden>
+          <div class="na-page-heading na-business-heading">
+            <div><div class="na-breadcrumb">Vận hành <span>/</span> Quản lý Nghiệp vụ</div><h1>Quản lý Nghiệp vụ</h1><p>Lập kế hoạch, theo dõi và mở workspace riêng cho từng loại nghiệp vụ.</p></div>
+            <button class="na-button is-primary" id="createPlanButton" type="button">＋ Tạo kế hoạch</button>
+          </div>
+
+          <nav class="na-subnav" id="businessSubnav" aria-label="Các trang nghiệp vụ">
+            <button class="is-active" type="button" data-business-page="plans"><span>▣</span>Kế hoạch</button>
+            <button type="button" data-business-page="olt"><span>▦</span>OLT Initialize</button>
+            <button type="button" data-business-page="switchce"><span>▤</span>SwitchCE Initialize</button>
+            <button type="button" data-business-page="bandwidth"><span>↗</span>Bandwidth Upgrade</button>
+            <button type="button" data-business-page="stack"><span>⧉</span>Switch Stack Join</button>
+            <button type="button" data-business-page="power"><span>ϟ</span>Power Monitoring</button>
+          </nav>
+
+          <section class="na-business-view" id="planListView" data-business-view="plans">
+            <div class="na-plan-toolbar"><div class="na-view-toggle"><button class="is-active" type="button">Bảng</button><button type="button" id="calendarHint">Lịch</button></div></div>
+            <section class="na-plan-filter"><label><span>Tìm kiếm</span><div><i>⌕</i><input id="planSearch" type="search" placeholder="Tên kế hoạch, mã KH hoặc người tạo..."></div></label><div class="na-plan-filter-actions"><button class="na-button" id="expandFilter" type="button">☷ Mở rộng</button><button class="na-button" id="resetPlans" type="button">↻ Đặt lại</button><button class="na-button is-primary" id="searchPlans" type="button">⌕ Tìm</button></div><div class="na-expanded-filters" id="expandedFilters" hidden><select id="typeFilter"><option value="all">Tất cả loại nghiệp vụ</option><option value="olt">OLT Initialize</option><option value="switchce">SwitchCE Initialize</option><option value="stack">Switch Stack Join</option><option value="power">Power Monitoring</option><option value="bandwidth">Bandwidth Upgrade</option></select><select id="statusFilter"><option value="all">Tất cả trạng thái</option><option value="failed">Thất bại</option><option value="new">Mới tạo</option><option value="allocated">Đã cấp phát</option><option value="completed">Hoàn thành</option></select></div></section>
+            <section class="na-table-panel"><div class="na-table-wrap"><table class="na-table"><thead><tr><th>Kế hoạch</th><th>Loại</th><th>Thời gian tạo</th><th>Người tạo</th><th>Trạng thái</th><th></th></tr></thead><tbody id="planTableBody"></tbody></table></div><footer><span id="planCount">6 kế hoạch</span><div><button type="button" disabled>‹</button><b>1</b><button type="button">›</button></div></footer></section>
+          </section>
+
+          <section class="na-business-view na-workflow-view" id="workflowView" data-business-view="workflow" hidden>
+            <div class="na-workflow-intro"><div class="na-workflow-mark" id="workflowMark">▦</div><div><span id="workflowKicker">Configuration workflow</span><h2 id="workflowTitle">OLT Initialize</h2><p id="workflowDescription"></p></div><div class="na-workflow-actions"><select id="workflowCase" aria-label="Trạng thái mô phỏng"><option value="success">Config thành công</option><option value="failed">Config thất bại</option><option value="precheck">Pre-check thành công</option><option value="allocated">Cấp phát thành công</option><option value="created">Tạo kế hoạch thành công</option></select><button class="na-button" id="openWorkflowTab" type="button">Mở tab mới ↗</button></div></div>
+            <div class="na-workflow-frame-wrap"><div class="na-frame-loader" id="frameLoader"><span></span>Đang mở giao diện nghiệp vụ…</div><iframe id="workflowFrame" title="Giao diện nghiệp vụ" loading="eager"></iframe></div>
+          </section>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div class="na-drawer-backdrop" id="popDrawerBackdrop" hidden>
+    <aside class="na-pop-drawer" role="dialog" aria-modal="true" aria-labelledby="drawerPopName">
+      <header><div><span>POP & THIẾT BỊ</span><h2 id="drawerPopName">AGGM001</h2><p id="drawerPopMeta"></p></div><button id="closePopDrawer" type="button" aria-label="Đóng">×</button></header>
+      <div class="na-drawer-stats" id="drawerStats"></div>
+      <div class="na-device-toolbar"><b>Danh sách thiết bị</b><label>⌕<input id="deviceSearch" type="search" placeholder="Tìm hostname hoặc IP"></label></div>
+      <div class="na-device-list" id="deviceList"></div>
+    </aside>
+  </div>
+
+  <div class="na-modal-backdrop" id="commandPalette">
+    <div class="na-command" role="dialog" aria-modal="true" aria-label="Tìm nhanh"><label>⌕<input id="commandInput" type="search" placeholder="Tìm POP, thiết bị hoặc nghiệp vụ..."><kbd>Esc</kbd></label><div id="commandResults"></div></div>
+  </div>
+  <div class="na-toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="shared/netauto-data.js"></script>
+  <script src="shared/netauto-app.js"></script>
+</body>
+</html>

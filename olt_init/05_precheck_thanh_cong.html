@@ -1,0 +1,1716 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>OLT Initialize — Bản duyệt giao diện</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --line: #e3e9f2;
+      --line-strong: #d4deeb;
+      --text: #14233a;
+      --muted: #66758b;
+      --muted-2: #8e9bad;
+      --blue: #2563eb;
+      --blue-strong: #1554d1;
+      --blue-soft: #eaf2ff;
+      --cyan: #0891b2;
+      --cyan-soft: #e6f8fb;
+      --green: #0ca65a;
+      --green-soft: #e8f8ef;
+      --amber: #e58a00;
+      --amber-soft: #fff6df;
+      --red: #dc3b4f;
+      --red-soft: #fff0f2;
+      --shadow: 0 8px 24px rgba(26, 53, 91, .06);
+      --radius: 14px;
+      --radius-sm: 9px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button { font: inherit; }
+    button:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, .22);
+      outline-offset: 2px;
+    }
+
+    .topbar {
+      height: 54px;
+      padding: 0 24px;
+      background: rgba(255, 255, 255, .95);
+      border-bottom: 1px solid #edf1f6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand, .top-actions, .toolbar-actions, .section-title,
+    .button-row, .status-line, .device-title, .panel-title,
+    .result-heading, .meta-line { display: flex; align-items: center; }
+
+    .brand { gap: 11px; font-weight: 800; letter-spacing: -.01em; }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      color: var(--blue);
+      display: grid;
+      place-items: center;
+    }
+    .brand small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .top-actions { gap: 9px; }
+    .environment, .review-label, .kbd, .avatar {
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .environment {
+      height: 25px;
+      padding: 0 10px;
+      color: #b42318;
+      background: #fff4f2;
+      border: 1px solid #ffd5cf;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .review-label {
+      height: 25px;
+      padding: 0 10px;
+      color: #075985;
+      background: #eff8ff;
+      border: 1px solid #b9e6fe;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .05em;
+    }
+    .kbd {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+      background: #fff;
+    }
+    .avatar {
+      width: 31px;
+      height: 31px;
+      color: #fff;
+      background: linear-gradient(135deg, #1ab56b, #049447);
+      font-weight: 800;
+    }
+
+    .page-shell { max-width: 1780px; margin: 0 auto; padding: 18px 22px 50px; }
+    .page-toolbar {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .page-heading h1 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
+    .page-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .toolbar-actions { gap: 8px; }
+
+    .btn {
+      min-height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      color: #34445b;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      transition: .18s ease;
+    }
+    .btn:hover { border-color: #b5c4d8; background: #f9fbfe; transform: translateY(-1px); }
+    .btn-primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .btn-primary:hover { color: #fff; border-color: var(--blue-strong); background: var(--blue-strong); }
+    .btn-info { color: #08728a; border-color: #91dbe8; background: #f3fcfe; }
+    .btn-success { color: #087a44; border-color: #a8e4c4; background: #f3fcf7; }
+    .btn-danger { color: #c32d42; border-color: #ffc0c9; background: #fff8f9; }
+    .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn[hidden] { display: none; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .card-header {
+      min-height: 52px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .section-title { gap: 10px; font-size: 15px; font-weight: 800; }
+    .section-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 15px;
+    }
+    .card-body { padding: 18px; }
+
+    .progress-card .card-body { padding: 22px 34px 18px; }
+    .progress-track {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: start;
+    }
+    .progress-step {
+      position: relative;
+      min-width: 0;
+      text-align: center;
+    }
+    .progress-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 18px;
+      left: calc(50% + 30px);
+      right: calc(-50% + 30px);
+      height: 2px;
+      background: #dfe6ef;
+    }
+    .progress-step.done:not(:last-child)::after { background: #20bc6b; }
+    .step-dot {
+      width: 38px;
+      height: 38px;
+      margin: 0 auto 9px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #7c8ca2;
+      background: #eef2f7;
+      border: 1px solid #dae2ec;
+      position: relative;
+      z-index: 2;
+      font-weight: 900;
+    }
+    .progress-step.done .step-dot {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: #bcebd1;
+    }
+    .progress-step.current .step-dot {
+      color: #fff;
+      background: var(--blue);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, .11);
+    }
+    .progress-step.failed .step-dot {
+      color: #fff;
+      background: var(--red);
+      border-color: var(--red);
+      box-shadow: 0 0 0 5px rgba(218, 54, 78, .10);
+    }
+    .step-name { font-weight: 800; font-size: 12px; }
+    .step-detail { margin-top: 4px; color: var(--muted); font-size: 10px; min-height: 29px; }
+    .step-time {
+      display: inline-flex;
+      margin-top: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      color: #526174;
+      background: #edf1f5;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .info-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; }
+    .subsection-title {
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .info-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; row-gap: 14px; }
+    .info-item { min-width: 0; }
+    .info-label { color: var(--muted); font-size: 10px; margin-bottom: 3px; }
+    .info-value { font-weight: 750; font-size: 12px; overflow-wrap: anywhere; }
+    .status-pill, .small-pill, .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .status-pill { padding: 4px 9px; font-size: 10px; }
+    .status-pill.success { color: #087a44; background: var(--green-soft); }
+    .status-pill.info { color: #145fbb; background: var(--blue-soft); }
+    .status-pill.warning { color: #9b5c00; background: var(--amber-soft); }
+    .status-pill.error { color: #b42335; background: var(--red-soft); }
+    .small-pill { padding: 2px 6px; color: #596779; background: #edf1f5; font-size: 9px; }
+    .timeline-mini { display: grid; gap: 9px; }
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 17px 102px 1fr;
+      align-items: start;
+      gap: 7px;
+      position: relative;
+    }
+    .timeline-row:not(:last-child)::after {
+      content: "";
+      width: 1px;
+      background: #dce5ef;
+      position: absolute;
+      left: 7px;
+      top: 17px;
+      bottom: -9px;
+    }
+    .mini-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--green);
+      display: grid;
+      place-items: center;
+      font-size: 8px;
+      z-index: 1;
+    }
+    .mini-dot.fail { background: var(--red); }
+    .mini-dot.pending { color: #7a8798; background: #e4e9f0; }
+    .timeline-label { color: var(--muted); font-size: 10px; }
+    .timeline-value { font-size: 10px; font-weight: 700; }
+    .timeline-value small { display: block; color: var(--muted-2); font-weight: 500; margin-top: 2px; }
+
+    .control-card { background: linear-gradient(90deg, #fbfdff, #f5f8fc); }
+    .control-inner {
+      min-height: 62px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .control-copy strong { display: block; font-size: 13px; }
+    .control-copy span { color: var(--muted); font-size: 10px; }
+    .button-row { gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .allocation-grid { display: grid; grid-template-columns: 1fr 1fr; min-height: 480px; }
+    .allocation-grid[hidden], [hidden] { display: none !important; }
+    .allocation-data { padding: 18px; border-right: 1px solid var(--line); }
+    .allocation-empty {
+      margin: 18px;
+      min-height: 150px;
+      border: 1px dashed var(--line);
+      border-radius: 11px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .allocation-empty.error {
+      color: #a82035;
+      background: var(--red-soft);
+      border-color: #ffc7cf;
+    }
+    .device-card {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fbfcfe;
+      padding: 15px;
+      margin-bottom: 12px;
+    }
+    .device-card:last-child { margin-bottom: 0; }
+    .device-card.switch-card {
+      background: linear-gradient(135deg, #f5f9ff 0%, #eef5ff 100%);
+      border-color: #c9dbff;
+    }
+    .device-card.olt-card {
+      background: linear-gradient(135deg, #fffaf2 0%, #fff6e7 100%);
+      border-color: #f5d49a;
+    }
+    .device-title { justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+    .device-title-main { min-width: 0; }
+    .device-name { color: #174ea6; font-size: 13px; font-weight: 850; overflow-wrap: anywhere; }
+    .device-ip { color: var(--muted); font-size: 10px; margin-top: 2px; }
+    .device-badge { color: #0c6b7e; background: var(--cyan-soft); border: 1px solid #b9e8ef; }
+    .tag { padding: 3px 7px; font-size: 9px; }
+    .tag.blue { color: #1554d1; background: var(--blue-soft); border: 1px solid #b9d3ff; }
+    .tag.green { color: #087a44; background: var(--green-soft); border: 1px solid #bcebd1; }
+    .tag.amber { color: #986000; background: var(--amber-soft); border: 1px solid #ffe2a3; }
+    .tag.gray { color: #536174; background: #f0f3f7; border: 1px solid #dce3eb; }
+    .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .detail-box { min-width: 0; }
+    .detail-box .info-label { text-transform: uppercase; letter-spacing: .04em; }
+    .detail-box .info-value { font-size: 11px; }
+    .port-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .port-list .tag { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .wide-detail { grid-column: 1 / -1; }
+
+    .topology-panel {
+      padding: 18px;
+      background:
+        radial-gradient(circle at 1px 1px, #dfe7f1 1px, transparent 1.2px) 0 0 / 18px 18px,
+        #fbfcfe;
+    }
+    .panel-title { justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .panel-title strong { font-size: 12px; }
+    .panel-tools { display: flex; gap: 5px; }
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255,255,255,.9);
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .topology-canvas {
+      min-height: 415px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(220, 228, 239, .8);
+      border-radius: 10px;
+      background: rgba(255,255,255,.62);
+      overflow: hidden;
+    }
+    .topology-svg { width: 100%; max-width: 650px; height: auto; display: block; }
+    .topology-svg text { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .result-card { margin-bottom: 0; min-height: 410px; }
+    .result-heading { gap: 9px; }
+    .result-icon {
+      width: 23px;
+      height: 23px;
+      border-radius: 7px;
+      color: var(--green);
+      background: var(--green-soft);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 11px;
+    }
+    .result-banner {
+      color: #126c3d;
+      background: var(--green-soft);
+      border: 1px solid #bde9cf;
+      border-radius: 9px;
+      padding: 12px 13px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 11px;
+      font-weight: 750;
+      margin-bottom: 13px;
+    }
+    .result-banner.error { color: #a82035; background: var(--red-soft); border-color: #ffc7cf; }
+    .result-banner.warning { color: #8a5700; background: var(--amber-soft); border-color: #f3d58a; }
+    .result-empty {
+      margin-top: 12px;
+      padding: 22px;
+      border: 1px dashed var(--line);
+      border-radius: 9px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .result-context {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 13px;
+    }
+    .context-device {
+      min-width: 0;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #f9fbfe;
+    }
+    .context-device span { display: block; color: var(--muted); font-size: 9px; margin-bottom: 2px; }
+    .context-device strong { display: block; font-size: 10px; overflow-wrap: anywhere; }
+    .context-device small { color: var(--muted); font-size: 9px; }
+    .check-list { display: grid; gap: 8px; }
+    .check-row {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fcfdff;
+    }
+    .check-mark {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--green);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .check-mark.fail { background: var(--red); }
+    .check-copy strong { display: block; font-size: 11px; }
+    .check-copy small { color: var(--muted); font-size: 9px; }
+    .config-groups { display: grid; gap: 9px; }
+    .config-group {
+      border: 1px solid #c9ead7;
+      border-radius: 9px;
+      background: #fbfffc;
+      padding: 11px;
+    }
+    .config-group-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+    .config-group-head strong { color: #087a44; font-size: 11px; }
+    .config-summary { color: var(--muted); font-size: 9px; margin-bottom: 8px; }
+    .meta-line { gap: 7px; flex-wrap: wrap; }
+
+    .prototype-note {
+      margin-top: 14px;
+      color: #6f4d00;
+      background: #fff9e8;
+      border: 1px solid #f5dda0;
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 10px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      max-width: 380px;
+      color: #fff;
+      background: #18304f;
+      border-radius: 10px;
+      box-shadow: 0 14px 36px rgba(17, 36, 64, .25);
+      padding: 12px 15px;
+      font-size: 11px;
+      font-weight: 700;
+      transform: translateY(120px);
+      opacity: 0;
+      transition: .25s ease;
+      z-index: 50;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 1180px) {
+      .allocation-grid, .results-grid { grid-template-columns: 1fr; }
+      .allocation-data { border-right: 0; border-bottom: 1px solid var(--line); }
+      .result-card { min-height: auto; }
+    }
+    @media (max-width: 850px) {
+      .page-shell { padding: 14px 12px 36px; }
+      .topbar { padding: 0 13px; }
+      .brand small, .kbd { display: none; }
+      .page-toolbar, .control-inner { align-items: flex-start; flex-direction: column; }
+      .info-layout { grid-template-columns: 1fr; gap: 24px; }
+      .button-row { justify-content: flex-start; }
+      .progress-card .card-body { padding: 18px 12px; overflow-x: auto; }
+      .progress-track { min-width: 720px; }
+      .detail-grid { grid-template-columns: 1fr 1fr; }
+      .info-list { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 540px) {
+      .review-label { display: none; }
+      .page-heading h1 { font-size: 17px; }
+      .toolbar-actions { width: 100%; }
+      .toolbar-actions .btn { flex: 1; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .wide-detail { grid-column: auto; }
+      .card-body, .allocation-data, .topology-panel { padding: 13px; }
+      .result-context { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+        </svg>
+      </div>
+      NetAuto <small>Operations Flow</small>
+    </div>
+    <div class="top-actions">
+      <span class="review-label">UI REVIEW</span>
+      <span class="environment">STAGING</span>
+      <span class="kbd">⌕ &nbsp; Ctrl+K</span>
+      <span class="avatar">M</span>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <div class="page-toolbar">
+      <div class="page-heading">
+        <h1 id="page-title">Cấu hình ban đầu OLT</h1>
+        <p id="page-subtitle">OLT Initialize · Job 6aa7b12fd98e969acb5bb832</p>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn" type="button" data-demo="back">← Quay lại danh sách</button>
+        <button class="btn" type="button" data-demo="reload">↻ Tải lại</button>
+      </div>
+    </div>
+
+    <section class="card progress-card" aria-labelledby="progress-title">
+      <div class="card-header">
+        <div class="section-title" id="progress-title">
+          <span class="section-icon">◉</span>
+          Tiến trình thực hiện
+        </div>
+        <span class="status-pill success" id="overall-status">● Hoàn thành</span>
+      </div>
+      <div class="card-body">
+        <div class="progress-track" id="progress-track">
+          <div class="progress-step done" data-step="0">
+            <div class="step-dot">✓</div>
+            <div class="step-name">Tạo Kế hoạch</div>
+            <div class="step-detail">Bởi minhbq3@fpt.com<br>09/09/2026 14:47</div>
+          </div>
+          <div class="progress-step done" data-step="1">
+            <div class="step-dot">✓</div>
+            <div class="step-name">Cấp phát</div>
+            <div class="step-detail">Bởi minhbq3@fpt.com<br>09/09/2026 14:48</div>
+            <span class="step-time">42 giây</span>
+          </div>
+          <div class="progress-step done" data-step="2">
+            <div class="step-dot">✓</div>
+            <div class="step-name">Kiểm tra vật lý</div>
+            <div class="step-detail">Đủ điều kiện cấu hình</div>
+          </div>
+          <div class="progress-step done current" data-step="3">
+            <div class="step-dot">✓</div>
+            <div class="step-name">Cấu hình</div>
+            <div class="step-detail">09/09/2026 16:09</div>
+            <span class="step-time">381 giây</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="general-title">
+      <div class="card-header">
+        <div class="section-title" id="general-title">
+          <span class="section-icon">▤</span>
+          Thông tin chung
+          <span class="status-pill success" id="general-status">● Thành công</span>
+        </div>
+        <span style="color:var(--muted);font-size:10px">↻ Cập nhật lần cuối <strong style="color:var(--text)">09/09/2026 16:15</strong></span>
+      </div>
+      <div class="card-body">
+        <div class="info-layout">
+          <div>
+            <div class="subsection-title">ⓘ Thông tin Job</div>
+            <div class="info-list">
+              <div class="info-item">
+                <div class="info-label">Mã Job ID</div>
+                <div class="info-value">6aa7b12fd98e969acb5bb832</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Tên kế hoạch</div>
+                <div class="info-value">Lắp đặt OLT DNIP02404HA58</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Loại Job</div>
+                <div class="info-value"><span class="status-pill info">OLT Initialize</span></div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Khu vực / Chi nhánh</div>
+                <div class="info-value">MN · DNI</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Người tạo</div>
+                <div class="info-value">minhbq3@fpt.com</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">Trạng thái</div>
+                <div class="info-value"><span class="status-pill success" id="job-status">✓ Thành công</span></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="subsection-title">◷ Tiến trình &amp; Thời gian</div>
+            <div class="timeline-mini">
+              <div class="timeline-row" data-timeline-step="0"><span class="mini-dot">✓</span><span class="timeline-label">Tạo Kế hoạch</span><span class="timeline-value">Tạo Kế hoạch thành công</span></div>
+              <div class="timeline-row" data-timeline-step="1"><span class="mini-dot">✓</span><span class="timeline-label">Cấp phát</span><span class="timeline-value">Cấp phát thông tin thành công</span></div>
+              <div class="timeline-row" data-timeline-step="2"><span class="mini-dot">✓</span><span class="timeline-label">Kiểm tra vật lý</span><span class="timeline-value">Kiểm tra vật lý thành công</span></div>
+              <div class="timeline-row" data-timeline-step="3"><span class="mini-dot">✓</span><span class="timeline-label">Cấu hình</span><span class="timeline-value">Cấu hình thành công</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card control-card" aria-labelledby="control-title">
+      <div class="control-inner">
+        <div class="control-copy">
+          <strong id="control-title">Bảng điều khiển vận hành</strong>
+          <span>Thao tác mô phỏng cho bản duyệt UI — không gọi API hoặc thiết bị thật</span>
+        </div>
+        <div class="button-row">
+          <button class="btn btn-info" id="action-allocate" type="button" data-action="allocate">▦ Cấp phát (Allocate)</button>
+          <button class="btn btn-success" id="action-precheck" type="button" data-action="precheck">◈ Kiểm tra vật lý (Pre-check)</button>
+          <button class="btn btn-primary" id="action-config" type="button" data-action="config">⌁ Cấu hình (Config)</button>
+          <button class="btn btn-danger" id="action-cancel" type="button" data-demo="cancel">× Hủy Kế hoạch (Cancel)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="allocation-title">
+      <div class="card-header">
+        <div class="section-title" id="allocation-title">
+          <span class="section-icon">▦</span>
+          Thông tin cấp phát
+        </div>
+        <div class="status-line" style="gap:7px">
+          <span class="status-pill success" id="allocation-status">✓ Đã cấp phát</span>
+          <span class="small-pill" id="allocation-duration">42 giây</span>
+        </div>
+      </div>
+      <div class="allocation-empty" id="allocation-empty" hidden></div>
+      <div class="allocation-grid" id="allocation-content">
+        <div class="allocation-data">
+          <article class="device-card switch-card">
+            <div class="device-title">
+              <div class="device-title-main">
+                <div class="device-name">CE601005DNIP02401HS24</div>
+                <div class="device-ip">11.60.45.24 · Huawei Switch · ACCESS</div>
+              </div>
+              <span class="tag device-badge">SWITCH UPLINK</span>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-box"><div class="info-label">Aggregate port</div><div class="info-value">Eth-Trunk11</div></div>
+              <div class="detail-box"><div class="info-label">Số link</div><div class="info-value">4 links</div></div>
+              <div class="detail-box"><div class="info-label">Tốc độ</div><div class="info-value">10 Gbps / link</div></div>
+              <div class="detail-box wide-detail">
+                <div class="info-label">Physical ports</div>
+                <div class="port-list">
+                  <span class="tag blue">XGE0/0/11</span><span class="tag blue">XGE1/0/11</span>
+                  <span class="tag blue">XGE0/0/12</span><span class="tag blue">XGE1/0/12</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="device-card olt-card">
+            <div class="device-title">
+              <div class="device-title-main">
+                <div class="device-name" style="color:#b35d00">DNIP02404HA58</div>
+                <div class="device-ip">11.60.125.23 · Huawei OLT · HA58</div>
+              </div>
+              <span class="tag amber">OLT MỚI</span>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-box"><div class="info-label">POP</div><div class="info-value">DNIP024 · Vị trí 04</div></div>
+              <div class="detail-box"><div class="info-label">Aggregate port</div><div class="info-value">Link Aggregation 1</div></div>
+              <div class="detail-box"><div class="info-label">Gateway / Mask</div><div class="info-value">11.60.125.1 / 24</div></div>
+              <div class="detail-box"><div class="info-label">VLAN Management</div><div class="info-value"><span class="tag blue">42</span></div></div>
+              <div class="detail-box"><div class="info-label">VLAN Multicast</div><div class="info-value"><span class="tag green">99</span></div></div>
+              <div class="detail-box"><div class="info-label">VLAN PPPoE</div><div class="info-value"><span class="tag amber">1294</span></div></div>
+              <div class="detail-box wide-detail">
+                <div class="info-label">Physical ports</div>
+                <div class="port-list">
+                  <span class="tag amber">ethernet0/3/0</span><span class="tag amber">ethernet0/3/1</span>
+                  <span class="tag amber">ethernet0/4/0</span><span class="tag amber">ethernet0/4/1</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="device-card" style="background:#f8fbff">
+            <div class="device-title" style="margin-bottom:10px">
+              <div class="device-title-main"><div class="device-name">Thông tin kết nối</div></div>
+              <span class="tag gray">ETH ↔ ETH</span>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-box"><div class="info-label">Port MGNT trên Switch</div><div class="info-value">ETH</div></div>
+              <div class="detail-box"><div class="info-label">Interface switch</div><div class="info-value">MEth0/0/1</div></div>
+              <div class="detail-box"><div class="info-label">IP tạm switch</div><div class="info-value">10.11.104.5/24</div></div>
+              <div class="detail-box"><div class="info-label">Port MGNT trên OLT</div><div class="info-value">ETH</div></div>
+              <div class="detail-box"><div class="info-label">OLT factory IP</div><div class="info-value">10.11.104.2</div></div>
+              <div class="detail-box"><div class="info-label">Giao thức</div><div class="info-value">STelnet</div></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="topology-panel">
+          <div class="panel-title">
+            <strong>Sơ đồ kết nối được cấp phát</strong>
+            <div class="panel-tools"><button class="icon-btn" type="button" data-demo="zoom" title="Phóng to">↗</button><button class="icon-btn" type="button" data-demo="fit" title="Căn vừa">⌗</button></div>
+          </div>
+          <div class="topology-canvas">
+            <svg class="topology-svg" viewBox="0 0 700 520" role="img" aria-labelledby="topology-svg-title topology-svg-desc">
+              <title id="topology-svg-title">Sơ đồ uplink giữa switch và OLT</title>
+              <desc id="topology-svg-desc">Switch CE601005DNIP02401HS24 kết nối OLT DNIP02404HA58 qua bốn đường 10 gigabit và một dây LAN giữa cổng ETH với ETH.</desc>
+              <defs>
+                <filter id="nodeShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#274568" flood-opacity=".12"/></filter>
+              </defs>
+
+              <!-- Hai đoạn ngang cùng dài 42px: port x=124, trục LAN x=82. -->
+              <path d="M124 59 H82 V461 H124" fill="none" stroke="#e58a00" stroke-width="3" stroke-dasharray="6 5"/>
+              <rect x="48" y="238" width="68" height="44" rx="8" fill="#fff9e8" stroke="#f1b84b"/>
+              <text x="82" y="256" text-anchor="middle" font-size="11" font-weight="800" fill="#996000">LAN</text>
+              <text x="82" y="271" text-anchor="middle" font-size="9" fill="#876b35">STelnet</text>
+
+              <g filter="url(#nodeShadow)">
+                <rect x="155" y="24" width="390" height="70" rx="10" fill="#eef5ff" stroke="#2563eb" stroke-width="2"/>
+                <text x="350" y="51" text-anchor="middle" font-size="16" font-weight="800" fill="#174ea6">CE601005DNIP02401HS24</text>
+                <text x="350" y="75" text-anchor="middle" font-size="13" fill="#58708f">11.60.45.24 · Huawei Switch</text>
+                <rect x="182" y="108" width="336" height="38" rx="19" fill="#f5f9ff" stroke="#2563eb" stroke-width="2"/>
+                <text x="350" y="132" text-anchor="middle" font-size="14" font-weight="800" fill="#174ea6">Eth-Trunk11</text>
+              </g>
+
+              <!-- Cổng quản trị switch Huawei/H3C luôn là ETH. -->
+              <g data-device="switch" data-management-port="ETH">
+                <rect x="124" y="47" width="62" height="24" rx="6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+                <text x="155" y="63" text-anchor="middle" font-size="10" font-weight="900" fill="#174ea6">ETH</text>
+              </g>
+
+              <g font-size="10" font-weight="800" text-anchor="middle">
+                <rect x="178" y="164" width="78" height="27" rx="5" fill="#fff" stroke="#73a7ff"/><text x="217" y="181" fill="#174ea6">XGE0/0/11</text>
+                <rect x="271" y="164" width="78" height="27" rx="5" fill="#fff" stroke="#73a7ff"/><text x="310" y="181" fill="#174ea6">XGE1/0/11</text>
+                <rect x="364" y="164" width="78" height="27" rx="5" fill="#fff" stroke="#73a7ff"/><text x="403" y="181" fill="#174ea6">XGE0/0/12</text>
+                <rect x="457" y="164" width="78" height="27" rx="5" fill="#fff" stroke="#73a7ff"/><text x="496" y="181" fill="#174ea6">XGE1/0/12</text>
+              </g>
+
+              <g stroke="#12b76a" stroke-width="3" stroke-dasharray="6 5">
+                <line x1="217" y1="191" x2="217" y2="327"/><line x1="310" y1="191" x2="310" y2="327"/>
+                <line x1="403" y1="191" x2="403" y2="327"/><line x1="496" y1="191" x2="496" y2="327"/>
+              </g>
+              <g text-anchor="middle" font-size="10" font-weight="900">
+                <rect x="197" y="242" width="40" height="22" rx="11" fill="#fff" stroke="#12b76a" stroke-width="1.5"/>
+                <text x="217" y="257" fill="#087a44">10G</text>
+                <rect x="290" y="242" width="40" height="22" rx="11" fill="#fff" stroke="#12b76a" stroke-width="1.5"/>
+                <text x="310" y="257" fill="#087a44">10G</text>
+                <rect x="383" y="242" width="40" height="22" rx="11" fill="#fff" stroke="#12b76a" stroke-width="1.5"/>
+                <text x="403" y="257" fill="#087a44">10G</text>
+                <rect x="476" y="242" width="40" height="22" rx="11" fill="#fff" stroke="#12b76a" stroke-width="1.5"/>
+                <text x="496" y="257" fill="#087a44">10G</text>
+              </g>
+
+              <g font-size="10" font-weight="800" text-anchor="middle">
+                <rect x="178" y="327" width="78" height="27" rx="5" fill="#fff" stroke="#f6b94a"/><text x="217" y="344" fill="#a55a00">E0/3/0</text>
+                <rect x="271" y="327" width="78" height="27" rx="5" fill="#fff" stroke="#f6b94a"/><text x="310" y="344" fill="#a55a00">E0/3/1</text>
+                <rect x="364" y="327" width="78" height="27" rx="5" fill="#fff" stroke="#f6b94a"/><text x="403" y="344" fill="#a55a00">E0/4/0</text>
+                <rect x="457" y="327" width="78" height="27" rx="5" fill="#fff" stroke="#f6b94a"/><text x="496" y="344" fill="#a55a00">E0/4/1</text>
+              </g>
+
+              <g filter="url(#nodeShadow)">
+                <rect x="182" y="373" width="336" height="38" rx="19" fill="#fff9eb" stroke="#f1a61d" stroke-width="2"/>
+                <text x="350" y="397" text-anchor="middle" font-size="14" font-weight="800" fill="#a55a00">Link Aggregation 1</text>
+                <rect x="155" y="426" width="390" height="70" rx="10" fill="#fff8ed" stroke="#f1a61d" stroke-width="2"/>
+                <text x="350" y="453" text-anchor="middle" font-size="16" font-weight="800" fill="#a55a00">DNIP02404HA58</text>
+                <text x="350" y="477" text-anchor="middle" font-size="13" fill="#7d6948">11.60.125.23 · Huawei OLT</text>
+              </g>
+
+              <!-- OLT Huawei/ZTE dùng ETH; GCOM dùng AUX. Case HA58 này là ETH. -->
+              <g data-device="olt" data-vendor="HUAWEI" data-management-port="ETH">
+                <rect x="124" y="449" width="62" height="24" rx="6" fill="#fff" stroke="#f1a61d" stroke-width="1.5"/>
+                <text x="155" y="465" text-anchor="middle" font-size="10" font-weight="900" fill="#a55a00">ETH</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="results-grid">
+      <section class="card result-card" aria-labelledby="precheck-title">
+        <div class="card-header">
+          <div class="result-heading" id="precheck-title"><span class="result-icon">✓</span><strong>Kết quả kiểm tra trước cấu hình</strong></div>
+          <span class="status-pill success" id="precheck-status">THÀNH CÔNG</span>
+        </div>
+        <div class="card-body">
+          <div class="result-banner" id="precheck-message"></div>
+          <div class="result-context" id="precheck-context"></div>
+          <div class="check-list" id="precheck-checks"></div>
+        </div>
+      </section>
+
+      <section class="card result-card" aria-labelledby="config-title">
+        <div class="card-header">
+          <div class="result-heading" id="config-title"><span class="result-icon">✓</span><strong>Kết quả cấu hình</strong></div>
+          <span class="status-pill success" id="config-status">THÀNH CÔNG</span>
+        </div>
+        <div class="card-body">
+          <div class="result-banner" id="config-message"></div>
+          <div class="config-groups" id="config-groups"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="prototype-note">
+      <strong>Bản duyệt UI:</strong> file HTML này chỉ mô phỏng trạng thái. Ba endpoint dự kiến tích hợp là
+      <code>/netauto/ops_flow/olt_initialize/allocate</code>,
+      <code>/netauto/ops_flow/olt_initialize/precheck</code> và
+      <code>/netauto/ops_flow/olt_initialize/config</code> với Feature code <code>OLT_INIT</code>.
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Contract để team FE nối API. Bản review không gọi fetch và không tác động thiết bị.
+    const API_ENDPOINTS = Object.freeze({
+      allocate: "/netauto/ops_flow/olt_initialize/allocate",
+      precheck: "/netauto/ops_flow/olt_initialize/precheck",
+      config: "/netauto/ops_flow/olt_initialize/config"
+    });
+
+    // Quy ước để FE render badge cổng quản trị trên sơ đồ theo vendor.
+    const MANAGEMENT_PORT_POLICY = Object.freeze({
+      switch: () => "ETH",
+      olt: vendor => String(vendor).toUpperCase() === "GCOM" ? "AUX" : "ETH"
+    });
+
+    // Response mẫu có đúng shape của API /olt_initialize/precheck.
+    // Khi tích hợp thật, FE truyền response API vào renderPrecheck(response).
+    const PRECHECK_RESPONSE = {
+      status: true,
+      message: "Đủ điều kiện cấu hình!",
+      data: {
+        switch: {
+          name: "CE601005DNIP02401HS24",
+          ip: "11.60.45.24",
+          vendor: "HUAWEI"
+        },
+        olt: {
+          name: "DNIP02404HA58",
+          model: "HA58",
+          vendor: "HUAWEI"
+        },
+        checks: {
+          enabled_ports: [
+            "Port XGigabitEthernet0/0/11 ENABLED successfully.",
+            "Port XGigabitEthernet1/0/11 ENABLED successfully.",
+            "Port XGigabitEthernet0/0/12 ENABLED successfully.",
+            "Port XGigabitEthernet1/0/12 ENABLED successfully."
+          ],
+          interfaces: [
+            "XGigabitEthernet0/0/11",
+            "XGigabitEthernet1/0/11",
+            "XGigabitEthernet0/0/12",
+            "XGigabitEthernet1/0/12"
+          ],
+          transceivers: {
+            device: { login_status: true },
+            transceivers: [
+              { port_name: "XGigabitEthernet0/0/11", sfp_present: true },
+              { port_name: "XGigabitEthernet1/0/11", sfp_present: true },
+              { port_name: "XGigabitEthernet0/0/12", sfp_present: true },
+              { port_name: "XGigabitEthernet1/0/12", sfp_present: true }
+            ]
+          },
+          smartlink: { status: "checked", removed_groups: [] },
+          aux_eth: {
+            management: { interface: "MEth0/0/1", ip: "10.11.104.5" },
+            login: { protocol: "ssh", target: "10.11.104.2" },
+            restored: true
+          }
+        }
+      },
+      error: null
+    };
+
+    // Response mẫu bám đúng cấu trúc trả về của workflow.configure().
+    const CONFIG_RESPONSE = {
+      status: true,
+      message: "Hoàn tất khởi tạo và cấu hình OLT từ switch!",
+      data: {
+        switch: {
+          name: "CE601005DNIP02401HS24",
+          ip: "11.60.45.24",
+          vendor: "HUAWEI",
+          precheck: PRECHECK_RESPONSE.data.checks,
+          lacp: {
+            aggregation: "Eth-Trunk11",
+            members: [
+              "XGigabitEthernet0/0/11",
+              "XGigabitEthernet1/0/11",
+              "XGigabitEthernet0/0/12",
+              "XGigabitEthernet1/0/12"
+            ],
+            reused: true,
+            operational_status: {
+              "xgigabitethernet0/0/11": "Down",
+              "xgigabitethernet1/0/11": "Down",
+              "xgigabitethernet0/0/12": "Down",
+              "xgigabitethernet1/0/12": "Down"
+            }
+          },
+          service: {
+            aggregation: "Eth-Trunk11",
+            command_count: 14,
+            idempotent_existing: []
+          },
+          descriptions: [
+            { port: "XGigabitEthernet0/0/11", description: "DWL-ethernet0/3/0-DNIP02404HA58" },
+            { port: "XGigabitEthernet1/0/11", description: "DWL-ethernet0/3/1-DNIP02404HA58" },
+            { port: "XGigabitEthernet0/0/12", description: "DWL-ethernet0/4/0-DNIP02404HA58" },
+            { port: "XGigabitEthernet1/0/12", description: "DWL-ethernet0/4/1-DNIP02404HA58" }
+          ]
+        },
+        aux_eth: {
+          management: { interface: "MEth0/0/1", ip: "10.11.104.5" },
+          login: { protocol: "ssh", target: "10.11.104.2" },
+          bootstrap: {
+            hardware: { board1: "H903FLHF", board2: "H903GPSF" },
+            command_count: 19,
+            idempotent_existing: []
+          },
+          restored: { interface: "MEth0/0/1", ip: "192.168.0.5" }
+        },
+        config_file: {
+          path: "/home/ubuntu/project_ipam/file_config_olt/11.60.125.23.txt",
+          remote_path: "/home/ubuntu/project_ipam/file_config_olt/11.60.125.23.txt",
+          line_count: 452
+        },
+        olt: {
+          name: "DNIP02404HA58",
+          ip: "11.60.125.23",
+          vendor: "HUAWEI",
+          load: {
+            remote_path: "/home/ubuntu/project_ipam/file_config_olt/11.60.125.23.txt",
+            status: "loaded_and_activation_confirmed"
+          },
+          verification: {
+            interfaces: [
+              ["ethernet0/3/0", "UP", "UP", ""],
+              ["ethernet0/3/1", "UP", "UP", ""],
+              ["ethernet0/4/0", "UP", "UP", ""],
+              ["ethernet0/4/1", "UP", "UP", ""]
+            ],
+            aggregation: [{ aggPort: "Link Aggregation 1" }],
+            backup: [true, "Backup configuration successfully."]
+          }
+        }
+      },
+      error: null
+    };
+
+    const PRECHECK_NOT_RUN_RESPONSE = Object.freeze({
+      status: null,
+      message: "Chưa thực hiện kiểm tra vật lý.",
+      data: null,
+      error: null
+    });
+
+    const CONFIG_NOT_RUN_RESPONSE = Object.freeze({
+      status: null,
+      message: "Chưa thực hiện cấu hình.",
+      data: null,
+      error: null
+    });
+
+    const PRECHECK_FAILED_RESPONSE = {
+      status: false,
+      message: "Không đủ điều kiện cấu hình: không đăng nhập được OLT qua đường quản trị.",
+      data: {
+        switch: { ...PRECHECK_RESPONSE.data.switch },
+        olt: { ...PRECHECK_RESPONSE.data.olt },
+        checks: {
+          ...PRECHECK_RESPONSE.data.checks,
+          aux_eth: {
+            management: { interface: "MEth0/0/1", ip: "10.11.104.5" },
+            login: { protocol: "ssh", target: null },
+            restored: true
+          }
+        }
+      },
+      error: "Không đăng nhập được OLT factory tại 10.11.104.2."
+    };
+
+    const CONFIG_FAILED_RESPONSE = {
+      status: false,
+      message: "Cấu hình OLT không thành công.",
+      data: {
+        ...CONFIG_RESPONSE.data,
+        olt: {
+          ...CONFIG_RESPONSE.data.olt,
+          load: {
+            status: "failed",
+            message: "OLT không xác nhận load file cấu hình thành công."
+          },
+          verification: null
+        }
+      },
+      error: "OLT không xác nhận load file cấu hình thành công."
+    };
+
+    const REVIEW_CASES = Object.freeze({
+      "01_tao_ke_hoach_thanh_cong.html": {
+        title: "Case 1 — Tạo Kế hoạch thành công",
+        state: "plan_created",
+        precheck: PRECHECK_NOT_RUN_RESPONSE,
+        config: CONFIG_NOT_RUN_RESPONSE
+      },
+      "02_cap_phat_thanh_cong.html": {
+        title: "Case 2 — Cấp phát thông tin thành công",
+        state: "allocation_succeeded",
+        precheck: PRECHECK_NOT_RUN_RESPONSE,
+        config: CONFIG_NOT_RUN_RESPONSE
+      },
+      "03_cap_phat_khong_thanh_cong.html": {
+        title: "Case 3 — Cấp phát thông tin không thành công",
+        state: "allocation_failed",
+        precheck: PRECHECK_NOT_RUN_RESPONSE,
+        config: CONFIG_NOT_RUN_RESPONSE
+      },
+      "04_precheck_khong_thanh_cong.html": {
+        title: "Case 4 — Precheck không thành công",
+        state: "precheck_failed",
+        precheck: PRECHECK_FAILED_RESPONSE,
+        config: CONFIG_NOT_RUN_RESPONSE
+      },
+      "05_precheck_thanh_cong.html": {
+        title: "Case 5 — Precheck thành công",
+        state: "precheck_succeeded",
+        precheck: PRECHECK_RESPONSE,
+        config: CONFIG_NOT_RUN_RESPONSE
+      },
+      "06_config_khong_thanh_cong.html": {
+        title: "Case 6 — Cấu hình không thành công",
+        state: "config_failed",
+        precheck: PRECHECK_RESPONSE,
+        config: CONFIG_FAILED_RESPONSE
+      },
+      "07_config_thanh_cong.html": {
+        title: "Case 7 — Cấu hình thành công",
+        state: "config_succeeded",
+        precheck: PRECHECK_RESPONSE,
+        config: CONFIG_RESPONSE
+      }
+    });
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function arrayValue(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function interfaceName(row) {
+      if (typeof row === "string") return row;
+      if (Array.isArray(row)) return row[0];
+      if (row && typeof row === "object") {
+        return row.port_name || row.physicName || row.name;
+      }
+      return "";
+    }
+
+    function checkRow(title, detail, passed) {
+      return `
+        <div class="check-row">
+          <span class="check-mark${passed ? "" : " fail"}">${passed ? "✓" : "×"}</span>
+          <div class="check-copy">
+            <strong>${escapeHtml(title)}</strong>
+            <small>${escapeHtml(detail || "Không có dữ liệu trả về")}</small>
+          </div>
+        </div>`;
+    }
+
+    function compactPort(value) {
+      return String(value || "")
+        .replace(/^XGigabitEthernet/i, "XGE")
+        .replace(/^GigabitEthernet/i, "GE");
+    }
+
+    function tagHtml(value, tone = "gray") {
+      return `<span class="tag ${tone}">${escapeHtml(value)}</span>`;
+    }
+
+    function configGroup(title, badge, badgeTone, summary, tags) {
+      const safeTags = arrayValue(tags).filter(Boolean).join("");
+      return `
+        <div class="config-group">
+          <div class="config-group-head">
+            <strong>${escapeHtml(title)}</strong>
+            ${badge ? tagHtml(badge, badgeTone) : ""}
+          </div>
+          <div class="config-summary">${escapeHtml(summary || "Không có dữ liệu trả về")}</div>
+          ${safeTags ? `<div class="meta-line">${safeTags}</div>` : ""}
+        </div>`;
+    }
+
+    function operationSucceeded(value) {
+      if (Array.isArray(value) && typeof value[0] === "boolean") return value[0];
+      if (value && typeof value === "object" && typeof value.status === "boolean") return value.status;
+      return Boolean(value);
+    }
+
+    function operationDetail(value) {
+      if (Array.isArray(value)) return value.length > 1 ? value[1] : value[0];
+      if (value && typeof value === "object") return value.message || value.status || "Có dữ liệu";
+      return value || "Không có dữ liệu";
+    }
+
+    function renderPrecheck(response) {
+      const notRun = response?.status !== true && response?.status !== false;
+      const successful = response?.status === true;
+      const data = response?.data && typeof response.data === "object" ? response.data : {};
+      const switchData = data.switch || {};
+      const oltData = data.olt || {};
+      const checks = data.checks || {};
+      const aux = checks.aux_eth || {};
+      const management = aux.management || {};
+      const login = aux.login || {};
+      const passwordChange = login.password_change || {};
+      const enabledPorts = arrayValue(checks.enabled_ports);
+      const interfaces = arrayValue(checks.interfaces).map(interfaceName).filter(Boolean);
+      const transceiverRows = arrayValue(checks.transceivers?.transceivers);
+      const absentSfps = transceiverRows.filter(item => item?.sfp_present === false);
+      const smartlink = checks.smartlink || {};
+      const removedGroups = arrayValue(smartlink.removed_groups);
+      const switchPort = MANAGEMENT_PORT_POLICY.switch(switchData.vendor);
+      const oltPort = MANAGEMENT_PORT_POLICY.olt(oltData.vendor);
+      const protocol = String(login.protocol || "").toLowerCase() === "ssh" &&
+        String(switchData.vendor || "").toUpperCase() === "HUAWEI" ? "STelnet" :
+        String(login.protocol || "").toUpperCase();
+
+      const status = document.getElementById("precheck-status");
+      status.textContent = notRun ? "CHƯA CHẠY" : successful ? "THÀNH CÔNG" : "THẤT BẠI";
+      status.className = `status-pill ${notRun ? "warning" : successful ? "success" : "error"}`;
+
+      const message = document.getElementById("precheck-message");
+      message.textContent = `${notRun ? "•" : successful ? "✓" : "×"} ${response?.message || response?.error || "Không có kết quả precheck"}`;
+      message.className = `result-banner${notRun ? " warning" : successful ? "" : " error"}`;
+
+      if (notRun) {
+        document.getElementById("precheck-context").innerHTML = "";
+        document.getElementById("precheck-checks").innerHTML = '<div class="result-empty">Chưa có dữ liệu kiểm tra vật lý.</div>';
+        return;
+      }
+
+      document.getElementById("precheck-context").innerHTML = `
+        <div class="context-device">
+          <span>SWITCH</span>
+          <strong>${escapeHtml(switchData.name || "—")}</strong>
+          <small>${escapeHtml(switchData.ip || "—")} · ${escapeHtml(switchData.vendor || "—")}</small>
+        </div>
+        <div class="context-device">
+          <span>OLT</span>
+          <strong>${escapeHtml(oltData.name || "—")}</strong>
+          <small>${escapeHtml(oltData.model || "—")} · ${escapeHtml(oltData.vendor || "—")}</small>
+        </div>`;
+
+      const interfaceText = interfaces.length ? interfaces.join(", ") : "Không có danh sách interface";
+      const uplinkDetail = [
+        `${enabledPorts.length} port được enable`,
+        interfaceText,
+        `${transceiverRows.length} transceiver được đọc`,
+        absentSfps.length ? `${absentSfps.length} port không có SFP` : "không phát hiện thiếu SFP"
+      ].join(" · ");
+      const smartlinkDetail = [
+        `status: ${smartlink.status || "không có dữ liệu"}`,
+        removedGroups.length ? `removed groups: ${removedGroups.join(", ")}` : "không có group bị remove"
+      ].join(" · ");
+      const managementDetail = [
+        `${switchPort} ↔ ${oltPort} qua dây LAN`,
+        management.interface ? `interface ${management.interface}` : "không có interface",
+        management.ip ? `IP tạm ${management.ip}` : "không có IP tạm"
+      ].join(" · ");
+      const loginDetail = [
+        protocol || "không có protocol",
+        login.target || "không có target",
+        oltData.vendor ? `${oltData.vendor} OLT` : "không có vendor OLT",
+        passwordChange.status === "changed_successfully"
+          ? "đã đổi password expired thành công"
+          : passwordChange.status === "not_required"
+            ? "không yêu cầu đổi password"
+            : null
+      ].filter(Boolean).join(" · ");
+      const restoreDetail = aux.restored === true
+        ? `Đã restore ${management.interface || "management switch"} về trạng thái ban đầu`
+        : "Backend chưa xác nhận restore management switch";
+
+      const uplinkPassed = enabledPorts.length > 0 && transceiverRows.length > 0 && absentSfps.length === 0;
+      const smartlinkPassed = ["checked", "bypass", "skipped"].includes(String(smartlink.status || "").toLowerCase());
+      const managementPassed = Boolean(management.interface && management.ip);
+      const loginPassed = Boolean(login.target);
+      const restorePassed = aux.restored === true;
+
+      document.getElementById("precheck-checks").innerHTML = [
+        checkRow(`Kiểm tra và enable uplink switch`, uplinkDetail, uplinkPassed),
+        checkRow("Kiểm tra Smart Link", smartlinkDetail, smartlinkPassed),
+        checkRow(`Chuẩn bị đường quản trị ${switchPort} ↔ ${oltPort}`, managementDetail, managementPassed),
+        checkRow("Đăng nhập OLT factory", loginDetail, loginPassed),
+        checkRow("Khôi phục management switch", restoreDetail, restorePassed)
+      ].join("");
+    }
+
+    function renderConfig(response) {
+      const notRun = response?.status !== true && response?.status !== false;
+      const successful = response?.status === true;
+      const data = response?.data && typeof response.data === "object" ? response.data : {};
+      const checkpoint = data.checkpoint || "";
+      const isCheckpoint = checkpoint === "before_full_config_load";
+      const switchData = data.switch || {};
+      const rawLacp = switchData.lacp || {};
+      const lacp = Array.isArray(rawLacp) && rawLacp[1] && typeof rawLacp[1] === "object"
+        ? rawLacp[1]
+        : rawLacp;
+      const service = switchData.service || {};
+      const descriptions = arrayValue(switchData.descriptions);
+      const lacpMembers = arrayValue(lacp.members);
+      const aux = data.aux_eth || {};
+      const management = aux.management || {};
+      const login = aux.login || {};
+      const passwordChange = login.password_change || {};
+      const bootstrap = aux.bootstrap || {};
+      const hardware = bootstrap.hardware && typeof bootstrap.hardware === "object" ? bootstrap.hardware : {};
+      const bootstrapExisting = arrayValue(bootstrap.idempotent_existing);
+      const restored = aux.restored || {};
+      const configFile = data.config_file || {};
+      const olt = data.olt || {};
+      const load = olt.load || {};
+      const activation = olt.activation || {};
+      const reachability = olt.reachability || {};
+      const verification = olt.verification || {};
+      const interfaces = arrayValue(verification.interfaces);
+      const aggregation = verification.aggregation;
+      const interfaceCount = Number.isFinite(verification.interface_count)
+        ? verification.interface_count
+        : interfaces.length;
+      const aggregationCount = Number.isFinite(verification.aggregation_count)
+        ? verification.aggregation_count
+        : Array.isArray(aggregation) ? aggregation.length : aggregation ? 1 : 0;
+      const backupOk = operationSucceeded(verification.backup);
+      const protocol = String(login.protocol || "").toLowerCase() === "ssh" &&
+        String(switchData.vendor || "").toUpperCase() === "HUAWEI" ? "STelnet" :
+        String(login.protocol || "").toUpperCase();
+
+      const status = document.getElementById("config-status");
+      status.textContent = notRun ? "CHƯA CHẠY" : isCheckpoint ? "TẠM DỪNG" : successful ? "THÀNH CÔNG" : "THẤT BẠI";
+      status.className = `status-pill ${notRun || isCheckpoint ? "warning" : successful ? "success" : "error"}`;
+
+      const message = document.getElementById("config-message");
+      message.textContent = `${notRun ? "•" : isCheckpoint ? "!" : successful ? "✓" : "×"} ${response?.message || response?.error || "Không có kết quả config"}`;
+      message.className = `result-banner${notRun || isCheckpoint ? " warning" : successful ? "" : " error"}`;
+
+      if (notRun) {
+        document.getElementById("config-groups").innerHTML = '<div class="result-empty">Chưa có dữ liệu cấu hình.</div>';
+        return;
+      }
+
+      if (!Object.keys(data).length) {
+        document.getElementById("config-groups").innerHTML = configGroup(
+          "Không có dữ liệu cấu hình",
+          "NO DATA",
+          "gray",
+          response?.error || "Backend không trả data chi tiết.",
+          []
+        );
+        return;
+      }
+
+      const switchTags = lacpMembers.map(port => tagHtml(`✓ ${compactPort(port)}`, "green"));
+      const switchSummary = [
+        lacpMembers.length ? `${lacpMembers.length} LACP member` : "không có danh sách LACP member",
+        Number.isFinite(service.command_count) ? `${service.command_count} command service` : "không có command_count service",
+        `${descriptions.length} description được trả về`,
+        lacp.reused === true ? "tái sử dụng aggregation hiện hữu" : lacp.reused === false ? "tạo membership mới" : "không có trạng thái reused"
+      ].join(" · ");
+
+      const bootstrapTags = Object.entries(hardware).map(([key, value]) => tagHtml(`${key}: ${value}`, "gray"));
+      if (management.interface) bootstrapTags.push(tagHtml(`MGNT ${management.interface}`, "blue"));
+      if (login.target) bootstrapTags.push(tagHtml(`${protocol || "LOGIN"} ${login.target}`, "blue"));
+      if (passwordChange.status === "changed_successfully") bootstrapTags.push(tagHtml("Đã đổi password expired", "green"));
+      else if (passwordChange.status === "not_required") bootstrapTags.push(tagHtml("Password không cần đổi", "gray"));
+      if (restored.interface || restored.ip) bootstrapTags.push(tagHtml(`Restore ${restored.interface || "MGNT"}: ${restored.ip || "OK"}`, "green"));
+      const bootstrapSummary = [
+        Number.isFinite(bootstrap.command_count) ? `${bootstrap.command_count} command bootstrap` : "không có command_count",
+        `${Object.keys(hardware).length} hardware field`,
+        `${bootstrapExisting.length} idempotent existing`
+      ].join(" · ");
+
+      const successfulLoadStatuses = new Set(["loaded", "loaded_and_activation_confirmed"]);
+      const legacyLoadSuccess = successful && Boolean(load.remote_path) && Number.isFinite(load.output_length);
+      const loadOk = load.success === true || successfulLoadStatuses.has(load.status) || legacyLoadSuccess;
+      const loadStatusLabels = {
+        loaded: "ĐÃ LOAD",
+        loaded_and_activation_confirmed: "ĐÃ LOAD & KÍCH HOẠT",
+        failed: "THẤT BẠI",
+        not_run: "CHƯA CHẠY"
+      };
+      const loadStatus = loadStatusLabels[load.status] || (legacyLoadSuccess ? "ĐÃ LOAD" : "CHƯA XÁC NHẬN");
+      const loadTags = [];
+      if (load.method || legacyLoadSuccess) loadTags.push(tagHtml(String(load.method || "FTP").toUpperCase(), "blue"));
+      if (configFile.remote_path) loadTags.push(tagHtml(`Remote: ${configFile.remote_path}`, "blue"));
+      if (load.remote_path && load.remote_path !== configFile.remote_path) loadTags.push(tagHtml(`Loaded: ${load.remote_path}`, "blue"));
+      if (load.destination_path) loadTags.push(tagHtml(`Đích: ${load.destination_path}`, "blue"));
+      if (load.confirmation) loadTags.push(tagHtml("OLT đã xác nhận nhận file", "green"));
+      else if (legacyLoadSuccess) loadTags.push(tagHtml("Load thành công (kết quả cũ)", "green"));
+      if (isCheckpoint) loadTags.push(tagHtml(`Checkpoint: ${checkpoint}`, "amber"));
+      const loadSummary = [
+        configFile.path ? `file ${configFile.path}` : "không có local path",
+        Number.isFinite(configFile.line_count) ? `${configFile.line_count} dòng` : "không có line_count",
+        loadOk ? "FTP load thành công" : `trạng thái: ${loadStatus}`
+      ].join(" · ");
+
+      const activationOk = activation.success === true || ["activated", "reload_confirmed", "reboot_confirmed"].includes(activation.status);
+      const reachableOk = reachability.success === true || reachability.status === "reachable";
+      const activationStatusLabels = {
+        activated: "ĐÃ KÍCH HOẠT",
+        reload_confirmed: "ĐÃ XÁC NHẬN RELOAD",
+        reboot_confirmed: "ĐÃ XÁC NHẬN REBOOT",
+        reboot_command_sent: "ĐÃ GỬI LỆNH REBOOT",
+        not_run: "CHƯA CHẠY"
+      };
+      const activationStatus = activationStatusLabels[activation.status]
+        || (load.status === "loaded_and_activation_confirmed" ? "ĐÃ KÍCH HOẠT" : successful && olt.verification ? "ĐÃ HOÀN TẤT" : "CHƯA XÁC NHẬN");
+      const activationTags = [];
+      if (activation.action) activationTags.push(tagHtml(`Lệnh: ${activation.action}`, "blue"));
+      if (activation.confirmation_received === true) activationTags.push(tagHtml("Thiết bị đã xác nhận", "green"));
+      if (activation.switch_prompt_restored === true) activationTags.push(tagHtml("Đã về session switch", "green"));
+      if (reachableOk) {
+        activationTags.push(tagHtml(`Reachable ${reachability.ip || olt.ip || "OLT"}`, "green"));
+        if (Number.isFinite(reachability.attempts)) activationTags.push(tagHtml(`${reachability.attempts} lần kiểm tra`, "gray"));
+      }
+      if (!Object.keys(activation).length && successful && olt.verification) {
+        activationTags.push(tagHtml("Post-config verification OK", "green"));
+      }
+      const activationSummary = reachableOk
+        ? `OLT ${reachability.ip || olt.ip || ""} đã reachable sau khi áp dụng cấu hình.`
+        : activationOk
+          ? "OLT đã xác nhận thao tác kích hoạt/reload."
+          : successful && olt.verification
+            ? "Kết quả cũ không có chi tiết activation; post-config verification đã thành công."
+            : "Backend chưa trả kết quả activation/reload và reachability.";
+
+      const verifyTags = [
+        tagHtml(`${interfaceCount} interface`, "green"),
+        tagHtml(`${aggregationCount} aggregation`, "green")
+      ];
+      if (verification.backup !== undefined) {
+        verifyTags.push(tagHtml(`Backup: ${operationDetail(verification.backup)}`, backupOk ? "green" : "amber"));
+      }
+      const verifySummary = olt.verification
+        ? `Post-config verification có dữ liệu cho ${olt.name || "OLT"} (${olt.ip || "không có IP"}, ${olt.vendor || "không có vendor"}).`
+        : "Backend chưa chạy hoặc chưa trả post-config verification.";
+
+      document.getElementById("config-groups").innerHTML = [
+        configGroup(
+          switchData.name || "Switch",
+          lacp.aggregation || service.aggregation || "Không có aggregation",
+          successful ? "green" : "gray",
+          switchSummary,
+          switchTags
+        ),
+        configGroup(
+          "Khởi tạo kết nối OLT",
+          Number.isFinite(bootstrap.command_count) ? `${bootstrap.command_count} commands` : "NO COUNT",
+          successful ? "green" : "gray",
+          bootstrapSummary,
+          bootstrapTags
+        ),
+        configGroup(
+          "Nạp file cấu hình",
+          loadStatus,
+          isCheckpoint || load.status === "not_run" ? "amber" : loadOk ? "green" : "gray",
+          loadSummary,
+          loadTags
+        ),
+        configGroup(
+          "Kích hoạt và kết nối lại OLT",
+          activationStatus,
+          reachableOk || activationOk || (successful && olt.verification) ? "green" : "amber",
+          activationSummary,
+          activationTags
+        ),
+        configGroup(
+          "Xác nhận sau cấu hình",
+          backupOk ? "Backup OK" : olt.verification ? "Có kết quả verify" : "Chưa chạy",
+          backupOk ? "green" : "amber",
+          verifySummary,
+          verifyTags
+        )
+      ].join("");
+    }
+
+    const toast = document.getElementById("toast");
+    let toastTimer;
+
+    function notify(message) {
+      window.clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.add("show");
+      toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+
+    const OPERATION_STATE_RULES = Object.freeze({
+      plan_created: {
+        stage: 0,
+        status: "Đã tạo Kế hoạch",
+        tone: "info",
+        allocate: true,
+        precheck: false,
+        config: false,
+        cancel: true
+      },
+      allocation_succeeded: {
+        stage: 1,
+        status: "Đã cấp phát",
+        tone: "success",
+        allocate: false,
+        precheck: true,
+        config: true,
+        cancel: true
+      },
+      allocation_failed: {
+        stage: 1,
+        status: "Cấp phát không thành công",
+        tone: "error",
+        failed: true,
+        allocate: true,
+        precheck: false,
+        config: false,
+        cancel: true
+      },
+      precheck_succeeded: {
+        stage: 2,
+        status: "Kiểm tra vật lý thành công",
+        tone: "success",
+        allocate: false,
+        precheck: true,
+        config: true,
+        cancel: true
+      },
+      precheck_failed: {
+        stage: 2,
+        status: "Kiểm tra vật lý không thành công",
+        tone: "error",
+        failed: true,
+        allocate: false,
+        precheck: true,
+        config: true,
+        cancel: true
+      },
+      config_failed: {
+        stage: 3,
+        status: "Cấu hình thất bại",
+        tone: "error",
+        failed: true,
+        allocate: false,
+        precheck: true,
+        config: true,
+        cancel: true
+      },
+      config_succeeded: {
+        stage: 3,
+        status: "Hoàn thành",
+        tone: "success",
+        allocate: false,
+        precheck: false,
+        config: false,
+        cancel: false
+      }
+    });
+
+    let operationState = "plan_created";
+
+    function setButtonAvailability(button, available, unavailableReason) {
+      button.disabled = !available;
+      button.setAttribute("aria-disabled", String(!available));
+      button.title = available ? "" : unavailableReason;
+    }
+
+    function renderAllocationState(state) {
+      const status = document.getElementById("allocation-status");
+      const duration = document.getElementById("allocation-duration");
+      const empty = document.getElementById("allocation-empty");
+      const content = document.getElementById("allocation-content");
+      const allocationFailed = state === "allocation_failed";
+      const allocationPending = state === "plan_created";
+
+      if (allocationPending || allocationFailed) {
+        status.textContent = allocationFailed ? "× THẤT BẠI" : "• CHỜ CẤP PHÁT";
+        status.className = `status-pill ${allocationFailed ? "error" : "warning"}`;
+        duration.hidden = true;
+        content.hidden = true;
+        empty.hidden = false;
+        empty.className = `allocation-empty${allocationFailed ? " error" : ""}`;
+        empty.textContent = allocationFailed
+          ? "Cấp phát thông tin không thành công. Người vận hành có thể thực hiện lại bước Cấp phát."
+          : "Kế hoạch đã được tạo. Chưa có dữ liệu cấp phát.";
+        return;
+      }
+
+      status.textContent = "✓ Đã cấp phát";
+      status.className = "status-pill success";
+      duration.hidden = false;
+      empty.hidden = true;
+      content.hidden = false;
+    }
+
+    function renderOperationState(state, announce = true) {
+      const rule = OPERATION_STATE_RULES[state];
+      if (!rule) throw new Error(`Trạng thái vận hành không hợp lệ: ${state}`);
+      operationState = state;
+
+      const steps = [...document.querySelectorAll(".progress-step")];
+      steps.forEach((step, index) => {
+        const isFailedStep = rule.failed === true && index === rule.stage;
+        const isDone = isFailedStep ? index < rule.stage : index <= rule.stage;
+        step.classList.toggle("done", isDone);
+        step.classList.toggle("current", index === rule.stage);
+        step.classList.toggle("failed", isFailedStep);
+        step.querySelector(".step-dot").textContent = isFailedStep ? "×" : isDone ? "✓" : index + 1;
+        step.querySelector(".step-detail").textContent = isFailedStep
+          ? `${step.querySelector(".step-name").textContent} không thành công`
+          : isDone
+            ? ["Tạo Kế hoạch thành công", "Cấp phát thông tin thành công", "Kiểm tra vật lý thành công", "Cấu hình thành công"][index]
+            : "Chưa thực hiện";
+        const stepTime = step.querySelector(".step-time");
+        if (stepTime) stepTime.hidden = !isDone;
+      });
+
+      const status = document.getElementById("overall-status");
+      status.textContent = "● " + rule.status;
+      status.className = "status-pill " + rule.tone;
+
+      const generalStatus = document.getElementById("general-status");
+      const jobStatus = document.getElementById("job-status");
+      const stateSymbol = rule.failed ? "×" : "●";
+      generalStatus.textContent = `${stateSymbol} ${rule.status}`;
+      generalStatus.className = `status-pill ${rule.tone}`;
+      jobStatus.textContent = `${stateSymbol} ${rule.status}`;
+      jobStatus.className = `status-pill ${rule.tone}`;
+
+      document.querySelectorAll("[data-timeline-step]").forEach(row => {
+        const index = Number(row.dataset.timelineStep);
+        const isFailedStep = rule.failed === true && index === rule.stage;
+        const isDone = isFailedStep ? index < rule.stage : index <= rule.stage;
+        const label = row.querySelector(".timeline-label").textContent;
+        const dot = row.querySelector(".mini-dot");
+        dot.textContent = isFailedStep ? "×" : isDone ? "✓" : index + 1;
+        dot.className = `mini-dot${isFailedStep ? " fail" : isDone ? "" : " pending"}`;
+        row.querySelector(".timeline-value").textContent = isFailedStep
+          ? `${label} không thành công`
+          : isDone
+            ? `${label}${index === 1 ? " thông tin" : ""} thành công`
+            : "Chưa thực hiện";
+      });
+
+      const allocateButton = document.getElementById("action-allocate");
+      const precheckButton = document.getElementById("action-precheck");
+      const configButton = document.getElementById("action-config");
+      const cancelButton = document.getElementById("action-cancel");
+      const completedReason = state === "config_succeeded"
+        ? "Kế hoạch đã cấu hình thành công."
+        : "Bước này chưa đủ điều kiện thực hiện.";
+
+      setButtonAvailability(allocateButton, rule.allocate, state === "plan_created" ? "" : "Kế hoạch đã được cấp phát.");
+      setButtonAvailability(precheckButton, rule.precheck, completedReason);
+      setButtonAvailability(configButton, rule.config, completedReason);
+      cancelButton.hidden = !rule.cancel;
+      renderAllocationState(state);
+
+      if (announce) {
+        notify(`Mô phỏng trạng thái: ${rule.status}. Không có API nào được gọi.`);
+      }
+    }
+
+    document.querySelectorAll("[data-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        const actionName = {
+          allocate: "Cấp phát",
+          precheck: "Kiểm tra vật lý",
+          config: "Cấu hình"
+        }[button.dataset.action];
+        notify(`${actionName} đang available trong case này. Bản review không gọi API.`);
+      });
+    });
+
+    document.querySelectorAll("[data-demo]").forEach(button => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.demo;
+        if (action === "reload") {
+          renderOperationState(operationState, false);
+          notify("Đã tải lại trạng thái hiển thị. Không có API nào được gọi.");
+          return;
+        }
+        const messages = {
+          back: "Bản prototype độc lập: chưa cấu hình route quay lại.",
+          cancel: "Chỉ mô phỏng UI — không gửi yêu cầu hủy job.",
+          zoom: "Sơ đồ đã ở kích thước tối ưu cho bản review.",
+          fit: "Đã căn sơ đồ vừa vùng hiển thị."
+        };
+        notify(messages[action] || "Thao tác mô phỏng.");
+      });
+    });
+
+    window.OLT_INITIALIZE_UI_CONTRACT = API_ENDPOINTS;
+    window.OLT_INITIALIZE_MANAGEMENT_PORT_POLICY = MANAGEMENT_PORT_POLICY;
+    window.OLT_INITIALIZE_OPERATION_STATE_RULES = OPERATION_STATE_RULES;
+    window.OLT_INITIALIZE_REVIEW_CASES = REVIEW_CASES;
+    window.setOltInitializeOperationState = renderOperationState;
+    window.renderOltInitializePrecheck = renderPrecheck;
+    window.renderOltInitializeConfig = renderConfig;
+
+    const reviewFileName = decodeURIComponent(window.location.pathname.split("/").pop() || "").toLowerCase();
+    const activeReviewCase = REVIEW_CASES[reviewFileName] || REVIEW_CASES["07_config_thanh_cong.html"];
+    document.title = `${activeReviewCase.title} · OLT Initialize`;
+    document.getElementById("page-title").textContent = activeReviewCase.title;
+    document.getElementById("page-subtitle").textContent = "OLT Initialize · UI review theo trạng thái nghiệp vụ";
+    renderPrecheck(activeReviewCase.precheck);
+    renderConfig(activeReviewCase.config);
+    renderOperationState(activeReviewCase.state, false);
+  </script>
+</body>
+</html>
