@@ -44,6 +44,7 @@
         <div class="na-sidebar-label">Danh mục vận hành</div>
         <nav>
           <button class="na-nav-item is-active" type="button" data-module="pop"><span class="na-nav-icon">⬡</span><span>Quản lý POP và Thiết bị</span></button>
+          <button class="na-nav-item" type="button" data-module="customer"><span class="na-nav-icon">⌖</span><span>Thông tin Tập điểm &amp; Khách hàng</span></button>
           <button class="na-nav-item" type="button" data-module="business"><span class="na-nav-icon">▣</span><span>Quản lý Nghiệp vụ</span></button>
         </nav>
         <div class="na-sidebar-info"><span>NETAUTO</span><strong>Production UI mockup</strong><small>Đối chiếu screenshot 02/10/2026</small></div>
@@ -72,6 +73,76 @@
           <div class="na-section-head"><div><h2>Danh sách POP</h2><p>Chọn POP để xem danh sách thiết bị và thông tin inventory.</p></div><span id="popResultCount">Hiển thị 14 / 3.896 POP</span></div>
           <div class="na-pop-grid" id="popGrid" aria-live="polite"></div>
           <div class="na-empty" id="popEmpty" hidden><b>Không tìm thấy dữ liệu phù hợp</b><span>Thử bỏ bớt điều kiện lọc hoặc tìm theo IP thiết bị.</span></div>
+        </section>
+
+        <section class="na-page" id="customerPage" data-page="customer" hidden>
+          <div class="na-page-heading na-info-heading">
+            <div><div class="na-breadcrumb">Vận hành <span>/</span> Tra cứu hạ tầng</div><h1>Thông tin Tập điểm &amp; Khách hàng</h1><p>Một điểm tra cứu cho dữ liệu PortNet, CSOC và trạng thái ONU trên thiết bị.</p></div>
+          </div>
+
+          <nav class="na-info-tabs" id="infoTabs" aria-label="Tra cứu tập điểm và khách hàng">
+            <button class="is-active" type="button" data-info-tab="drop-point"><span>⌖</span><b>Tập điểm</b><small>Kiểm tra toàn bộ thuê bao</small></button>
+            <button type="button" data-info-tab="customer"><span>♙</span><b>Khách hàng</b><small>Tra cứu đa định danh</small></button>
+          </nav>
+
+          <section class="na-info-view" data-info-view="drop-point">
+            <div class="na-drop-layout">
+              <article class="na-tool-card">
+                <header class="na-tool-card-head"><div><span class="na-tool-icon">⌖</span><div><small>CHECK DROP POINT</small><h2>Kiểm tra tập điểm</h2></div></div><span class="na-health"><i></i>Sẵn sàng</span></header>
+                <p class="na-tool-lead">Kiểm tra đồng thời PortNet, CSOC và các OLT candidate để xác nhận thông tin từng ONU.</p>
+                <div class="na-lookup-field">
+                  <label for="dropPointInput">Mã tập điểm</label>
+                  <div class="na-input-shell" id="dropPointShell"><span>⌖</span><input id="dropPointInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ví dụ: TQGP008.0045" aria-describedby="dropPointHelp"><button id="clearDropPoint" type="button" aria-label="Xóa mã tập điểm" hidden>×</button></div>
+                  <div class="na-suffix-suggestions" id="dropPointSuggestions" hidden>
+                    <div><b>Chọn hậu tố thiết bị</b><small>Đã nhận diện mã gốc <strong id="dropPointBase">TQGP008.0045</strong></small></div>
+                    <div class="na-suffix-list"><button type="button" data-suffix="/HO">/HO</button><button type="button" data-suffix="/HW">/HW</button><button type="button" data-suffix="/HU">/HU</button><button type="button" data-suffix="/HF">/HF</button></div>
+                  </div>
+                  <small id="dropPointHelp">Nhập đủ mã gốc, hệ thống sẽ đề xuất hậu tố <b>/HO, /HW, /HU, /HF</b>.</small>
+                </div>
+                <div class="na-tool-actions"><button class="na-button" id="resetDropPoint" type="button">Xóa dữ liệu</button><button class="na-button is-primary" id="checkDropPoint" type="button">Kiểm tra tập điểm <span>→</span></button></div>
+              </article>
+
+              <aside class="na-check-pending" id="dropPointPending">
+                <span>⌁</span><b>Kết quả kiểm tra</b><small>Thông tin tổng hợp sẽ hiển thị tại đây sau khi hoàn tất đối soát.</small>
+              </aside>
+
+              <aside class="na-result-summary" id="dropPointSummary" hidden>
+                <header><div><span class="na-success-mark">✓</span><div><small>HOÀN TẤT KIỂM TRA</small><h2 id="dropPointResultName">TQGP008.0045/HO</h2></div></div><time>Response thật</time></header>
+                <div class="na-result-stats" id="dropPointStats"></div>
+                <div class="na-data-warning" id="dropPointWarnings" hidden></div>
+              </aside>
+            </div>
+
+            <div class="na-query-empty" id="dropPointEmpty"><span>⌁</span><b>Chưa có kết quả kiểm tra</b><small>Nhập mã tập điểm để xem tổng quan và chi tiết từng khách hàng.</small></div>
+
+            <section class="na-drop-results" id="dropPointResults" hidden>
+              <section class="na-result-table-panel">
+                <header><div><h3>Thông tin ONU (SNMP)</h3><p id="dropPointResponseMessage">Hoàn tất kiểm tra tập điểm: 7/7 khách hàng có công suất ONU.</p></div><button class="na-button" id="exportDropPoint" type="button">⇩ Xuất kết quả</button></header>
+                <div class="na-table-wrap na-onu-table-scroll" tabindex="0" role="region" aria-label="Kết quả khách hàng, cuộn ngang để xem các cột">
+                  <table class="na-table na-customer-table na-onu-table">
+                    <colgroup><col style="width:17%"><col style="width:10%"><col style="width:15%"><col style="width:12%"><col style="width:20%"><col style="width:10%"><col style="width:9%"><col style="width:7%"></colgroup>
+                    <thead><tr><th scope="col">Hợp đồng</th><th scope="col">Trạng thái HĐ</th><th scope="col">OLT-Port<span class="na-header-sub">ONU index</span></th><th scope="col">IP WAN</th><th scope="col">Thiết bị ONU</th><th scope="col">Rx / Tx (dBm)</th><th scope="col">OLT - ONU (m)</th><th scope="col">Nguồn</th></tr></thead>
+                    <tbody id="dropPointCustomerRows"></tbody>
+                  </table>
+                </div>
+                <footer><span id="dropPointResultCount"></span><span class="na-real-data-badge">Dữ liệu thật</span></footer>
+              </section>
+            </section>
+          </section>
+
+          <section class="na-info-view" data-info-view="customer" hidden>
+            <div class="na-customer-lookup">
+              <header><span class="na-tool-icon is-customer">♙</span><div><small>CUSTOMER RESOLVER</small><h2>Tra cứu thông tin khách hàng</h2><p>Hệ thống tự nhận diện loại định danh và chọn nguồn dữ liệu phù hợp.</p></div></header>
+              <div class="na-customer-search"><div class="na-customer-search-box"><span>⌕</span><input id="customerLookupInput" type="text" autocomplete="off" placeholder="Hợp đồng, serial ONU, MAC, IP WAN hoặc ONU index..."><em id="identifierType">Tự nhận diện</em></div><button class="na-button is-primary" id="searchCustomer" type="button">Tra cứu <span>→</span></button></div>
+              <div class="na-identifier-examples"><span>Dữ liệu mẫu từ response thật</span><button type="button" data-customer-sample="TQAAB2928">Hợp đồng</button><button type="button" data-customer-sample="FPTT23609719">Serial ONU</button><button type="button" data-customer-sample="cc:cf:83:e7:aa:ce">MAC</button><button type="button" data-customer-sample="21.168.182.244">IP WAN</button><button type="button" data-customer-sample="0/8/30">ONU index</button></div>
+            </div>
+            <div class="na-query-empty" id="customerEmpty"><span>♙</span><b>Tra cứu nhanh theo mọi định danh</b><small>Chọn một ví dụ hoặc nhập dữ liệu khách hàng cần kiểm tra.</small></div>
+            <section class="na-customer-profile" id="customerResult" hidden>
+              <header><div class="na-profile-name"><span>KH</span><div><small>HỢP ĐỒNG</small><h2>TQAAB2928</h2><p id="customerResolvedBy">Dữ liệu từ response check-drop-point</p></div></div><span class="na-state-dot success">Bình thường</span></header>
+              <div class="na-profile-grid"><article><span>Hợp đồng</span><b>TQAAB2928</b></article><article><span>IP WAN</span><b>21.168.182.244</b></article><article><span>MAC</span><b>cc:cf:83:e7:aa:ce</b></article><article><span>Serial ONU</span><b>FPTT23609719</b></article></div>
+              <div class="na-access-path"><div><small>TẬP ĐIỂM</small><b>TQGP008.0045/HO</b></div><i>→</i><div><small>OLT</small><b>TQGP00804GC16</b></div><i>→</i><div><small>OLT-PORT / ONU</small><b>g0/8 · 0/8/30</b></div><i>→</i><div class="is-online"><small>RX / TX (dBm)</small><b>-21.19 / 1.67</b></div></div>
+            </section>
+          </section>
         </section>
 
         <section class="na-page" id="businessPage" data-page="business" hidden>
@@ -119,6 +190,7 @@
   <div class="na-toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="shared/netauto-data.js"></script>
+  <script src="shared/drop-point-response.js"></script>
   <script src="shared/netauto-app.js"></script>
 </body>
 </html>

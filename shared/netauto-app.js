@@ -1,5 +1,51 @@
 (() => {
   const DATA = window.NETAUTO_DATA;
+  const dropPointResponse = window.NETAUTO_DROP_POINT_RESPONSE;
+  const escapeHtml = value => String(value ?? '—').replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+  const detailArticle = (label, value) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></article>`;
+  const formatOnuTemperature = value => {
+    if (value == null || String(value).trim() === '') return '—';
+    const temperature = Number(value);
+    return Number.isFinite(temperature) ? `${Math.round(temperature)} °C` : '—';
+  };
+  function renderSourceTags(customer) {
+    const sources = [...new Set(customer.selected_candidate?.sources ?? customer.sources ?? (customer.candidates || []).flatMap(candidate => candidate.sources || []))];
+    const knownSources = {isc_portnet:['ISC','isc'],csoc_contract:['CONTRACT','contract'],csoc_radius:['RADIUS','radius']};
+    const orderedSources = ['isc_portnet','csoc_contract','csoc_radius'].filter(source => sources.includes(source));
+    orderedSources.push(...sources.filter(source => !knownSources[source]));
+    return orderedSources.length ? `<div class="na-source-tags">${orderedSources.map(source => {
+      const [label, tone] = knownSources[source] || [source,'other'];
+      return `<span class="na-source-tag is-${tone}" title="${escapeHtml(source)}">${escapeHtml(label)}</span>`;
+    }).join('')}</div>` : '<span class="na-source-empty">—</span>';
+  }
+  function renderDropPointResponse() {
+    const {result, message} = dropPointResponse;
+    document.getElementById('dropPointStats').innerHTML = [
+      ['Tổng khách hàng',result.count.total,''],
+      ['Xác nhận thành công',result.count.success,'is-success'],
+      ['Cần kiểm tra lại',result.count.failed,'is-danger'],
+      ['Thời gian xử lý (ms)',result.duration_ms,'is-speed']
+    ].map(([label,value,className]) => `<article class="${className}"><span>${label}</span><strong>${escapeHtml(value)}</strong></article>`).join('');
+    document.getElementById('dropPointResponseMessage').textContent = message.replace('có công suất ONU hợp lệ.', 'có công suất ONU.');
+    document.getElementById('dropPointCustomerRows').innerHTML = result.customers.map(customer => {
+      const candidate = customer.selected_candidate || {};
+      return `<tr>
+        <td class="na-contract-cell"><b>${escapeHtml(customer.contract)}</b><small>Port ${escapeHtml(customer.drop_point_port)}</small><small class="na-bcc-value">${escapeHtml(customer.bcc1)}</small></td>
+        <td><span class="na-state-dot ${customer.status ? 'success' : 'warning'}">${escapeHtml(customer.contract_status)}</span></td>
+        <td class="na-olt-cell"><b>${escapeHtml(candidate.olt_name)}</b><small>${escapeHtml(candidate.model)} · ${escapeHtml(candidate.port_name)}</small><code>${escapeHtml(customer.onu_index)}</code></td>
+        <td class="na-identifier-value">${escapeHtml(customer.ipwan)}</td>
+        <td class="na-onu-identity"><b>${escapeHtml(customer.onu?.onu_model)}</b><span class="na-identity-line"><span>SN</span><span>${escapeHtml(customer.onu_sn)}</span></span><span class="na-identity-line"><span>MAC</span><span>${escapeHtml(customer.onu_mac)}</span></span><span class="na-onu-temperature"><span>Nhiệt độ</span><span>${escapeHtml(formatOnuTemperature(customer.onu?.onu_temp))}</span></span></td>
+        <td class="na-numeric"><span class="na-optical-values"><b>${escapeHtml(customer.onu?.onu_rx)}</b><span>/</span><span>${escapeHtml(customer.onu?.onu_tx)}</span></span></td>
+        <td class="na-numeric">${escapeHtml(customer.onu?.onu_olt_distance)}</td>
+        <td class="na-source-cell">${renderSourceTags(customer)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('dropPointResultCount').textContent = `Hiển thị ${result.customers.length} / ${result.count.total} khách hàng`;
+    const warnings = result.customers.filter(customer => !customer.status || customer.selected_candidate?.resolution_error);
+    const warningPanel = document.getElementById('dropPointWarnings');
+    warningPanel.hidden = !warnings.length;
+    warningPanel.innerHTML = warnings.map(customer => `<span aria-hidden="true">⚠</span><div><b>${escapeHtml(customer.contract)}</b><p>${escapeHtml(customer.selected_candidate?.resolution_error || customer.message)}</p></div>`).join('');
+  }
   const root = document.documentElement;
   const portal = document.getElementById('portalWindow');
   const toast = document.getElementById('toast');
@@ -123,6 +169,117 @@
     document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
   }
 
+  function openInfoTab(tab) {
+    document.querySelectorAll('#infoTabs button').forEach(button => button.classList.toggle('is-active', button.dataset.infoTab === tab));
+    document.querySelectorAll('[data-info-view]').forEach(view => view.hidden = view.dataset.infoView !== tab);
+  }
+
+  const normalizeDropPoint = value => value.trim().toUpperCase().replace(/\s+/g, '');
+
+  function updateDropPointSuggestions() {
+    const input = document.getElementById('dropPointInput');
+    const normalized = normalizeDropPoint(input.value);
+    const isCompleteBase = /^[A-Z0-9]+\.\d{4}$/.test(normalized);
+    document.getElementById('dropPointShell').classList.toggle('has-value', Boolean(normalized));
+    document.getElementById('clearDropPoint').hidden = !normalized;
+    document.getElementById('dropPointSuggestions').hidden = !isCompleteBase;
+    if (isCompleteBase) document.getElementById('dropPointBase').textContent = normalized;
+  }
+
+  function resetDropPoint() {
+    const input = document.getElementById('dropPointInput');
+    input.value = '';
+    document.getElementById('dropPointResults').hidden = true;
+    document.getElementById('dropPointSummary').hidden = true;
+    document.getElementById('dropPointPending').hidden = false;
+    document.getElementById('dropPointEmpty').hidden = false;
+    updateDropPointSuggestions();
+    input.focus();
+  }
+
+  function runDropPointCheck() {
+    const input = document.getElementById('dropPointInput');
+    const value = normalizeDropPoint(input.value);
+    if (!/^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF)$/.test(value)) {
+      updateDropPointSuggestions();
+      showToast(/^[A-Z0-9]+\.\d{4}$/.test(value) ? 'Chọn một hậu tố thiết bị để tiếp tục.' : 'Mã tập điểm chưa đúng định dạng. Ví dụ: TQGP008.0045/HO');
+      input.focus();
+      return;
+    }
+    if (value !== dropPointResponse.result.drop_point) {
+      document.getElementById('dropPointResults').hidden = true;
+      document.getElementById('dropPointSummary').hidden = true;
+      document.getElementById('dropPointPending').hidden = false;
+      document.getElementById('dropPointEmpty').hidden = false;
+      showToast('Mockup hiện chỉ hiển thị response thật đã cung cấp cho TQGP008.0045/HO.');
+      input.focus();
+      return;
+    }
+    input.value = value;
+    const button = document.getElementById('checkDropPoint');
+    const original = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = 'Đang đối soát…';
+    document.getElementById('dropPointSuggestions').hidden = true;
+    setTimeout(() => {
+      renderDropPointResponse();
+      document.getElementById('dropPointResultName').textContent = value;
+      document.getElementById('dropPointEmpty').hidden = true;
+      document.getElementById('dropPointPending').hidden = true;
+      document.getElementById('dropPointSummary').hidden = false;
+      document.getElementById('dropPointResults').hidden = false;
+      button.disabled = false;
+      button.innerHTML = original;
+      document.getElementById('dropPointResults').scrollIntoView({behavior:'smooth',block:'start'});
+    }, 420);
+  }
+
+  function detectCustomerIdentifier(value) {
+    const raw = value.trim();
+    if (/^[A-Z]{2}[0-9A-Z]{7}$/i.test(raw)) return 'Hợp đồng';
+    if (/^[A-Z]{4}[0-9A-F]{8}$/i.test(raw)) return 'Serial ONU';
+    if (/^([0-9A-F]{2}[:-]){5}[0-9A-F]{2}$/i.test(raw) || /^([0-9A-F]{4}\.){2}[0-9A-F]{4}$/i.test(raw)) return 'Địa chỉ MAC';
+    if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(raw) && raw.split('.').every(x => Number(x) <= 255)) return 'IP WAN';
+    if (/^\d{1,2}\/\d{1,2}\/\d{1,3}$/.test(raw) || /^\d{1,2}\/\d{1,2}(?:\/\d{1,2})?[:-]\d{1,3}$/.test(raw)) return 'ONU index';
+    return raw ? 'Chưa nhận diện' : 'Tự nhận diện';
+  }
+
+  function updateCustomerIdentifier() {
+    const value = document.getElementById('customerLookupInput').value;
+    const type = detectCustomerIdentifier(value);
+    const badge = document.getElementById('identifierType');
+    badge.textContent = type;
+    badge.classList.toggle('is-detected', !['Tự nhận diện','Chưa nhận diện'].includes(type));
+  }
+
+  function runCustomerLookup() {
+    const input = document.getElementById('customerLookupInput');
+    const type = detectCustomerIdentifier(input.value);
+    if (['Tự nhận diện','Chưa nhận diện'].includes(type)) {
+      showToast('Định danh chưa được hỗ trợ hoặc chưa đúng định dạng.');
+      input.focus();
+      return;
+    }
+    const normalized = input.value.trim().toUpperCase();
+    const customer = dropPointResponse.result.customers.find(row =>
+      [row.contract,row.onu_sn,row.onu_mac,row.ipwan,row.onu_index].some(identifier => String(identifier).toUpperCase() === normalized));
+    if (!customer) {
+      document.getElementById('customerResult').hidden = true;
+      document.getElementById('customerEmpty').hidden = false;
+      showToast('Chưa có response thật cho định danh này trong mockup.');
+      input.focus();
+      return;
+    }
+    const candidate = customer.selected_candidate || {};
+    document.getElementById('customerResult').innerHTML = `
+      <header><div class="na-profile-name"><span>KH</span><div><small>HỢP ĐỒNG</small><h2>${escapeHtml(customer.contract)}</h2><p>Được đối chiếu qua ${escapeHtml(type.toLowerCase())} ${escapeHtml(input.value.trim())}</p></div></div><span class="na-state-dot success">${escapeHtml(customer.contract_status)}</span></header>
+      <div class="na-profile-grid">${[['Hợp đồng',customer.contract],['IP WAN',customer.ipwan],['MAC',customer.onu_mac],['Serial ONU',customer.onu_sn],['ONU model',customer.onu?.onu_model],['Nhiệt độ ONU',formatOnuTemperature(customer.onu?.onu_temp)],['OLT - ONU (m)',customer.onu?.onu_olt_distance],['OLT IP',candidate.olt_ip]].map(([label,value])=>detailArticle(label,value)).join('')}</div>
+      <div class="na-access-path"><div><small>TẬP ĐIỂM</small><b>${escapeHtml(dropPointResponse.result.drop_point)}</b></div><i>→</i><div><small>OLT</small><b>${escapeHtml(candidate.olt_name)}</b></div><i>→</i><div><small>OLT-PORT / ONU</small><b>${escapeHtml(candidate.port_name)} · ${escapeHtml(customer.onu_index)}</b></div><i>→</i><div class="is-online"><small>RX / TX (dBm)</small><b>${escapeHtml(customer.onu?.onu_rx)} / ${escapeHtml(customer.onu?.onu_tx)}</b></div></div>`;
+    document.getElementById('customerEmpty').hidden = true;
+    document.getElementById('customerResult').hidden = false;
+    document.getElementById('customerResult').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
   function renderPlans() {
     const query = document.getElementById('planSearch').value.trim().toLowerCase();
     const type = document.getElementById('typeFilter').value;
@@ -171,6 +328,9 @@
 
   const commandItems = () => [
     {icon:'⬡',title:'Quản lý POP và Thiết bị',meta:'Mở trang POP',action:()=>navigateModule('pop')},
+    {icon:'⌖',title:'Thông tin Tập điểm & Khách hàng',meta:'Kiểm tra tập điểm và tra cứu thuê bao',action:()=>navigateModule('customer')},
+    {icon:'⌖',title:'Kiểm tra tập điểm',meta:'Mở tool check-drop-point',action:()=>{navigateModule('customer');openInfoTab('drop-point')}},
+    {icon:'♙',title:'Tra cứu khách hàng',meta:'Hợp đồng, serial, MAC, IP WAN hoặc ONU index',action:()=>{navigateModule('customer');openInfoTab('customer')}},
     {icon:'▣',title:'Quản lý Nghiệp vụ',meta:'Mở danh sách kế hoạch',action:()=>{navigateModule('business');openBusinessPage('plans')}},
     ...Object.entries(DATA.workflows).map(([key,w]) => ({icon:w.mark,title:w.title,meta:'Trang nghiệp vụ',action:()=>{navigateModule('business');openBusinessPage(key)}})),
     ...DATA.pops.map(pop => ({icon:'⬡',title:pop.code,meta:`${pop.branch} · ${pop.province} · ${pop.zone}`,action:()=>{navigateModule('pop');openPopDrawer(pop.code)}}))
@@ -203,6 +363,26 @@
   document.getElementById('registerDevice').addEventListener('click', () => showToast('Form Đăng ký thiết bị sẽ được bổ sung theo screenshot production.'));
 
   document.querySelectorAll('.na-nav-item').forEach(button => button.addEventListener('click', () => navigateModule(button.dataset.module)));
+  document.querySelectorAll('#infoTabs button').forEach(button => button.addEventListener('click', () => openInfoTab(button.dataset.infoTab)));
+  document.getElementById('dropPointInput').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase(); updateDropPointSuggestions(); });
+  document.getElementById('dropPointInput').addEventListener('keydown', event => { if (event.key === 'Enter') runDropPointCheck(); });
+  document.getElementById('dropPointSuggestions').addEventListener('click', event => { const button = event.target.closest('[data-suffix]'); if (!button) return; const input = document.getElementById('dropPointInput'); input.value = `${normalizeDropPoint(input.value)}${button.dataset.suffix}`; updateDropPointSuggestions(); input.focus(); });
+  document.getElementById('clearDropPoint').addEventListener('click', resetDropPoint);
+  document.getElementById('resetDropPoint').addEventListener('click', resetDropPoint);
+  document.getElementById('checkDropPoint').addEventListener('click', runDropPointCheck);
+  document.getElementById('exportDropPoint').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(dropPointResponse,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'TQGP008.0045-HO-response.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url),1000);
+  });
+  document.getElementById('customerLookupInput').addEventListener('input', updateCustomerIdentifier);
+  document.getElementById('customerLookupInput').addEventListener('keydown', event => { if (event.key === 'Enter') runCustomerLookup(); });
+  document.querySelectorAll('[data-customer-sample]').forEach(button => button.addEventListener('click', () => { document.getElementById('customerLookupInput').value = button.dataset.customerSample; updateCustomerIdentifier(); document.getElementById('customerLookupInput').focus(); }));
+  document.getElementById('searchCustomer').addEventListener('click', runCustomerLookup);
   document.querySelectorAll('#businessSubnav button').forEach(button => button.addEventListener('click', () => openBusinessPage(button.dataset.businessPage)));
   document.getElementById('expandFilter').addEventListener('click', event => { const filters=document.getElementById('expandedFilters');filters.hidden=!filters.hidden;event.currentTarget.textContent=filters.hidden?'☷ Mở rộng':'☷ Thu gọn'; });
   document.getElementById('planSearch').addEventListener('input', renderPlans);
@@ -229,5 +409,5 @@
   document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();openCommand();}if(event.key==='/'&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)){event.preventDefault();openCommand();}if(event.key==='Escape'){closeCommand();closePopDrawer();}});
 
   const initialModule = location.hash.replace('#','');
-  if (initialModule === 'business') navigateModule('business');
+  if (['pop','customer','business'].includes(initialModule)) navigateModule(initialModule);
 })();
