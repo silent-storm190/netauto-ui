@@ -24,7 +24,7 @@
       ['Tổng khách hàng',result.count.total,''],
       ['Xác nhận thành công',result.count.success,'is-success'],
       ['Cần kiểm tra lại',result.count.failed,'is-danger'],
-      ['Thời gian xử lý (ms)',result.duration_ms,'is-speed']
+      ['Thời gian xử lý (s)',result.duration_ms == null ? '—' : new Intl.NumberFormat('vi-VN', {maximumFractionDigits:3}).format(result.duration_ms / 1000),'is-speed']
     ].map(([label,value,className]) => `<article class="${className}"><span>${label}</span><strong>${escapeHtml(value)}</strong></article>`).join('');
     document.getElementById('dropPointResponseMessage').textContent = message.replace('có công suất ONU hợp lệ.', 'có công suất ONU.');
     document.getElementById('dropPointCustomerRows').innerHTML = result.customers.map(customer => {
@@ -465,11 +465,29 @@
 
   document.querySelectorAll('.na-nav-item').forEach(button => button.addEventListener('click', () => navigateModule(button.dataset.module)));
   document.querySelectorAll('#infoTabs button').forEach(button => button.addEventListener('click', () => openInfoTab(button.dataset.infoTab)));
-  document.getElementById('dropPointInput').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase(); updateDropPointSuggestions(); });
+  document.getElementById('dropPointInput').addEventListener('input', event => {
+    const input = event.target;
+    input.value = input.value.toUpperCase();
+    const values = input.value.split(/[,;\r\n]+/).map(normalizeDropPoint).filter(Boolean);
+    if (/[,;\r\n]/.test(input.value) && values.length && values.every(value => /^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF)$/.test(value))) {
+      addDropPoints();
+    } else {
+      updateDropPointSuggestions();
+    }
+  });
   document.getElementById('dropPointInput').addEventListener('keydown', event => { if (['Enter',',',';'].includes(event.key)) { event.preventDefault(); addDropPoints(); } });
   document.getElementById('dropPointInput').addEventListener('paste', event => {
     const pasted = event.clipboardData?.getData('text') || '';
-    if (/[,;\r\n]/.test(pasted)) { event.preventDefault(); addDropPoints(pasted); }
+    if (!/[,;\r\n]/.test(pasted) && !/^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF)$/.test(normalizeDropPoint(pasted))) return;
+    event.preventDefault();
+    const input = event.target;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? start;
+    const combined = input.value.slice(0,start) + pasted + input.value.slice(end);
+    if (!addDropPoints(combined)) {
+      input.value = combined.replace(/[\r\n]+/g, ', ').toUpperCase();
+      updateDropPointSuggestions();
+    }
   });
   document.getElementById('dropPointSuggestions').addEventListener('click', event => { const button = event.target.closest('[data-suffix]'); if (!button) return; addDropPoints(`${normalizeDropPoint(document.getElementById('dropPointInput').value)}${button.dataset.suffix}`); });
   document.getElementById('addDropPoint').addEventListener('click', () => addDropPoints());
