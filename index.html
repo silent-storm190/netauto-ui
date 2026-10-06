@@ -91,19 +91,20 @@
                 <header class="na-tool-card-head"><div><span class="na-tool-icon">⌖</span><div><small>CHECK DROP POINT</small><h2>Kiểm tra tập điểm</h2></div></div><span class="na-health"><i></i>Sẵn sàng</span></header>
                 <p class="na-tool-lead">Kiểm tra đồng thời PortNet, CSOC và các OLT candidate để xác nhận thông tin từng ONU.</p>
                 <div class="na-lookup-field">
-                  <label for="dropPointInput">Mã tập điểm</label>
-                  <div class="na-input-shell" id="dropPointShell"><span>⌖</span><input id="dropPointInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ví dụ: TQGP008.0045" aria-describedby="dropPointHelp"><button id="clearDropPoint" type="button" aria-label="Xóa mã tập điểm" hidden>×</button></div>
+                  <div class="na-drop-entry-heading"><label for="dropPointInput">Danh sách tập điểm</label><span id="dropPointQueueCount" aria-live="polite">0 / 20 tập điểm</span></div>
+                  <div class="na-drop-queue" id="dropPointQueue" aria-label="Tập điểm đã thêm" hidden></div>
+                  <div class="na-drop-entry-row"><div class="na-input-shell" id="dropPointShell"><span>⌖</span><input id="dropPointInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ví dụ: TQGP008.0045" aria-describedby="dropPointHelp"><button id="clearDropPoint" type="button" aria-label="Xóa mã đang nhập" hidden>×</button></div><button class="na-button" id="addDropPoint" type="button">＋ Thêm</button></div>
                   <div class="na-suffix-suggestions" id="dropPointSuggestions" hidden>
                     <div><b>Chọn hậu tố thiết bị</b><small>Đã nhận diện mã gốc <strong id="dropPointBase">TQGP008.0045</strong></small></div>
                     <div class="na-suffix-list"><button type="button" data-suffix="/HO">/HO</button><button type="button" data-suffix="/HW">/HW</button><button type="button" data-suffix="/HU">/HU</button><button type="button" data-suffix="/HF">/HF</button></div>
                   </div>
-                  <small id="dropPointHelp">Nhập đủ mã gốc, hệ thống sẽ đề xuất hậu tố <b>/HO, /HW, /HU, /HF</b>.</small>
+                  <small id="dropPointHelp">Chọn hậu tố để thêm tập điểm. Có thể dán nhiều mã đầy đủ, cách nhau bằng dấu phẩy hoặc xuống dòng. Tối đa <b>20 tập điểm</b>.</small>
                 </div>
                 <div class="na-tool-actions"><button class="na-button" id="resetDropPoint" type="button">Xóa dữ liệu</button><button class="na-button is-primary" id="checkDropPoint" type="button">Kiểm tra tập điểm <span>→</span></button></div>
               </article>
 
               <aside class="na-check-pending" id="dropPointPending">
-                <span>⌁</span><b>Kết quả kiểm tra</b><small>Thông tin tổng hợp sẽ hiển thị tại đây sau khi hoàn tất đối soát.</small>
+                <span>⌁</span><b id="dropPointPendingTitle">Kết quả kiểm tra</b><small id="dropPointPendingDescription">Thông tin tổng hợp sẽ hiển thị tại đây sau khi hoàn tất đối soát.</small>
               </aside>
 
               <aside class="na-result-summary" id="dropPointSummary" hidden>
@@ -115,8 +116,14 @@
 
             <div class="na-query-empty" id="dropPointEmpty"><span>⌁</span><b>Chưa có kết quả kiểm tra</b><small>Nhập mã tập điểm để xem tổng quan và chi tiết từng khách hàng.</small></div>
 
-            <section class="na-drop-results" id="dropPointResults" hidden>
-              <section class="na-result-table-panel">
+            <div class="na-drop-tabs-region" id="dropPointTabsRegion" hidden>
+              <div class="na-drop-tabs-heading"><b>Tập điểm</b><span id="dropPointBatchCount"></span></div>
+              <nav class="na-drop-tabs" id="dropPointTabs" role="tablist" aria-label="Kết quả kiểm tra từng tập điểm"></nav>
+            </div>
+
+            <section class="na-drop-results" id="dropPointResults" role="tabpanel" aria-live="polite" hidden>
+              <div class="na-query-empty" id="dropPointUnavailable" hidden><span>⌁</span><b id="dropPointUnavailableName"></b><small>Chưa có response thật cho tập điểm này. Kết quả sẽ hiển thị khi có dữ liệu tương ứng.</small></div>
+              <section class="na-result-table-panel" id="dropPointTablePanel">
                 <header><div><h3>Thông tin ONU (SNMP)</h3><p id="dropPointResponseMessage">Hoàn tất kiểm tra tập điểm: 7/7 khách hàng có công suất ONU.</p></div><button class="na-button" id="exportDropPoint" type="button">⇩ Xuất kết quả</button></header>
                 <div class="na-table-wrap na-onu-table-scroll" tabindex="0" role="region" aria-label="Kết quả khách hàng, cuộn ngang để xem các cột">
                   <table class="na-table na-customer-table na-onu-table">
