@@ -48,9 +48,13 @@ File nguồn có 21 giá trị Infinity / NaN không hợp lệ theo JSON chuẩ
 chuyển các giá trị này thành `null` trong bản xuất dùng cho trình duyệt; không
 sửa file gốc. Mã SHA-256 của nguồn được lưu trong `NETAUTO_DATA.snapshot`.
 
-Nguồn chưa có địa chỉ POP, ngày triển khai, số khách hàng, telemetry PI, liên kết
-LLDP hay bảng tài sản POP. Những mục này để trống hoặc ghi rõ “mẫu tham chiếu”;
-không dùng mẫu như dữ liệu thật của POP đang mở. Công cụ chưa kết nối production.
+Theo yêu cầu duyệt bố cục, Layer 1 dùng ví dụ giả lập cho loại POP, ngày triển
+khai, chức năng, số khách hàng và địa chỉ khi nguồn thiếu. Các ví dụ được tạo
+ổn định theo mã POP, chỉ dùng ở lớp hiển thị và có nhãn “trường giả lập”; không
+ghi vào snapshot, không thay thế giá trị thật (kể cả số 0) nếu có.
+Nguồn chưa có telemetry PI, liên kết LLDP hay bảng tài sản POP. Những mục này
+để trống hoặc ghi rõ “mẫu tham chiếu”, không dùng mẫu như dữ liệu thật của POP
+đang mở. Công cụ chưa kết nối production.
 Snapshot chứa IP và serial thật: chỉ chia sẻ / triển khai ở nơi có quyền truy cập
 phù hợp, không mặc định công khai.
 

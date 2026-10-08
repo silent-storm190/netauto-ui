@@ -20,6 +20,14 @@
     door:'<path d="M4 21h16M6 21V3h12v18M14 12h.01"/>',
     bulb:'<path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0l-1 2H9z"/>',
     temperature:'<path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0zM12 10v7"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a17 17 0 0 1 0 18 17 17 0 0 1 0-18z"/>',
+    layers:'<path d="m12 3 9 5-9 5-9-5 9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/>',
+    pin:'<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0z"/><circle cx="12" cy="10" r="2"/>',
+    branch:'<circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v10M18 7a6 6 0 0 1-6 6H6"/>',
+    building:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M10 21v-6h4v6"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/>',
+    activity:'<path d="M3 12h4l3-7 4 14 3-7h4"/>',
+    users:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 4v2"/>',
   };
   const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.server}</svg>`;
   let currentPop = null;
@@ -39,6 +47,52 @@
     }
   }
 
+  function renderHeaderStats() {
+    get('detailDeviceTotal').textContent = `${currentDevices.length} thiết bị · snapshot đầy đủ`;
+    const counts = new Map();
+    for (const device of currentDevices) counts.set(device.type,(counts.get(device.type) || 0)+1);
+    const types = [...groups];
+    const other = currentDevices.filter(device => !deviceOrder.has(device.type)).length;
+    if (other) types.push({type:'OTHER',label:'Khác',tone:'slate',icon:'server'});
+    get('detailDeviceTypeStats').innerHTML = types.map(group => {
+      const count = group.type === 'OTHER' ? other : counts.get(group.type) || 0;
+      return `<span class="l1-pop-kind-tag is-${group.tone}" data-kind="${group.type}" role="listitem" aria-label="${escape(group.label)}: ${format(count)} thiết bị"><span class="l1-pop-kind-icon" aria-hidden="true">${icon(group.icon)}</span><span>${group.label}</span><b>${format(count)}</b></span>`;
+    }).join('');
+  }
+
+  // Presentation-only examples: never overwrite the imported POP/device snapshot.
+  function mockPopMetadata(pop) {
+    let seed = 0;
+    for (const character of pop.code) seed = (seed * 31 + character.charCodeAt(0)) >>> 0;
+    return {
+      popType:['POP truy nhập','POP tập trung','POP phân phối'][seed % 3],
+      deployedAt:`${String(seed % 27 + 1).padStart(2,'0')}/${String((seed >>> 4) % 12 + 1).padStart(2,'0')}/${2020 + seed % 5}`,
+      popFunction:['Truy nhập & phân phối','Kết nối thuê bao FTTH','Trung chuyển lưu lượng'][(seed >>> 3) % 3],
+      customerCount:400 + (seed % 21) * 40,
+      address:`${10 + seed % 170} đường Nội Bộ, khu kỹ thuật ${pop.code}, ${pop.province || 'khu vực POP'}`,
+    };
+  }
+
+  function renderPopMetadata(pop) {
+    const location = [
+      ['Miền',({MB:'Miền Bắc',MN:'Miền Nam'})[pop.area],'globe'],['Vùng',pop.zone,'layers'],['Tỉnh',pop.province,'pin'],['Chi nhánh',pop.branch,'branch'],
+    ];
+    get('detailPopLocation').innerHTML = location.map(([label,value,glyph]) => `<div title="${escape(label)}"><dt>${label}</dt><span class="l1-location-icon" aria-hidden="true">${icon(glyph)}</span><dd>${escape(value)}</dd></div>`).join('');
+    const examples = mockPopMetadata(pop);
+    const fields = [
+      ['popType','Loại POP','building'],['deployedAt','Ngày triển khai','calendar'],['popFunction','Chức năng','activity'],['customerCount','Tổng khách hàng','users'],['address','Địa chỉ','pin'],
+    ];
+    let demoCount = 0;
+    get('detailPopFields').innerHTML = fields.map(([key,label,glyph]) => {
+      const demo = pop[key] == null || String(pop[key]).trim() === '' || pop[key] === 'UNKNOWN';
+      const value = demo ? examples[key] : pop[key];
+      if (demo) demoCount++;
+      const shown = key === 'customerCount' && Number.isFinite(Number(value)) ? format(Number(value)) : value;
+      return `<div class="${key === 'address' ? 'is-address' : 'l1-pop-field'}" data-field="${key}" data-demo="${demo}"${demo ? ' title="Dữ liệu giả lập để minh hoạ giao diện"' : ''}><dt>${icon(glyph)}<span>${label}</span></dt><dd>${escape(shown)}</dd></div>`;
+    }).join('');
+    get('detailPopMetadataNote').innerHTML = demoCount ? `<span class="l1-demo-badge">${demoCount} trường giả lập</span><span>Minh hoạ các thông tin còn thiếu; thiết bị và inventory vẫn dùng dữ liệu thật.</span>` : 'Các trường “—” chưa có dữ liệu trong snapshot.';
+  }
+
   function open(pop, preserve = false) {
     closeTopo();
     if (preserve && currentPop?.code === pop.code) return;
@@ -47,12 +101,8 @@
     get('detailPopName').textContent = pop.code;
     get('detailBreadcrumb').textContent = pop.code;
     get('detailSource').textContent = source.source;
-    get('detailDeviceTotal').textContent = `${currentDevices.length} thiết bị · snapshot đầy đủ`;
-    const fields = [
-      ['Miền',pop.area === 'MB' ? 'Miền Bắc' : 'Miền Nam'],['Vùng',pop.zone],['Tỉnh',pop.province],['Chi nhánh',pop.branch],
-      ['Loại POP',pop.popType],['Ngày triển khai',pop.deployedAt],['Chức năng',pop.popFunction],['Tổng khách hàng',pop.customerCount],['Địa chỉ',pop.address],
-    ];
-    get('detailPopFields').innerHTML = fields.map(([label,value],index) => `<div class="${index === 8 ? 'is-address' : ''}"><dt>${label}</dt><dd>${escape(value)}</dd></div>`).join('');
+    renderHeaderStats();
+    renderPopMetadata(pop);
     get('detailDeviceSearch').value = '';
     get('detailMaterialSearch').value = '';
     get('detailMaterialCategory').value = 'all';
@@ -74,7 +124,7 @@
     const query = get('detailDeviceSearch').value.trim().toLowerCase();
     const matches = currentDevices.filter(device => [device.name,device.ip,device.model,device.vendor,device.function,device.type].join(' ').toLowerCase().includes(query));
     const groupFor = device => groups.find(group=>group.type === device.type) || {label:'Khác',tone:'slate',icon:'server'};
-    const card = device => {const group=groupFor(device);return `<button type="button" class="l1-device-card is-${group.tone}" data-l1-device="${currentDevices.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"><span class="l1-device-card-top"><span class="l1-device-icon">${icon(group.icon)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span><span class="l1-device-card-foot"><span>${escape(device.vendor)} · ${escape(device.model)}</span><span aria-hidden="true">↗</span></span></button>`;};
+    const card = device => {const group=groupFor(device);return `<button type="button" class="l1-device-card is-${group.tone}" data-l1-device="${currentDevices.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"><span class="l1-device-card-top"><span class="l1-device-icon">${icon(group.icon)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span><span class="l1-device-card-foot"><span>${escape(device.vendor)} · ${escape(device.model)}</span></span></button>`;};
     const lanes = [{label:'Thiết bị mạng',types:['SWITCH','OLT'],network:true},{label:'Nguồn & Giám sát',types:['POWER','PI'],network:false}];
     get('detailDeviceGroups').innerHTML = lanes.map(lane => {
       // Sort only the display copy; keep source indices for inventory and navigation.
@@ -166,5 +216,5 @@
   get('detailMaterialSearch').addEventListener('input',renderMaterials);
   get('detailMaterialDevice').addEventListener('change',renderMaterials);
   get('detailMaterialCategory').addEventListener('change',renderMaterials);
-  window.NETAUTO_POP_DETAIL = {open,closeTopo,refreshInventory(code){if(currentPop?.code!==code)return;currentDevices=source.pops[code] || currentPop.devices;renderDevices();renderMaterials();},setBackHandler(handler){backHandler = handler;},setDeviceHandler(handler){deviceHandler=handler;}};
+  window.NETAUTO_POP_DETAIL = {open,closeTopo,refreshInventory(code){if(currentPop?.code!==code)return;currentDevices=source.pops[code] || currentPop.devices;renderHeaderStats();renderDevices();renderMaterials();},setBackHandler(handler){backHandler = handler;},setDeviceHandler(handler){deviceHandler=handler;}};
 })();
