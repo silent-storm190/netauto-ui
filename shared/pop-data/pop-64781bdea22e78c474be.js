@@ -1,2 +1,2 @@
 // Generated inventory for HDGM002; do not edit by hand.
-window.NETAUTO_POP_DETAIL_DATA.pops["HDGM002"]=[{"name":"HDGM00201IPMS","ip":"172.18.2.134","type":"PI","function":"PI","group":"PI","model":"IPMS","vendor":"UNKNOWN","area":"MB","province":"HDG","branch":"HDG","zone":"V3","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];
+window.NETAUTO_POP_DETAIL_DATA.pops["HDGM002"]=[{"name":"HDGM00201IPMS","ip":"172.18.2.134","type":"PI","function":"PI","group":"PI","model":"IPMS","vendor":"UNKNOWN","area":"MB","province":"HDG","branch":"HDG","zone":"V3","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[],"ports":[],"inventoryStatus":null,"inventoryTime":null}];

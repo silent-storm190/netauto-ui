@@ -1,0 +1,2 @@
+// Generated inventory for HNIP800; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIP800"]=[{"name":"HNIP80001PWDE1U","ip":"25.10.2.42","type":"POWER","function":"POWER","group":"ACCESS","model":"DE1U","vendor":"UNKNOWN","area":"MB","province":"HNI","branch":"P.HT4","zone":"V1","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[],"ports":[],"inventoryStatus":null,"inventoryTime":null}];

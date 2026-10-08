@@ -1,6 +1,6 @@
 # Power Device Monitoring UI review cases
 
-Bộ giao diện tĩnh để FE và DevNet review contract, trạng thái và cách hiển thị
+Bộ Interface tĩnh để FE và DevNet review contract, trạng thái và cách hiển thị
 evidence cho luồng Power Device Monitoring MN. Thiết kế dùng cùng ngôn ngữ giao
 diện với OLT Initialize: topbar sáng, progress bốn bước, card kết quả và badge
 trạng thái. Mở `mockup.html` để chuyển nhanh qua bảy case; mockup không gọi API,

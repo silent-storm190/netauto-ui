@@ -130,7 +130,7 @@
     if (!sourceProfile) return {...catalog, family: catalog.manufacturerModel.split(/[- ]/)[0], stack: modelDev.startsWith('HS'), members: modelDev.startsWith('HS') ? 2 : 1, chassis: false, confidence: 'unknown', requiresInventory: true, notes: ['Chưa có profile mặt trước cho model này.'], interfaces: [], layoutGroups: [], bays: []};
     const profile = clone(sourceProfile);
     profile.members = modelDev.startsWith('HS') ? 2 : 1;
-    return {...catalog, family: catalog.manufacturerModel.split(/[- ]/)[0], stack: profile.members > 1, members: profile.members, chassis: false, confidence: 'manufacturer-and-inventory', requiresInventory: false, notes: ['Tên interface và số lượng được đối chiếu với snapshot inventory NetAuto.', 'Vị trí là mô phỏng mặt trước theo nhóm cổng; trạng thái/module phải merge từ response thiết bị.'], ...buildFixed(profile)};
+    return {...catalog, family: catalog.manufacturerModel.split(/[- ]/)[0], stack: profile.members > 1, members: profile.members, chassis: false, confidence: 'manufacturer-and-inventory', requiresInventory: false, notes: ['Tên interface và số lượng được đối chiếu với snapshot inventory NetAuto.', 'Vị trí là mô phỏng mặt trước theo nhóm port; trạng thái/module phải merge từ response thiết bị.'], ...buildFixed(profile)};
   }
 
   function withInventory(layout, inventory = []) {

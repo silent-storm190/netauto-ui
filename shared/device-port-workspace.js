@@ -9,7 +9,7 @@
   const commonActions = [
     {id: 'crc', label: 'CRC Check', description: 'Kiểm tra bộ đếm lỗi của interface.'},
     {id: 'lacp', label: 'LACP Check', description: 'Kiểm tra trạng thái LACP của interface.'},
-    {id: 'speed', label: 'Đổi Port Speed', description: 'Thay đổi tốc độ theo capability của cổng.'}
+    {id: 'speed', label: 'Đổi Port Speed', description: 'Thay đổi tốc độ theo capability của port.'}
   ];
 
   let modelDev = 'HS67';
@@ -86,12 +86,12 @@
           return `<section class="pw-line-card${bay.installed ? ' is-installed' : ''}"><header><b>Slot ${bay.slot}</b><span>${escape(bay.cardProfile || 'Chưa có inventory card')}</span></header>${group ? `<div class="pw-face-grid" style="--port-columns:${group.columns}">${facePorts(group)}</div>` : '<div class="pw-vacant-bay"><span>LPU</span><small>Chờ dữ liệu card</small></div>'}</section>`;
         }).join('')}</div>`;
       } else {
-        body = `<div class="pw-fixed-panel">${groups.map(group => `<section class="pw-face-group ${group.role === 'uplink' ? 'is-uplink-group' : ''}"><header><b>${escape(group.label)}</b><span>${group.interfaceIds.length} cổng</span></header><div class="pw-face-grid" style="--port-columns:${group.columns}">${facePorts(group)}</div></section>`).join('')}</div>`;
+        body = `<div class="pw-fixed-panel">${groups.map(group => `<section class="pw-face-group ${group.role === 'uplink' ? 'is-uplink-group' : ''}"><header><b>${escape(group.label)}</b><span>${group.interfaceIds.length} port</span></header><div class="pw-face-grid" style="--port-columns:${group.columns}">${facePorts(group)}</div></section>`).join('')}</div>`;
       }
       units.push(`<article class="pw-chassis-unit"><header><span class="pw-huawei-mark">HUAWEI</span><b>${escape(layout.manufacturerModel.replace(' Stack', ''))}</b><small>${layout.stack ? `Member ${member}` : layout.chassis ? 'Chassis' : '1U fixed'}</small></header>${body}<footer><span>SYS</span><i></i><span>PWR</span><i></i><em>${escape(layout.modelDev)}</em></footer></article>`);
     }
     $('pwHardware').innerHTML = units.join('');
-    $('pwLayoutBadge').textContent = layout.chassis ? `${layout.bays.length} khe LPU` : `${layout.layoutGroups.length} nhóm cổng`;
+    $('pwLayoutBadge').textContent = layout.chassis ? `${layout.bays.length} khe LPU` : `${layout.layoutGroups.length} nhóm port`;
     const counts = layout.summary.byStatus;
     $('pwHardwareSummary').innerHTML = `<span><b>${layout.summary.total}</b> port</span><span class="is-up"><b>${counts.up || 0}</b> UP</span><span class="is-down"><b>${counts.down || 0}</b> DOWN</span><span class="is-empty"><b>${counts.empty || 0}</b> không module</span>`;
   }
@@ -175,7 +175,7 @@
     if (activeAction === 'crc') actionBody = detailList([['CRC errors', selectedPort.crc], ['Input errors', selectedPort.inputErrors], ['Output errors', selectedPort.outputErrors]]) + `<button class="pw-button primary" data-read-port type="button">Kiểm tra CRC</button>`;
     if (activeAction === 'lacp') actionBody = detailList([['Eth-Trunk', selectedPort.ethTrunk], ['Member state', selectedPort.lacpState]]) + `<button class="pw-button primary" data-read-port type="button">Kiểm tra LACP</button>`;
     if (activeAction === 'speed') actionBody = `<label class="pw-speed-field"><span>Tốc độ cấu hình</span><select><option>${selectedPort.speedGbps} Gbps</option></select></label><button class="pw-button primary" disabled type="button">Áp dụng</button>`;
-    $('pwPortInfo').innerHTML = `<div class="pw-port-info-heading"><b>Thông tin cổng</b></div>${portFacts}`;
+    $('pwPortInfo').innerHTML = `<div class="pw-port-info-heading"><b>Thông tin port</b></div>${portFacts}`;
     $('pwActionTitle').textContent = action ? action.label : 'Công cụ dành cho port';
     $('pwActionDescription').textContent = action ? action.description : 'Chọn một công cụ trong danh sách để xem nội dung chi tiết.';
     $('pwInspectorContent').innerHTML = actionBody;

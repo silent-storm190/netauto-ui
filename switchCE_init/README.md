@@ -1,6 +1,6 @@
 # SwitchCE Initialize UI review cases
 
-Bộ bản duyệt giao diện cho luồng SwitchCE Initialize MN, bám theo 7 trạng thái của bộ OLT Initialize:
+Bộ bản duyệt Interface cho luồng SwitchCE Initialize MN, bám theo 7 trạng thái của bộ OLT Initialize:
 
 ## Mockup tổng thể cho FE/DevNet
 

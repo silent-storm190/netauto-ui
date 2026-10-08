@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>OLT Initialize — Bản duyệt giao diện</title>
+  <title>OLT Initialize — Bản duyệt Interface</title>
   <style>
     :root {
       --bg: #f5f7fb;
@@ -791,7 +791,7 @@
           <div class="topology-canvas">
             <svg class="topology-svg" viewBox="0 0 700 520" role="img" aria-labelledby="topology-svg-title topology-svg-desc">
               <title id="topology-svg-title">Sơ đồ uplink giữa switch và OLT</title>
-              <desc id="topology-svg-desc">Switch CE601005DNIP02401HS24 kết nối OLT DNIP02404HA58 qua bốn đường 10 gigabit và một dây LAN giữa cổng ETH với ETH.</desc>
+              <desc id="topology-svg-desc">Switch CE601005DNIP02401HS24 kết nối OLT DNIP02404HA58 qua bốn đường 10 gigabit và một dây LAN giữa port ETH với ETH.</desc>
               <defs>
                 <filter id="nodeShadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#274568" flood-opacity=".12"/></filter>
               </defs>
@@ -810,7 +810,7 @@
                 <text x="350" y="132" text-anchor="middle" font-size="14" font-weight="800" fill="#174ea6">Eth-Trunk11</text>
               </g>
 
-              <!-- Cổng quản trị switch Huawei/H3C luôn là ETH. -->
+              <!-- Port quản trị switch Huawei/H3C luôn là ETH. -->
               <g data-device="switch" data-management-port="ETH">
                 <rect x="124" y="47" width="62" height="24" rx="6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
                 <text x="155" y="63" text-anchor="middle" font-size="10" font-weight="900" fill="#174ea6">ETH</text>
@@ -907,7 +907,7 @@
       config: "/netauto/ops_flow/olt_initialize/config"
     });
 
-    // Quy ước để FE render badge cổng quản trị trên sơ đồ theo vendor.
+    // Quy ước để FE render badge port quản trị trên sơ đồ theo vendor.
     const MANAGEMENT_PORT_POLICY = Object.freeze({
       switch: () => "ETH",
       olt: vendor => String(vendor).toUpperCase() === "GCOM" ? "AUX" : "ETH"

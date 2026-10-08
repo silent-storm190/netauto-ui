@@ -1,0 +1,2 @@
+// Generated inventory for HNIK269; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIK269"]=[{"name":"HNIK26901DS24","ip":"10.85.58.187","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"DS24","vendor":"DASAN","area":"MB","province":"HNI","branch":"FTI","zone":"V1","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[],"ports":[],"inventoryStatus":null,"inventoryTime":null}];

@@ -1,6 +1,6 @@
 # Bandwidth Upgrade UI review cases
 
-Bộ review dùng cùng ngôn ngữ giao diện với OLT Initialize: nền sáng, card có
+Bộ review dùng cùng ngôn ngữ Interface với OLT Initialize: nền sáng, card có
 header cố định, progress 4 bước, allocation + topology ở cùng một khối và hai
 result card đặt song song trên desktop.
 

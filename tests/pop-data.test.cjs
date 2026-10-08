@@ -8,12 +8,12 @@ const root=path.resolve(__dirname,'..');
 const context={window:{NETAUTO_DATA:{}}};
 vm.runInNewContext(fs.readFileSync(path.join(root,'shared/netauto-pop-index.js'),'utf8'),context);
 const data=JSON.parse(JSON.stringify(context.window.NETAUTO_DATA));
-assert.equal(data.pops.length,3910);
-assert.equal(new Set(data.pops.map(pop=>pop.code)).size,3910);
-assert.equal(Object.keys(data.inventoryFiles).length,3910);
-assert.equal(new Set(data.pops.map(pop=>pop.province)).size,63);
-assert.equal(new Set(Object.values(data.provinces).flat()).size,69);
-assert.equal(data.pops.filter(pop=>pop.branches.length>1).length,6);
+assert.equal(data.pops.length,data.snapshot.pops);
+assert.equal(new Set(data.pops.map(pop=>pop.code)).size,data.snapshot.pops);
+assert.equal(Object.keys(data.inventoryFiles).length,data.snapshot.pops);
+assert.equal(new Set(data.pops.map(pop=>pop.province)).size,59);
+assert.equal(new Set(Object.values(data.provinces).flat()).size,65);
+assert.equal(data.pops.filter(pop=>pop.branches.length>1).length,1);
 let source=null;
 if(process.argv[2]){
   const raw=fs.readFileSync(process.argv[2],'utf8');
@@ -22,7 +22,7 @@ if(process.argv[2]){
   const parsed=JSON.parse(raw.replace(/([:\[,])\s*(?:-?Infinity|NaN)(?=\s*[,}\]])/g,(_match,prefix)=>{normalized++;return prefix+' null';}));
   assert.equal(normalized,data.snapshot.nonFiniteNumbers);
   source=new Map();
-  for(const device of parsed.data.devices.devices){
+  for(const device of (parsed.result?.data?.devices?.devices || parsed.data.devices.devices)){
     if(!source.has(device.POP))source.set(device.POP,[]);
     source.get(device.POP).push(device);
   }
@@ -42,7 +42,7 @@ for(const pop of data.pops){
   const counts={switch:0,olt:0,power:0,pi:0};
   stats.pops++;
   for(const [index,device] of devices.entries()){
-    const {materials:rows,...metadata}=device;
+    const {materials:rows,ports,inventoryStatus,inventoryTime,...metadata}=device;
     assert.deepEqual(metadata,pop.devices[index],`Index and inventory metadata match: ${pop.code}/${device.name}`);
     assert.equal(rows.length,device.materialRowsTotal);
     materials+=rows.length;inventory+=Number(device.inventoryAvailable);stats.devices++;
@@ -57,6 +57,7 @@ for(const pop of data.pops){
       for(const [target,key] of Object.entries({name:'nameDev',ip:'ipDev',model:'modelDev',function:'function',group:'group',vendor:'vendor',area:'area',province:'province',branch:'branch',zone:'zone'}))assert.equal(device[target],original[key],`${pop.code}/${device.name}/${target}`);
       assert.deepEqual(device.inventoryCounts,original.inventory?.count||null);
       assert.deepEqual(device.chassisSerials,original.inventory?.device?.serial||[]);
+      assert.deepEqual(ports,JSON.parse(JSON.stringify((original.inventory?.modules?.transceiver || []).flatMap(item=>item&&typeof item==='object'?Object.entries(item).map(([name,module])=>({name,module})):[]))),'Keep every raw port, including null module slots (JSON serializes -0 as 0)');
       const chassis=rows.filter(row=>row.category==='device');
       assert.deepEqual(chassis.map(row=>row.serial),original.inventory?.device?.serial||[]);
       for(const [kind,items] of Object.entries(original.inventory?.modules||{})){
@@ -82,9 +83,7 @@ for(const pop of data.pops){
   assert.deepEqual(counts,pop.counts,`${pop.code}: per-type counts match all devices`);
 }
 assert.deepEqual(stats,data.productionStats);
-assert.equal(stats.devices,19070);
+assert.equal(stats.devices,data.snapshot.records);
 assert.equal(materials,data.snapshot.materialRows);
 assert.equal(inventory,data.snapshot.inventoryDevices);
-assert.equal(materials,240118);
-assert.equal(inventory,17190);
 console.log(`PASS: ${stats.pops} POPs, ${stats.devices} devices, ${materials} material records; every chunk and count validated${source?' against the original source':''}.`);

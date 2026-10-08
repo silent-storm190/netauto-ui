@@ -1,0 +1,2 @@
+// Generated inventory for HNIB937; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIB937"]=[{"name":"HNIB93701ME35","ip":"10.160.195.132","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"ME35","vendor":"UNKNOWN","area":"MB","province":"HNI","branch":"FTI","zone":"V1","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[],"ports":[],"inventoryStatus":null,"inventoryTime":null}];

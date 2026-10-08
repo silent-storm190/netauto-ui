@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="shared/device-port-workspace.css">
 </head>
 <body>
-  <header class="pw-topbar"><a href="index.html#pop" class="pw-brand"><span>N</span>NetAuto <small>Portal Vận hành</small></a><button class="pw-button" id="pwTheme" type="button">◐ Giao diện</button></header>
+  <header class="pw-topbar"><a href="index.html#pop" class="pw-brand"><span>N</span>NetAuto <small>Portal Vận hành</small></a><button class="pw-button" id="pwTheme" type="button">◐ Interface</button></header>
   <main class="pw-page">
     <nav class="pw-breadcrumb" aria-label="Đường dẫn"><a href="index.html#pop">Quản lý POP & Thiết bị</a><span>›</span><span>Workspace thiết bị</span></nav>
     <section class="pw-device-heading">
@@ -25,7 +25,7 @@
     <section id="pwPorts" role="tabpanel" aria-labelledby="pwTabPorts">
       <div class="pw-port-layout" id="pwLayout">
         <section class="pw-port-surface" aria-label="Danh sách port">
-          <header class="pw-port-header"><div><h2>Port / Interface <span id="pwPortType">NNI / Link</span></h2><p>Chọn cổng trực tiếp trên mặt trước hoặc trong danh sách interface phía dưới.</p></div><button class="pw-button" id="pwRefresh" type="button">↻ Đặt lại</button></header>
+          <header class="pw-port-header"><div><h2>Port / Interface <span id="pwPortType">NNI / Link</span></h2><p>Chọn port trực tiếp trên mặt trước hoặc trong danh sách interface phía dưới.</p></div><button class="pw-button" id="pwRefresh" type="button">↻ Đặt lại</button></header>
           <section class="pw-hardware-section" aria-labelledby="pwHardwareTitle"><header><div><b id="pwHardwareTitle">Mặt trước thiết bị</b><span id="pwLayoutBadge"></span></div><div class="pw-hardware-summary" id="pwHardwareSummary"></div></header><div class="pw-hardware-scroll"><div class="pw-hardware" id="pwHardware"></div></div><div class="pw-hardware-legend"><span><i class="is-service"></i>Service</span><span><i class="is-uplink"></i>Uplink</span><span><i class="is-bay"></i>Khe LPU</span><small>Vị trí tương đối để vận hành UI, không thay thế sơ đồ đấu nối vật lý.</small></div></section>
           <details class="pw-data-contract"><summary>Data trả về khi chọn modelDev</summary><div><div class="pw-contract-pills"><span>layoutGroups[]</span><span>bays[]</span><span>interfaces[]</span></div><pre id="pwDataPreview"></pre></div></details>
           <div class="pw-port-toolbar"><div class="pw-port-filters" aria-label="Lọc trạng thái"><button class="is-active" data-filter="all" type="button">Tất cả <span id="pwAllCount"></span></button><button data-filter="up" type="button"><i class="pw-dot up"></i>UP</button><button data-filter="down" type="button"><i class="pw-dot down"></i>DOWN</button><button data-filter="empty" type="button"><i class="pw-dot empty"></i>Không có module</button><button data-filter="unknown" type="button"><i class="pw-dot unknown"></i>Chưa có telemetry</button></div><label class="pw-search"><span aria-hidden="true">⌕</span><input id="pwSearch" type="search" placeholder="Tìm interface…" aria-label="Tìm interface"></label></div>

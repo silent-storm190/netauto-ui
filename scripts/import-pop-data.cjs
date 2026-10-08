@@ -11,7 +11,7 @@ if (!output.startsWith(mockup+path.sep)) throw new Error('Output must stay insid
 const raw = fs.readFileSync(input,'utf8');
 let nonFiniteNumbers = 0;
 const parsed = JSON.parse(raw.replace(/([:\[,])\s*(?:-?Infinity|NaN)(?=\s*[,}\]])/g,(_match,prefix)=>{nonFiniteNumbers++;return prefix+' null';}));
-const records = parsed.data?.devices?.devices;
+const records = parsed.result?.data?.devices?.devices || parsed.data?.devices?.devices;
 if (!Array.isArray(records) || !records.length) throw new Error('Missing data.devices.devices.');
 const grouped = new Map();
 const branches = {MB:new Set(),MN:new Set()};
@@ -45,9 +45,11 @@ for (const d of records) {
   if (!d.POP) throw new Error('A device is missing its POP; do not silently drop it.');
   const type=typeOf(d);
   const materials=materialRows(d);
+  // Keep explicit null slots: absence of a module is not a DOWN interface.
+  const ports=(d.inventory?.modules?.transceiver || []).flatMap(item=>item&&typeof item==='object'?Object.entries(item).map(([name,module])=>({name,module})):[]);
   const device={name:d.nameDev,ip:d.ipDev,type,function:d.function,group:d.group,model:d.modelDev,vendor:d.vendor,area:d.area,province:d.province,branch:d.branch,zone:d.zone,inventoryAvailable:!!d.inventory,inventoryCounts:d.inventory?.count || null,chassisSerials:d.inventory?.device?.serial || [],materialRowsTotal:materials.length};
   if (!grouped.has(d.POP)) grouped.set(d.POP,[]);
-  grouped.get(d.POP).push({...device,materials});
+  grouped.get(d.POP).push({...device,materials,ports,inventoryStatus:d.inventory?.status??null,inventoryTime:d.inventory?.timeUpdate??null});
   branches[d.area]?.add(d.branch);
   const counter={SWITCH:'switches',OLT:'olts',POWER:'power',PI:'pi',UNKNOWN:'other'}[type];
   stats[counter]++;
@@ -67,7 +69,7 @@ for (const [code,devices] of [...grouped].sort(([a],[b])=>a.localeCompare(b))) {
   const counts={switch:0,olt:0,power:0,pi:0};
   if(devices.some(d=>d.type==='UNKNOWN'))counts.other=0;
   for (const d of devices) {counts[({SWITCH:'switch',OLT:'olt',POWER:'power',PI:'pi',UNKNOWN:'other'})[d.type]]++;materialTotal+=d.materials.length;}
-  pops.push({code,area:areas.join(' · '),province:provinces.join(' · '),branch:popBranches.join(' · '),zone:zones.join(' · '),areas,provinces,branches:popBranches,zones,counts,devices:devices.map(({materials,...metadata})=>metadata)});
+  pops.push({code,area:areas.join(' · '),province:provinces.join(' · '),branch:popBranches.join(' · '),zone:zones.join(' · '),areas,provinces,branches:popBranches,zones,counts,devices:devices.map(({materials,ports,inventoryStatus,inventoryTime,...metadata})=>metadata)});
   files[code]='shared/pop-data/'+filename;
   fs.writeFileSync(fullPath,'// Generated inventory for '+code+'; do not edit by hand.\nwindow.NETAUTO_POP_DETAIL_DATA.pops['+JSON.stringify(code)+']='+JSON.stringify(devices)+';\n');
 }

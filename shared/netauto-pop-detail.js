@@ -88,7 +88,7 @@
       const value = demo ? examples[key] : pop[key];
       if (demo) demoCount++;
       const shown = key === 'customerCount' && Number.isFinite(Number(value)) ? format(Number(value)) : value;
-      return `<div class="${key === 'address' ? 'is-address' : 'l1-pop-field'}" data-field="${key}" data-demo="${demo}"${demo ? ' title="Dữ liệu giả lập để minh hoạ giao diện"' : ''}><dt>${icon(glyph)}<span>${label}</span></dt><dd>${escape(shown)}</dd></div>`;
+      return `<div class="${key === 'address' ? 'is-address' : 'l1-pop-field'}" data-field="${key}" data-demo="${demo}"${demo ? ' title="Dữ liệu giả lập để minh hoạ Interface"' : ''}><dt>${icon(glyph)}<span>${label}</span></dt><dd>${escape(shown)}</dd></div>`;
     }).join('');
     get('detailPopMetadataNote').innerHTML = demoCount ? `<span class="l1-demo-badge">${demoCount} trường giả lập</span><span>Minh hoạ các thông tin còn thiếu; thiết bị và inventory vẫn dùng dữ liệu thật.</span>` : 'Các trường “—” chưa có dữ liệu trong snapshot.';
   }

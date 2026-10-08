@@ -237,8 +237,11 @@
 #popDetailPage .l1-topo-launch>span:last-child{font-size:15px;opacity:.6;margin-left:4px}
 #popDetailPage .l1-topo-dialog{width:min(1200px,calc(100vw - 40px));max-width:none;max-height:calc(100dvh - 60px);padding:22px;border:1px solid var(--na-line);border-radius:16px;background:var(--na-panel);color:var(--na-text);box-shadow:0 24px 80px rgba(0,0,0,.22);overflow:hidden}
 #popDetailPage .l1-topo-dialog:not([open]){display:none}
-#popDetailPage .l1-topo-dialog[open]{display:flex;flex-direction:column}
-#popDetailPage .l1-topo-dialog::backdrop{background:rgba(16,28,45,.35);backdrop-filter:blur(5px)}
+#popDetailPage .l1-topo-dialog[open]{display:flex;flex-direction:column;animation:na-topo-enter 220ms cubic-bezier(.2,.7,.3,1)}
+#popDetailPage .l1-topo-dialog::backdrop{background:rgba(16,28,45,.35);backdrop-filter:blur(5px);animation:na-topo-backdrop-enter 180ms ease-out}
+@keyframes na-topo-enter{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes na-topo-backdrop-enter{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){#popDetailPage .l1-topo-dialog[open],#popDetailPage .l1-topo-dialog::backdrop{animation:none}}
 #popDetailPage .l1-topo-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:17px;margin-bottom:17px;border-bottom:1px solid var(--na-line);flex:0 0 auto}
 #popDetailPage .l1-topo-dialog-head .na-button{font-size:21px;padding:4px 12px}
 #popDetailPage .l1-topo-dialog #detailTopoPanel{margin:0;border:0;padding:0;overflow:auto;min-height:0}
@@ -249,7 +252,7 @@
 @media(max-width:750px){#popDetailPage .l1-device-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#popDetailPage .l1-device-actions{width:100%}#popDetailPage .l1-device-actions .l1-search{flex:1;width:auto}#popDetailPage .l1-topo-dialog{width:calc(100vw - 20px);padding:14px;max-height:calc(100dvh - 24px)}#popDetailPage .l1-topo-dialog .l1-topo-viewport{max-height:calc(100dvh - 300px)}}
 @media(max-width:420px){#popDetailPage .l1-device-grid{grid-template-columns:1fr}#popDetailPage .l1-device-actions .l1-search{flex-basis:100%}}
 
-/* Initial full-page Layer 2. The separate port-workspace prototype stays paused. */
+/* Shared full-page Layer 2 foundation; port workspace overrides are in netauto-device-ports.css. */
 #deviceDetailPage{--l2-accent:var(--na-blue);--l2-tint:var(--na-blue-soft)}
 #deviceDetailPage[data-kind=OLT]{--l2-accent:var(--na-purple);--l2-tint:var(--na-purple-soft)}
 #deviceDetailPage[data-kind=POWER]{--l2-accent:var(--na-orange);--l2-tint:var(--na-orange-soft)}
