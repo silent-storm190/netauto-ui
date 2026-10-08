@@ -61,8 +61,12 @@
   const portal = document.getElementById('portalWindow');
   const toast = document.getElementById('toast');
   let selectedArea = 'all';
-  let selectedProvince = 'all';
-  let activePop = null;
+  let selectedProvinces = [];
+  let popScopeMode = 'many';
+  let popPageIndex = 0;
+  let popVisitActive = false;
+  // Mockup scenarios only; these are not authentication or authorization rules.
+  const popScopeScenarios = {three:{MB:['QNH'],MN:['AGG','BTHT1']},one:{MN:['AGG']}};
   let activeWorkflow = 'olt';
 
   const formatNumber = value => new Intl.NumberFormat('vi-VN').format(value);
@@ -74,110 +78,205 @@
   };
 
   function renderProvinceButtons() {
+    const allowed = accessiblePopBranches();
+    const single = popScopeMode === 'one';
+    const filters = document.getElementById('popRegionFilters');
+    filters.hidden = single;
+    filters.classList.toggle('is-compact', popScopeMode === 'three');
+    document.getElementById('singleBranchScope').hidden = !single;
+    document.getElementById('resetPopFilters').hidden = single;
+    document.getElementById('popPermissionLabel').textContent = single ? 'Phạm vi của bạn' : popScopeMode === 'three' ? '3 chi nhánh được cấp quyền · 2 miền' : 'Phạm vi chi nhánh được cấp quyền';
     const render = (area, target) => {
-      document.getElementById(target).innerHTML = DATA.provinces[area].map(code => `<button type="button" data-province="${code}" data-area="${area}">${code}</button>`).join('');
+      const codes = allowed[area] || [];
+      document.getElementById(area === 'MB' ? 'northRegion' : 'southRegion').hidden = !codes.length;
+      document.getElementById(area === 'MB' ? 'northBranchCount' : 'southBranchCount').textContent = `${codes.length} chi nhánh`;
+      document.getElementById(target).innerHTML = codes.map(code => `<button type="button" data-province="${code}" aria-pressed="${selectedProvinces.includes(code)}" class="${selectedProvinces.includes(code) ? 'is-selected' : ''}">${code}</button>`).join('');
     };
     render('MB', 'northProvinces');
     render('MN', 'southProvinces');
+    document.querySelectorAll('#popPage .na-region-name').forEach(button => {
+      const selected = button.dataset.area === selectedArea;
+      button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    document.querySelectorAll('[data-pop-scope]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.popScope === popScopeMode)));
   }
 
+  function accessiblePopBranches() { return popScopeScenarios[popScopeMode] || DATA.provinces; }
+
   const popTotal = pop => Object.values(pop.counts).reduce((sum, value) => sum + value, 0);
-  const searchablePopText = pop => [pop.code,pop.area,pop.province,pop.branch,pop.zone,...pop.devices.flatMap(d => [d.name,d.ip,d.model,d.vendor,d.function])].join(' ').toLowerCase();
+  const popSearchIndex = new Map(DATA.pops.map(pop=>[pop.code,[pop.code,pop.area,pop.province,pop.branch,pop.zone,...pop.devices.flatMap(d=>[d.name,d.ip,d.model,d.vendor,d.function])].join(' ').toLowerCase()]));
+  const searchablePopText = pop => popSearchIndex.get(pop.code);
+  const popBranches = pop => pop.branches || [pop.branch];
 
   function filteredPops() {
     const query = document.getElementById('popSearch').value.trim().toLowerCase();
-    return DATA.pops.filter(pop => (selectedArea === 'all' || pop.area === selectedArea) && (selectedProvince === 'all' || pop.province === selectedProvince) && (!query || searchablePopText(pop).includes(query)));
+    const allowed = Object.values(accessiblePopBranches()).flat();
+    return DATA.pops.filter(pop => (popScopeMode === 'many' || popBranches(pop).some(branch=>allowed.includes(branch))) && (selectedArea === 'all' || pop.area === selectedArea) && (!selectedProvinces.length || selectedProvinces.some(code => popBranches(pop).includes(code) || pop.province === code)) && (!query || searchablePopText(pop).includes(query)));
   }
 
-  function popCard(pop) {
+  // Mixed results use stable province colors. Single-province results share
+  // one accent for this Layer 0 visit, unchanged by search or pagination.
+  const popProvinceHues = [8,25,45,155,250,185,320,32,285,215,175,295];
+  const popProvinceKey = pop => String(pop.province || pop.branch || '').trim().toUpperCase();
+  const provinceHueMap = new Map();
+  let singleProvinceHue = null;
+  function renewPopVisitColor() {
+    let previousHue = singleProvinceHue;
+    const storageKey = 'netauto.pop.singleProvinceHue';
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (previousHue === null && saved != null) previousHue = Number(saved);
+    } catch { /* Color selection still works when storage is unavailable. */ }
+    const choices = popProvinceHues.filter(hue => hue !== previousHue);
+    singleProvinceHue = choices[Math.floor(Math.random() * choices.length)];
+    try { localStorage.setItem(storageKey, String(singleProvinceHue)); } catch { /* Optional preference only. */ }
+  }
+  const normalizeHue = hue => Number(((hue + 360) % 360).toFixed(3));
+  for (const province of [...new Set(DATA.pops.map(popProvinceKey))].sort()) {
+    let hash = 0;
+    for (const character of province) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    let hue = popProvinceHues[hash % popProvinceHues.length];
+    // Avoid assigning the exact same hue to two provinces in the snapshot.
+    while ([...provinceHueMap.values()].includes(hue)) hue = normalizeHue(hue + 137.508);
+    provinceHueMap.set(province, hue);
+  }
+
+  function popCard(pop, colorMode) {
     const c = pop.counts;
-    return `<button class="na-pop-card" type="button" data-pop="${pop.code}" aria-label="Xem thiết bị tại POP ${pop.code}">
-      <span class="na-pop-head"><strong>${pop.code}</strong><span>${popTotal(pop)} thiết bị</span></span>
-      <span class="na-pop-meta">${pop.area === 'MN' ? 'Miền Nam' : 'Miền Bắc'} · ${pop.branch} · ${pop.province} · ${pop.zone}</span>
-      <span class="na-pop-metrics"><span><span>Switch</span><b>${c.switch}</b></span><span><span>OLT</span><b>${c.olt}</b></span><span><span>Nguồn</span><b>${c.power}</b></span><span><span>PI</span><b>${c.pi}</b></span></span>
-      <span class="na-pop-tags">${c.switch ? `<span>SW ${c.switch}</span>` : ''}${c.olt ? `<span class="is-olt">OLT ${c.olt}</span>` : ''}${c.power ? `<span class="is-power">Nguồn ${c.power}</span>` : ''}${c.pi ? `<span class="is-monitor">PI ${c.pi}</span>` : ''}</span>
+    const meta = [pop.branch,pop.province !== pop.branch ? pop.province : '',pop.zone].filter(Boolean).join(' · ');
+    const hue = colorMode === 'single-province' ? (singleProvinceHue ?? popProvinceHues[0]) : provinceHueMap.get(popProvinceKey(pop));
+    return `<button class="na-pop-card" style="--na-pop-hue:${hue}" type="button" data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}" aria-label="Xem thiết bị tại POP ${escapeHtml(pop.code)}">
+      <span class="na-pop-head"><span class="na-pop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg></span><strong>${escapeHtml(pop.code)}</strong></span>
+      <span class="na-pop-meta">${escapeHtml(meta)}</span>
+      <span class="na-pop-metrics"><span><span>Switch</span><b class="na-pop-blue">${c.switch}</b></span><span><span>OLT</span><b class="na-pop-purple">${c.olt}</b></span><span><span>Nguồn</span><b class="na-pop-orange">${c.power}</b></span><span><span>PI</span><b class="na-pop-green">${c.pi}</b></span></span>
+      <span class="na-pop-foot"><b>${popTotal(pop)}</b> thiết bị<span>${pop.area}</span></span>
     </button>`;
   }
 
   function updateSummary(pops) {
-    const isFiltered = selectedArea !== 'all' || selectedProvince !== 'all' || document.getElementById('popSearch').value.trim();
-    if (!isFiltered) {
-      const s = DATA.productionStats;
-      document.getElementById('popTotal').textContent = formatNumber(s.pops);
-      document.getElementById('deviceTotal').textContent = formatNumber(s.devices);
-      document.getElementById('networkStats').textContent = `${formatNumber(s.switches)} · ${formatNumber(s.olts)}`;
-      document.getElementById('powerStats').textContent = `${formatNumber(s.power)} · ${formatNumber(s.ipms)} · ${formatNumber(s.opms)}`;
-      return;
-    }
+    const isGlobal = popScopeMode === 'many' && selectedArea === 'all' && !selectedProvinces.length && !document.getElementById('popSearch').value.trim();
     const stats = pops.reduce((out,pop) => {out.devices += popTotal(pop);out.switches += pop.counts.switch;out.olts += pop.counts.olt;out.power += pop.counts.power;out.pi += pop.counts.pi;return out;},{devices:0,switches:0,olts:0,power:0,pi:0});
-    document.getElementById('popTotal').textContent = formatNumber(pops.length);
-    document.getElementById('deviceTotal').textContent = formatNumber(stats.devices);
-    document.getElementById('networkStats').textContent = `${formatNumber(stats.switches)} · ${formatNumber(stats.olts)}`;
-    document.getElementById('powerStats').textContent = `${formatNumber(stats.power)} · ${formatNumber(stats.pi)} · 0`;
+    const s = isGlobal ? DATA.productionStats : {...stats,pops:pops.length};
+    const metric = (value,label,tone) => `<span><span class="na-pop-stat-label">${label}</span><strong class="na-pop-${tone}">${formatNumber(value)}</strong></span>`;
+    document.getElementById('popTotal').textContent = formatNumber(s.pops);
+    document.getElementById('deviceTotal').textContent = formatNumber(s.devices);
+    document.getElementById('networkStats').innerHTML = metric(s.switches,'Switch','blue') + metric(s.olts,'OLT','purple');
+    document.getElementById('powerStats').innerHTML = metric(s.power,'Nguồn','orange') + (isGlobal ? metric(s.ipms,'IPMS','purple') + metric(s.opms,'OPMS','green') + (s.piOther?metric(s.piOther,'PI khác','cyan'):'') : metric(s.pi,'PI','green'));
+    document.getElementById('powerStatsGroup').setAttribute('aria-label',isGlobal?'Nguồn, IPMS, OPMS và PI khác':'Nguồn và PI');
+    document.getElementById('popDataNote').textContent = `${DATA.snapshot.source} · toàn bộ ${formatNumber(DATA.pops.length)} POP / ${formatNumber(DATA.snapshot.records)} thiết bị. Thống kê theo toàn bộ kết quả lọc, không chỉ trang đang xem.`;
   }
 
-  function renderPops() {
+  function renderPops(resetPage = true) {
+    if(resetPage)popPageIndex=0;
     const pops = filteredPops();
-    document.getElementById('popGrid').innerHTML = pops.map(popCard).join('');
+    const pageSize=Number(document.getElementById('popPageSize').value)||36;
+    const pages=Math.max(1,Math.ceil(pops.length/pageSize));
+    popPageIndex=Math.min(popPageIndex,pages-1);
+    const start=popPageIndex*pageSize;
+    const shown=pops.slice(start,start+pageSize);
+    const colorMode = new Set(pops.map(popProvinceKey)).size === 1 ? 'single-province' : 'province';
+    const grid = document.getElementById('popGrid');
+    grid.setAttribute('data-color-mode', colorMode);
+    grid.innerHTML = shown.map(pop => popCard(pop, colorMode)).join('');
     document.getElementById('popEmpty').hidden = pops.length !== 0;
-    document.getElementById('popResultCount').textContent = `Hiển thị ${pops.length} / ${formatNumber(DATA.productionStats.pops)} POP`;
+    document.getElementById('popResultCount').textContent = `${formatNumber(pops.length)} POP trong dữ liệu`;
+    document.getElementById('popPageCount').textContent = pops.length?`${start+1}–${start+shown.length} / ${formatNumber(pops.length)} POP · Trang ${popPageIndex+1}/${pages}`:'0 POP';
+    document.getElementById('popPrevPage').disabled = popPageIndex===0;
+    document.getElementById('popNextPage').disabled = popPageIndex===pages-1;
+    document.getElementById('popSelectionLabel').textContent = popScopeMode === 'one' ? 'Chi nhánh AGG' : selectedProvinces.length ? selectedProvinces.join(' · ') : selectedArea !== 'all' ? `${selectedArea === 'MB' ? 'Miền Bắc' : 'Miền Nam'} · Trong phạm vi quản lý` : popScopeMode === 'three' ? 'QNH · AGG · BTHT1' : 'Tất cả chi nhánh';
     updateSummary(pops);
   }
 
   function selectArea(area) {
+    if (!accessiblePopBranches()[area]) return;
     selectedArea = selectedArea === area ? 'all' : area;
-    selectedProvince = 'all';
-    document.querySelectorAll('.na-region-name').forEach(button => button.classList.toggle('is-selected', button.dataset.area === selectedArea));
-    document.querySelectorAll('[data-province]').forEach(button => button.classList.remove('is-selected'));
+    selectedProvinces = [];
+    renderProvinceButtons();
     renderPops();
   }
 
   function selectProvince(button) {
     const province = button.dataset.province;
-    selectedProvince = selectedProvince === province ? 'all' : province;
-    selectedArea = selectedProvince === 'all' ? 'all' : button.dataset.area;
-    document.querySelectorAll('.na-region-name').forEach(item => item.classList.toggle('is-selected', item.dataset.area === selectedArea));
-    document.querySelectorAll('[data-province]').forEach(item => item.classList.toggle('is-selected', item.dataset.province === selectedProvince));
+    if (!Object.values(accessiblePopBranches()).flat().includes(province)) return;
+    selectedProvinces = selectedProvinces.includes(province) ? selectedProvinces.filter(code => code !== province) : [...selectedProvinces,province];
+    selectedArea = 'all';
+    renderProvinceButtons();
     renderPops();
   }
 
-  function deviceCard(device) {
-    const kind = device.type === 'OLT' ? 'olt' : device.type === 'POWER' ? 'power' : '';
-    return `<article class="na-device-card" data-device-search="${[device.name,device.ip,device.model,device.vendor].join(' ').toLowerCase()}"><div><strong>${device.name}</strong><span class="na-device-kind ${kind}">${device.type}</span></div><div class="na-device-details"><div><span>Management IP</span><b>${device.ip}</b></div><div><span>Model / Vendor</span><b>${device.model} · ${device.vendor}</b></div><div><span>Function</span><b>${device.function}</b></div></div></article>`;
+  function resetPopFilters() {
+    selectedArea = 'all';
+    selectedProvinces = [];
+    document.getElementById('popSearch').value = '';
+    renderProvinceButtons();
+    renderPops();
   }
 
-  function openPopDrawer(popCode) {
-    activePop = DATA.pops.find(pop => pop.code === popCode);
-    if (!activePop) return;
-    const c = activePop.counts;
-    document.getElementById('drawerPopName').textContent = activePop.code;
-    document.getElementById('drawerPopMeta').textContent = `${activePop.area === 'MN' ? 'Miền Nam' : 'Miền Bắc'} · ${activePop.branch} · ${activePop.province} · ${activePop.zone}`;
-    document.getElementById('drawerStats').innerHTML = [['Switch',c.switch],['OLT',c.olt],['Nguồn',c.power],['PI',c.pi]].map(x => `<div class="na-drawer-stat"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
-    document.getElementById('deviceSearch').value = '';
-    renderDevices();
-    const backdrop = document.getElementById('popDrawerBackdrop');
-    backdrop.hidden = false;
-    requestAnimationFrame(() => backdrop.classList.add('is-open'));
+  function openPopDetail(popCode, updateRoute = true, preserve = false) {
+    const pop = DATA.pops.find(entry => entry.code === popCode);
+    if (!pop) return false;
+    window.NETAUTO_POP_DETAIL.open(pop,preserve);
+    popVisitActive = false;
+    document.querySelectorAll('.na-nav-item').forEach(button => button.classList.toggle('is-active', button.dataset.module === 'pop'));
+    document.querySelectorAll('.na-page').forEach(page => page.hidden = page.dataset.page !== 'pop-detail');
+    if (updateRoute && location.hash !== `#pop/${pop.code}`) history.pushState(null, '', `#pop/${pop.code}`);
+    loadPopInventory(pop.code);
+    document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
+    return true;
   }
 
-  function closePopDrawer() {
-    const backdrop = document.getElementById('popDrawerBackdrop');
-    backdrop.classList.remove('is-open');
-    backdrop.hidden = true;
+  function openDeviceDetail(popCode, deviceName, updateRoute = true) {
+    const pop = DATA.pops.find(entry=>entry.code===popCode);
+    if (!pop) return false;
+    const records = window.NETAUTO_POP_DETAIL_DATA.pops[popCode] || pop.devices;
+    const device = records.find(entry=>entry.name===deviceName);
+    if (!device) return false;
+    popVisitActive = false;
+    window.NETAUTO_POP_DETAIL.closeTopo();
+    window.NETAUTO_DEVICE_DETAIL.open(pop,device);
+    document.querySelectorAll('.na-nav-item').forEach(button=>button.classList.toggle('is-active',button.dataset.module==='pop'));
+    document.querySelectorAll('.na-page').forEach(page=>page.hidden=page.dataset.page!=='device-detail');
+    const route=`#pop/${popCode}/device/${encodeURIComponent(deviceName)}`;
+    if (updateRoute && location.hash!==route) history.pushState(null,'',route);
+    loadPopInventory(pop.code);
+    document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
+    return true;
   }
 
-  function renderDevices() {
-    if (!activePop) return;
-    const query = document.getElementById('deviceSearch').value.trim().toLowerCase();
-    const devices = activePop.devices.filter(device => [device.name,device.ip,device.model,device.vendor].join(' ').toLowerCase().includes(query));
-    document.getElementById('deviceList').innerHTML = `<div class="na-data-source">Dữ liệu thiết bị từ <b>data_devices_pop.json</b> · snapshot 28/08/2026 · ${devices.length}/${activePop.devices.length} bản ghi</div>${devices.map(deviceCard).join('') || '<div class="na-empty"><b>Không tìm thấy thiết bị</b><span>Thử hostname, IP hoặc model khác.</span></div>'}`;
+  function loadPopInventory(code) {
+    const store=window.NETAUTO_POP_DETAIL_DATA;
+    store.ensurePop(code,error=>{
+      if(error){if(location.hash.startsWith(`#pop/${code}`))showToast('Không tải được inventory. Mở lại POP để thử lại.');}
+      window.NETAUTO_POP_DETAIL.refreshInventory(code);
+      window.NETAUTO_DEVICE_DETAIL.refreshInventory(code);
+    });
   }
 
-  function navigateModule(module) {
+  function navigateModule(module, updateRoute = true) {
+    window.NETAUTO_POP_DETAIL.closeTopo();
+    if (module === 'pop' && !popVisitActive) renewPopVisitColor();
+    popVisitActive = module === 'pop';
+    if (module === 'pop') renderPops(false);
     document.querySelectorAll('.na-nav-item').forEach(button => button.classList.toggle('is-active', button.dataset.module === module));
     document.querySelectorAll('.na-page').forEach(page => page.hidden = page.dataset.page !== module);
-    history.replaceState(null, '', `#${module}`);
+    if (updateRoute) history.replaceState(null, '', `#${module}`);
     document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
+  }
+
+  window.NETAUTO_POP_DETAIL.setBackHandler(() => navigateModule('pop'));
+  window.NETAUTO_POP_DETAIL.setDeviceHandler((pop,device)=>openDeviceDetail(pop.code,device.name));
+  window.NETAUTO_DEVICE_DETAIL.setBackHandler(popCode=>openPopDetail(popCode,true,true));
+
+  function restoreRoute() {
+    const route = location.hash.slice(1);
+    const parts=route.split('/');
+    if (parts[0]==='pop' && parts[2]==='device') {
+      try {if(openDeviceDetail(parts[1],decodeURIComponent(parts.slice(3).join('/')),false))return;} catch { /* Invalid URL encoding: fall back to the POP page. */ }
+      if(openPopDetail(parts[1],false,true))return;
+    }
+    if (route.startsWith('pop/') && openPopDetail(route.slice(4), false,true)) return;
+    navigateModule(['pop','customer','business'].includes(route) ? route : 'pop', false);
   }
 
   function openInfoTab(tab) {
@@ -434,7 +533,7 @@
     {icon:'♙',title:'Tra cứu khách hàng',meta:'Hợp đồng, serial, MAC, IP WAN hoặc ONU index',action:()=>{navigateModule('customer');openInfoTab('customer')}},
     {icon:'▣',title:'Quản lý Nghiệp vụ',meta:'Mở danh sách kế hoạch',action:()=>{navigateModule('business');openBusinessPage('plans')}},
     ...Object.entries(DATA.workflows).map(([key,w]) => ({icon:w.mark,title:w.title,meta:'Trang nghiệp vụ',action:()=>{navigateModule('business');openBusinessPage(key)}})),
-    ...DATA.pops.map(pop => ({icon:'⬡',title:pop.code,meta:`${pop.branch} · ${pop.province} · ${pop.zone}`,action:()=>{navigateModule('pop');openPopDrawer(pop.code)}}))
+    ...DATA.pops.map(pop => ({icon:'⬡',title:pop.code,meta:`${pop.branch} · ${pop.province} · ${pop.zone}`,action:()=>{navigateModule('pop');openPopDetail(pop.code)}}))
   ];
 
   function renderCommands() {
@@ -453,14 +552,21 @@
   renderPops();
   renderPlans();
 
-  document.querySelectorAll('.na-region-name').forEach(button => button.addEventListener('click', () => selectArea(button.dataset.area)));
-  document.querySelectorAll('[data-province]').forEach(button => button.addEventListener('click', () => selectProvince(button)));
+  document.getElementById('popRegionFilters').addEventListener('click', event => {
+    if (popScopeMode === 'one') return;
+    const province = event.target.closest('[data-province]');
+    if (province) { selectProvince(province); return; }
+    const area = event.target.closest('.na-region-name');
+    if (area) selectArea(area.dataset.area);
+  });
+  document.querySelectorAll('[data-pop-scope]').forEach(button => button.addEventListener('click', () => { popScopeMode = button.dataset.popScope; resetPopFilters(); }));
+  document.getElementById('resetPopFilters').addEventListener('click', resetPopFilters);
   document.getElementById('popSearch').addEventListener('input', renderPops);
-  document.getElementById('popGrid').addEventListener('click', event => { const card = event.target.closest('[data-pop]'); if (card) openPopDrawer(card.dataset.pop); });
-  document.getElementById('deviceSearch').addEventListener('input', renderDevices);
-  document.getElementById('closePopDrawer').addEventListener('click', closePopDrawer);
-  document.getElementById('popDrawerBackdrop').addEventListener('click', event => { if (event.target.id === 'popDrawerBackdrop') closePopDrawer(); });
-  document.getElementById('refreshPop').addEventListener('click', () => { selectedArea='all';selectedProvince='all';document.getElementById('popSearch').value='';document.querySelectorAll('.na-region-name,[data-province]').forEach(x=>x.classList.remove('is-selected'));renderPops();showToast('Đã tải lại dữ liệu POP mô phỏng.'); });
+  document.getElementById('popGrid').addEventListener('click', event => { const card = event.target.closest('[data-pop]'); if (card) openPopDetail(card.dataset.pop); });
+  document.getElementById('popPageSize').addEventListener('change',()=>renderPops());
+  document.getElementById('popPrevPage').addEventListener('click',()=>{popPageIndex=Math.max(0,popPageIndex-1);renderPops(false);});
+  document.getElementById('popNextPage').addEventListener('click',()=>{popPageIndex++;renderPops(false);});
+  document.getElementById('refreshPop').addEventListener('click', () => { resetPopFilters(); showToast('Đã tải lại dữ liệu POP mô phỏng.'); });
   document.getElementById('registerDevice').addEventListener('click', () => showToast('Form Đăng ký thiết bị sẽ được bổ sung theo screenshot production.'));
 
   document.querySelectorAll('.na-nav-item').forEach(button => button.addEventListener('click', () => navigateModule(button.dataset.module)));
@@ -553,8 +659,9 @@
   document.getElementById('commandInput').addEventListener('input', renderCommands);
   document.getElementById('commandResults').addEventListener('click', event => {const button=event.target.closest('[data-command-index]');if(!button)return;const item=event.currentTarget._items[Number(button.dataset.commandIndex)];closeCommand();item.action();});
   document.getElementById('commandPalette').addEventListener('click', event => {if(event.target.id==='commandPalette')closeCommand();});
-  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();openCommand();}if(event.key==='/'&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)){event.preventDefault();openCommand();}if(event.key==='Escape'){closeCommand();closePopDrawer();}});
+  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();openCommand();}if(event.key==='/'&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)){event.preventDefault();openCommand();}if(event.key==='Escape'){closeCommand();}});
 
-  const initialModule = location.hash.replace('#','');
-  if (['pop','customer','business'].includes(initialModule)) navigateModule(initialModule);
+  window.addEventListener('popstate', restoreRoute);
+  window.addEventListener('hashchange', restoreRoute);
+  restoreRoute();
 })();

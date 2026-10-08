@@ -1,0 +1,2 @@
+// Generated inventory for HNIK394; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIK394"]=[{"name":"HNIK39401EX34","ip":"10.146.28.100","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"EX34","vendor":"JUNIPER","area":"MB","province":"HNI","branch":"FTI","zone":"V1","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

@@ -1,0 +1,2 @@
+// Generated inventory for DNGB003; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["DNGB003"]=[{"name":"DNGB00301GS32","ip":"10.178.251.234","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"GS32","vendor":"UNKNOWN","area":"MN","province":"DNG","branch":"DNG","zone":"V4","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

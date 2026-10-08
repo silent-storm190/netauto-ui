@@ -1,0 +1,2 @@
+// Generated inventory for HNIB022; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIB022"]=[{"name":"HNIB02202DF24","ip":"10.160.218.252","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"DF24","vendor":"DASAN","area":"MB","province":"HNI","branch":"P.HT1","zone":"V1","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

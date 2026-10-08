@@ -1,0 +1,2 @@
+// Generated inventory for HPGK010; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HPGK010"]=[{"name":"HPGK01001CH52","ip":"10.224.7.65","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"CH52","vendor":"H3C","area":"MB","province":"HPG","branch":"HPG","zone":"V3","inventoryAvailable":true,"inventoryCounts":{"transceiver":0,"fan":0,"power":0,"card":0,"device":0},"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

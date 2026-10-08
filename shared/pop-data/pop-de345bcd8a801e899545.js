@@ -1,0 +1,2 @@
+// Generated inventory for HNIK396; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIK396"]=[{"name":"HNIK39601HW51","ip":"10.145.0.140","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"HW51","vendor":"HUAWEI","area":"MB","province":"HNI","branch":"FTI","zone":"V1","inventoryAvailable":true,"inventoryCounts":{"transceiver":0,"fan":0,"power":0,"card":0,"device":0},"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

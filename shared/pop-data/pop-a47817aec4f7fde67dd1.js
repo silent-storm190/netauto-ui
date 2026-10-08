@@ -1,0 +1,2 @@
+// Generated inventory for HCMK048; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HCMK048"]=[{"name":"HCMK04801CS29","ip":"10.178.224.89","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"CS29","vendor":"UNKNOWN","area":"MN","province":"HCM","branch":"HCM","zone":"V5","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

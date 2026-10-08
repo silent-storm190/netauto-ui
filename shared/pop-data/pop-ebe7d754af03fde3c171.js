@@ -1,0 +1,2 @@
+// Generated inventory for HCMMP06; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HCMMP06"]=[{"name":"HCMMP06UPS01","ip":"172.27.27.6","type":"POWER","function":"POWER","group":"ACCESS","model":"PS01","vendor":"UNKNOWN","area":"MN","province":"HCM","branch":"BTHT3","zone":"V5","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

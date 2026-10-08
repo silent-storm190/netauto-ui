@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NetAuto · Portal Vận hành</title>
   <link rel="stylesheet" href="shared/netauto-shell.css">
+  <link rel="stylesheet" href="shared/netauto-pop-detail.css">
 </head>
 <body>
   <div class="na-shell" id="netautoApp">
@@ -57,22 +58,57 @@
             <div class="na-heading-actions"><button class="na-button" id="refreshPop" type="button">↻ Tải lại</button><button class="na-button is-primary" id="registerDevice" type="button">＋ Đăng ký thiết bị</button></div>
           </div>
 
-          <section class="na-filter-panel" aria-label="Bộ lọc khu vực">
-            <div class="na-region-row"><button class="na-region-name is-selected" type="button" data-area="MB">Miền Bắc</button><div class="na-province-list" id="northProvinces"></div></div>
-            <div class="na-region-row"><button class="na-region-name" type="button" data-area="MN">Miền Nam</button><div class="na-province-list" id="southProvinces"></div></div>
+          <section class="na-pop-command" aria-label="Khu vực, tìm kiếm và thống kê POP">
+            <header class="na-pop-command-head"><h2>POP theo khu vực</h2><div class="na-pop-scope-demo"><span>Mô phỏng phạm vi quản lý</span><div class="na-pop-mode-switch" role="group" aria-label="Số chi nhánh user quản lý"><button type="button" data-pop-scope="many" aria-pressed="true">Nhiều chi nhánh</button><button type="button" data-pop-scope="three" aria-pressed="false">3 chi nhánh</button><button type="button" data-pop-scope="one" aria-pressed="false">Một chi nhánh</button></div></div></header>
+            <div class="na-pop-scope-head"><span id="popPermissionLabel">Phạm vi chi nhánh được cấp quyền</span><div class="na-pop-scope-actions"><span id="popSelectionLabel">Tất cả chi nhánh</span><button type="button" id="resetPopFilters">Bỏ chọn</button></div></div>
+            <div class="na-filter-panel" id="popRegionFilters" aria-label="Bộ lọc khu vực">
+              <div class="na-region-row" id="northRegion"><div class="na-region-heading"><button class="na-region-name" type="button" data-area="MB" aria-pressed="false">Miền Bắc</button><small id="northBranchCount"></small></div><div class="na-province-list" id="northProvinces"></div></div>
+              <div class="na-region-row" id="southRegion"><div class="na-region-heading"><button class="na-region-name" type="button" data-area="MN" aria-pressed="false">Miền Nam</button><small id="southBranchCount"></small></div><div class="na-province-list" id="southProvinces"></div></div>
+            </div>
+            <div class="na-pop-single-scope" id="singleBranchScope" hidden><span aria-hidden="true">⌖</span><strong>AGG</strong><span>Miền Nam · V7</span><small>1 chi nhánh được cấp quyền</small></div>
+            <section class="na-summary-row" aria-label="Thống kê POP và thiết bị" aria-live="polite">
+              <label class="na-search-card"><b>Tìm POP, thiết bị, IP hoặc model</b><span><i aria-hidden="true">⌕</i><input id="popSearch" type="search" placeholder="Ví dụ: HCMP160, GC16, 11.68.209.11"></span></label>
+              <article class="na-stat-card"><span>POP theo bộ lọc</span><strong class="na-pop-blue" id="popTotal">—</strong></article>
+              <article class="na-stat-card"><span>Tổng thiết bị</span><strong class="na-pop-cyan" id="deviceTotal">—</strong></article>
+              <article class="na-stat-card" id="networkStatsGroup" aria-label="Switch và OLT"><div class="na-pop-stat-values" id="networkStats"></div></article>
+              <article class="na-stat-card" id="powerStatsGroup" aria-label="Nguồn, IPMS và OPMS"><div class="na-pop-stat-values" id="powerStats"></div></article>
+            </section>
           </section>
 
-          <section class="na-summary-row" aria-label="Thống kê POP và thiết bị">
-            <label class="na-search-card"><b>Tìm POP, thiết bị, IP hoặc model</b><span><i>⌕</i><input id="popSearch" type="search" placeholder="Ví dụ: HCMP160, GC16, 11.68.209.11"></span></label>
-            <article class="na-stat-card"><span>POP theo bộ lọc</span><strong id="popTotal">3.896</strong><small>trên 3.896 POP</small></article>
-            <article class="na-stat-card is-blue"><span>Tổng thiết bị</span><strong id="deviceTotal">19.162</strong><small>từ dữ liệu production</small></article>
-            <article class="na-stat-card is-cyan"><span>Switch · OLT</span><strong id="networkStats">4.671 · 7.394</strong><small>theo loại thiết bị</small></article>
-            <article class="na-stat-card is-warm"><span>Nguồn · IPMS · OPMS</span><strong id="powerStats">5.539 · 452 · 1.104</strong><small>theo function và nameDev</small></article>
-          </section>
-
-          <div class="na-section-head"><div><h2>Danh sách POP</h2><p>Chọn POP để xem danh sách thiết bị và thông tin inventory.</p></div><span id="popResultCount">Hiển thị 14 / 3.896 POP</span></div>
+          <div class="na-section-head"><div><h2>Danh sách POP</h2><p>Chọn POP để xem danh sách thiết bị và thông tin inventory.</p></div><span id="popResultCount">Đang nạp dữ liệu POP…</span></div>
           <div class="na-pop-grid" id="popGrid" aria-live="polite"></div>
+          <div class="na-pop-pagination"><label>Mỗi trang <select id="popPageSize" aria-label="Số POP mỗi trang"><option value="36">36 POP</option><option value="72">72 POP</option><option value="144">144 POP</option></select></label><span id="popPageCount" aria-live="polite"></span><div><button class="na-button" type="button" id="popPrevPage">← Trước</button><button class="na-button" type="button" id="popNextPage">Sau →</button></div></div>
           <div class="na-empty" id="popEmpty" hidden><b>Không tìm thấy dữ liệu phù hợp</b><span>Thử bỏ bớt điều kiện lọc hoặc tìm theo IP thiết bị.</span></div>
+          <p class="na-pop-data-note" id="popDataNote"></p>
+        </section>
+
+        <section class="na-page na-pop-detail" id="popDetailPage" data-page="pop-detail" hidden>
+          <div class="l1-toolbar"><button class="na-button" type="button" id="backToPopList">← Danh sách POP</button><span class="l1-breadcrumb">Quản lý POP <span>/</span> <b id="detailBreadcrumb"></b></span><span class="l1-source" id="detailSource"></span></div>
+          <section class="l1-hero" aria-label="Thông tin POP">
+            <article class="l1-pop-info"><div class="l1-pop-identity"><span class="l1-pop-mark" aria-hidden="true">⬡</span><div><span class="l1-eyebrow">CHI TIẾT POP</span><h1 id="detailPopName"></h1></div><span class="l1-total" id="detailDeviceTotal"></span></div><dl class="l1-pop-fields" id="detailPopFields"></dl><p class="l1-muted l1-metadata-note">Các trường “—” chưa có dữ liệu trong snapshot.</p></article>
+          </section>
+          <section class="l1-section l1-pi" aria-labelledby="popPiTitle"><header class="l1-section-header"><div><h2 id="popPiTitle">Giám sát &amp; Cảnh báo</h2><p id="detailPiSource"></p></div><label class="l1-demo-toggle"><input type="checkbox" id="detailPiDemo" checked> Mẫu tham chiếu</label></header><div id="detailPiSignals"></div></section>
+          <nav class="l1-tabs" role="tablist" aria-label="Chi tiết POP"><button id="popOverviewTab" type="button" role="tab" aria-selected="true" aria-controls="popOverviewPanel" data-pop-detail-tab="overview">Tổng quan</button><button id="popMaterialsTab" type="button" role="tab" aria-selected="false" aria-controls="popMaterialsPanel" data-pop-detail-tab="materials" tabindex="-1">Quản lý vật tư</button></nav>
+          <div id="popOverviewPanel" role="tabpanel" aria-labelledby="popOverviewTab">
+            <section class="l1-section" aria-labelledby="popDevicesTitle"><header class="l1-section-header"><div><h2 id="popDevicesTitle">Thiết bị trong POP</h2><p>Chọn thiết bị để mở trang chi tiết.</p></div><div class="l1-device-actions"><label class="l1-search"><span aria-hidden="true">⌕</span><input id="detailDeviceSearch" type="search" placeholder="Tên thiết bị, IP, model…" aria-label="Tìm thiết bị trong POP"></label><button class="l1-topo-launch" type="button" id="detailTopoToggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="popTopoDialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Topo thiết bị</span><span aria-hidden="true">↗</span></button></div></header><div class="l1-device-lanes" id="detailDeviceGroups"></div><footer class="l1-section-foot" id="detailDeviceCount"></footer></section>
+          </div>
+          <section class="l1-section" id="popMaterialsPanel" role="tabpanel" aria-labelledby="popMaterialsTab" hidden>
+            <header class="l1-section-header"><div><h2>Tài sản &amp; vật tư POP</h2><p>Tách tài sản quản lý tại POP và inventory bên trong thiết bị.</p></div><div class="l1-segment" role="group" aria-label="Loại dữ liệu vật tư"><button type="button" id="popAssetViewButton" aria-pressed="true">Tài sản POP</button><button type="button" id="popInventoryViewButton" aria-pressed="false">Inventory thiết bị</button></div></header>
+            <div id="popAssetView">
+              <div class="l1-asset-context"><div><span class="l1-demo-badge" id="popAssetSourceBadge">Ảnh production · AGGP015</span><h3 id="popAssetContextTitle"></h3><p id="popAssetContextNote"></p></div><select id="popAssetSource" aria-label="Nguồn dữ liệu tài sản"><option value="reference">Mẫu tài sản AGGP015</option><option value="current">POP đang mở</option></select></div>
+              <div class="l1-asset-tools"><label class="l1-search"><span aria-hidden="true">⌕</span><input id="popAssetSearch" type="search" placeholder="Tên, mã vật tư hoặc mã tài sản…" aria-label="Tìm tài sản POP"></label><span id="popAssetRowCount"></span><button type="button" class="na-button" id="popAssetExport">⇩ Xuất CSV</button></div>
+              <div class="l1-table-wrap"><table class="l1-material-table l1-asset-table"><colgroup><col style="width:44%"><col style="width:12%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:17%"></colgroup><thead><tr><th scope="col">Vật tư</th><th scope="col">Mã tài sản</th><th scope="col" class="l1-qty">Tồn</th><th scope="col" class="l1-qty">Khả dụng</th><th scope="col" class="l1-qty">Treo</th><th scope="col">Tình trạng</th></tr></thead><tbody id="popAssetRows"></tbody></table></div>
+              <footer class="l1-asset-footer"><span id="popAssetFooterNote"></span><div><label>Số dòng <select id="popAssetPageSize" aria-label="Số dòng tài sản mỗi trang"><option value="10">10</option><option value="5">5</option></select></label><span id="popAssetPageCount"></span><button type="button" class="na-button" id="popAssetPrev" aria-label="Trang tài sản trước">‹</button><button type="button" class="na-button" id="popAssetNext" aria-label="Trang tài sản sau">›</button></div></footer>
+            </div>
+            <div id="popInventoryView" hidden><div class="l1-material-stats" id="detailMaterialStats"></div><div class="l1-material-filters"><label class="l1-search"><span aria-hidden="true">⌕</span><input type="search" id="detailMaterialSearch" placeholder="Thiết bị, serial, loại vật tư…" aria-label="Tìm vật tư"></label><select id="detailMaterialDevice" aria-label="Lọc vật tư theo thiết bị"></select><select id="detailMaterialCategory" aria-label="Lọc loại vật tư"><option value="all">Tất cả loại vật tư</option><option value="device">Chassis</option><option value="transceiver">Module quang</option><option value="card">Module card</option><option value="power">Module nguồn</option><option value="fan">Module quạt</option><option value="rectifier">Rectifier</option></select></div><div class="l1-table-wrap"><table class="l1-material-table"><thead><tr><th scope="col">Loại vật tư</th><th scope="col">Thiết bị</th><th scope="col">Slot / Port</th><th scope="col">Type / Model</th><th scope="col">Serial</th></tr></thead><tbody id="detailMaterialRows"></tbody></table></div><footer class="l1-section-foot" id="detailMaterialCount"></footer></div>
+          </section>
+          <dialog class="l1-topo-dialog" id="popTopoDialog" aria-labelledby="popTopoTitle"><header class="l1-topo-dialog-head"><div><span class="l1-eyebrow">NETWORK TOPOLOGY</span><h2 id="popTopoTitle">Topo thiết bị trong POP</h2></div><button type="button" class="na-button" id="closePopTopo" aria-label="Đóng topo">×</button></header><div id="detailTopoPanel" hidden></div></dialog>
+        </section>
+
+        <section class="na-page" id="deviceDetailPage" data-page="device-detail" hidden>
+          <div class="l2-toolbar"><button class="na-button" id="backToPopDetail" type="button">← Quay lại POP</button><span id="deviceDetailBreadcrumb"></span></div>
+          <section class="l2-card"><header class="l2-device-heading"><div><span class="l2-eyebrow">THÔNG TIN THIẾT BỊ · LAYER 2</span><h1 id="deviceDetailName"></h1></div><span class="l2-kind" id="deviceDetailKind"></span></header><dl class="l2-device-fields" id="deviceDetailFields"></dl></section>
+          <section class="l2-card"><header><h2>Inventory thiết bị</h2><p id="deviceDetailSource"></p></header><div class="l2-inventory-stats" id="deviceDetailStats"></div><label class="l2-search"><span aria-hidden="true">⌕</span><input id="deviceDetailMaterialSearch" type="search" placeholder="Tìm loại vật tư, port hoặc serial…" aria-label="Tìm inventory thiết bị"></label><div class="l2-table-wrap"><table><thead><tr><th scope="col">Loại vật tư</th><th scope="col">Slot / Port</th><th scope="col">Type / Model</th><th scope="col">Serial</th></tr></thead><tbody id="deviceDetailRows"></tbody></table></div><p class="l2-note" id="deviceDetailMaterialCount"></p></section>
         </section>
 
         <section class="na-page" id="customerPage" data-page="customer" hidden>
@@ -182,22 +218,18 @@
     </section>
   </div>
 
-  <div class="na-drawer-backdrop" id="popDrawerBackdrop" hidden>
-    <aside class="na-pop-drawer" role="dialog" aria-modal="true" aria-labelledby="drawerPopName">
-      <header><div><span>POP & THIẾT BỊ</span><h2 id="drawerPopName">AGGM001</h2><p id="drawerPopMeta"></p></div><button id="closePopDrawer" type="button" aria-label="Đóng">×</button></header>
-      <div class="na-drawer-stats" id="drawerStats"></div>
-      <div class="na-device-toolbar"><b>Danh sách thiết bị</b><label>⌕<input id="deviceSearch" type="search" placeholder="Tìm hostname hoặc IP"></label></div>
-      <div class="na-device-list" id="deviceList"></div>
-    </aside>
-  </div>
-
   <div class="na-modal-backdrop" id="commandPalette">
     <div class="na-command" role="dialog" aria-modal="true" aria-label="Tìm nhanh"><label>⌕<input id="commandInput" type="search" placeholder="Tìm POP, thiết bị hoặc nghiệp vụ..."><kbd>Esc</kbd></label><div id="commandResults"></div></div>
   </div>
   <div class="na-toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="shared/netauto-data.js"></script>
+  <script src="shared/netauto-pop-index.js"></script>
   <script src="shared/drop-point-response.js"></script>
+  <script src="shared/netauto-pop-store.js"></script>
+  <script src="shared/netauto-pop-reference.js"></script>
+  <script src="shared/netauto-pop-detail.js"></script>
+  <script src="shared/netauto-device-detail.js"></script>
   <script src="shared/netauto-app.js"></script>
 </body>
 </html>

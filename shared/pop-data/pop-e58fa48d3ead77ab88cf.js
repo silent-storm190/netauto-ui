@@ -1,0 +1,2 @@
+// Generated inventory for HNIB066; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIB066"]=[{"name":"HNIB06602PWDE1U","ip":"10.85.40.155","type":"POWER","function":"POWER","group":"ACCESS","model":"DE1U","vendor":"UNKNOWN","area":"MB","province":"HNI","branch":"P.HT4","zone":"V1","inventoryAvailable":true,"inventoryCounts":{"rectifier":0,"device":0},"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

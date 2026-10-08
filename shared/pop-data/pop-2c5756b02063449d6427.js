@@ -1,0 +1,2 @@
+// Generated inventory for KGGK095; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["KGGK095"]=[{"name":"KGGK09501HW57","ip":"10.178.249.17","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"HW57","vendor":"HUAWEI","area":"MN","province":"KGG","branch":"KGG","zone":"V7","inventoryAvailable":true,"inventoryCounts":{"transceiver":0,"fan":0,"power":0,"card":0,"device":0},"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

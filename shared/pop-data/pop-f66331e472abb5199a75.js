@@ -1,0 +1,2 @@
+// Generated inventory for BDGK085; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["BDGK085"]=[{"name":"BDGK08501EX23","ip":"10.178.241.153","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"EX23","vendor":"JUNIPER","area":"MN","province":"BDG","branch":"BDG","zone":"V6","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

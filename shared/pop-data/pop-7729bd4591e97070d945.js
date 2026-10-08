@@ -1,0 +1,2 @@
+// Generated inventory for HNIB213; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIB213"]=[{"name":"HNIB21302GC57","ip":"10.85.9.147","type":"OLT","function":"ACN","group":"ACCESS","model":"GC57","vendor":"GCOM","area":"MB","province":"HNI","branch":"P.HT4","zone":"V1","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

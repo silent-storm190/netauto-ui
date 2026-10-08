@@ -1,0 +1,2 @@
+// Generated inventory for HNIB254; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HNIB254"]=[{"name":"HNIB25401HW57","ip":"10.34.2.23","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"HW57","vendor":"HUAWEI","area":"MB","province":"HNI","branch":"FTI","zone":"V1","inventoryAvailable":true,"inventoryCounts":{"transceiver":0,"fan":0,"power":0,"card":0,"device":0},"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

@@ -1,0 +1,2 @@
+// Generated inventory for DNGK015; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["DNGK015"]=[{"name":"DNGK01501EX33","ip":"10.178.251.193","type":"SWITCH","function":"SWMPLS","group":"MPLS","model":"EX33","vendor":"JUNIPER","area":"MN","province":"DNG","branch":"DNG","zone":"V4","inventoryAvailable":false,"inventoryCounts":null,"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];

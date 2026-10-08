@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NetAuto · Mô phỏng port Huawei theo model</title>
+  <link rel="stylesheet" href="shared/netauto-shell.css">
+  <link rel="stylesheet" href="shared/device-port-workspace.css">
+</head>
+<body>
+  <header class="pw-topbar"><a href="index.html#pop" class="pw-brand"><span>N</span>NetAuto <small>Portal Vận hành</small></a><button class="pw-button" id="pwTheme" type="button">◐ Giao diện</button></header>
+  <main class="pw-page">
+    <nav class="pw-breadcrumb" aria-label="Đường dẫn"><a href="index.html#pop">Quản lý POP & Thiết bị</a><span>›</span><span>Workspace thiết bị</span></nav>
+    <section class="pw-device-heading">
+      <div class="pw-device-title"><span class="pw-device-icon" aria-hidden="true">▤</span><div><small>HUAWEI · MÔ PHỎNG MẶT TRƯỚC</small><h1 id="pwDeviceName">Huawei S6720-24 Stack</h1><p id="pwDeviceMeta">Chọn modelDev để sinh layoutGroups[], bays[] và interfaces[]</p></div></div>
+      <label class="pw-model-picker" for="pwModelSelect"><span>Model thiết bị</span><select id="pwModelSelect" aria-describedby="pwModelHint"></select><small id="pwModelHint">Alias được lấy từ typeDevEX</small></label>
+    </section>
+    <nav class="pw-device-tabs" role="tablist" aria-label="Thông tin và công cụ thiết bị">
+      <button id="pwTabInfo" data-view="info" role="tab" aria-controls="pwInfo" aria-selected="false" tabindex="-1" type="button">Thông tin thiết bị</button>
+      <button id="pwTabInventory" data-view="inventory" role="tab" aria-controls="pwInventory" aria-selected="false" tabindex="-1" type="button">Vật tư</button>
+      <button id="pwTabPorts" data-view="ports" class="is-active" role="tab" aria-controls="pwPorts" aria-selected="true" type="button">Quản lý Port</button>
+      <button id="pwTabTools" data-view="tools" role="tab" aria-controls="pwTools" aria-selected="false" tabindex="-1" type="button">Công cụ</button>
+    </nav>
+
+    <section id="pwPorts" role="tabpanel" aria-labelledby="pwTabPorts">
+      <div class="pw-port-layout" id="pwLayout">
+        <section class="pw-port-surface" aria-label="Danh sách port">
+          <header class="pw-port-header"><div><h2>Port / Interface <span id="pwPortType">NNI / Link</span></h2><p>Chọn cổng trực tiếp trên mặt trước hoặc trong danh sách interface phía dưới.</p></div><button class="pw-button" id="pwRefresh" type="button">↻ Đặt lại</button></header>
+          <section class="pw-hardware-section" aria-labelledby="pwHardwareTitle"><header><div><b id="pwHardwareTitle">Mặt trước thiết bị</b><span id="pwLayoutBadge"></span></div><div class="pw-hardware-summary" id="pwHardwareSummary"></div></header><div class="pw-hardware-scroll"><div class="pw-hardware" id="pwHardware"></div></div><div class="pw-hardware-legend"><span><i class="is-service"></i>Service</span><span><i class="is-uplink"></i>Uplink</span><span><i class="is-bay"></i>Khe LPU</span><small>Vị trí tương đối để vận hành UI, không thay thế sơ đồ đấu nối vật lý.</small></div></section>
+          <details class="pw-data-contract"><summary>Data trả về khi chọn modelDev</summary><div><div class="pw-contract-pills"><span>layoutGroups[]</span><span>bays[]</span><span>interfaces[]</span></div><pre id="pwDataPreview"></pre></div></details>
+          <div class="pw-port-toolbar"><div class="pw-port-filters" aria-label="Lọc trạng thái"><button class="is-active" data-filter="all" type="button">Tất cả <span id="pwAllCount"></span></button><button data-filter="up" type="button"><i class="pw-dot up"></i>UP</button><button data-filter="down" type="button"><i class="pw-dot down"></i>DOWN</button><button data-filter="empty" type="button"><i class="pw-dot empty"></i>Không có module</button><button data-filter="unknown" type="button"><i class="pw-dot unknown"></i>Chưa có telemetry</button></div><label class="pw-search"><span aria-hidden="true">⌕</span><input id="pwSearch" type="search" placeholder="Tìm interface…" aria-label="Tìm interface"></label></div>
+          <div class="pw-port-groups" id="pwPortGroups"></div>
+          <footer class="pw-grid-footer"><span id="pwVisibleCount"></span><span id="pwPortDataNote">Trạng thái từ ảnh tham chiếu</span></footer>
+        </section>
+        <aside class="pw-inspector" id="pwInspector" aria-label="Thông tin và công cụ của port" hidden>
+          <header class="pw-inspector-header"><div><small id="pwSelectedType">PORT NNI / LINK</small><h2 id="pwSelectedPort"></h2><p id="pwSelectedStatus"></p></div><button class="pw-icon-button" id="pwCloseInspector" type="button" aria-label="Đóng thông tin port">×</button></header>
+          <label class="pw-action-selector"><span>Công cụ của port</span><select id="pwActionSelect" aria-label="Chọn công cụ cho port"></select></label>
+          <div class="pw-inspector-content" id="pwInspectorContent" aria-live="polite"></div>
+        </aside>
+      </div>
+    </section>
+    <section class="pw-secondary-panel" id="pwInfo" role="tabpanel" aria-labelledby="pwTabInfo" hidden></section>
+    <section class="pw-secondary-panel" id="pwInventory" role="tabpanel" aria-labelledby="pwTabInventory" hidden><h2>Vật tư thiết bị</h2><div class="pw-empty"><span>▤</span><b>Chưa có dữ liệu vật tư</b><p>Danh sách module, card và vật tư sẽ hiển thị khi có response tương ứng.</p></div></section>
+    <section class="pw-secondary-panel" id="pwTools" role="tabpanel" aria-labelledby="pwTabTools" hidden><h2>Công cụ dành cho thiết bị</h2><p class="pw-muted">Chọn công cụ, sau đó chọn port cần thao tác.</p><div class="pw-tool-list" id="pwDeviceTools"></div></section>
+  </main>
+  <div class="pw-port-menu" id="pwPortMenu" role="menu" aria-label="Công cụ dành cho port" hidden></div>
+  <div class="pw-toast" id="pwToast" role="status" aria-live="polite"></div>
+  <script src="shared/huawei-device-layouts.js"></script>
+  <script src="shared/device-port-workspace.js"></script>
+</body>
+</html>

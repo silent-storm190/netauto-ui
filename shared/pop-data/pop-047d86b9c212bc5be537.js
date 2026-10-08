@@ -1,0 +1,2 @@
+// Generated inventory for HCMV753; do not edit by hand.
+window.NETAUTO_POP_DETAIL_DATA.pops["HCMV753"]=[{"name":"HCMV75301GC16","ip":"1.1.1.45","type":"OLT","function":"ACN","group":"ACCESS","model":"GC16","vendor":"GCOM","area":"MN","province":"HCM","branch":"BTHT2","zone":"V5","inventoryAvailable":true,"inventoryCounts":{"transceiver":0,"fan":0,"power":0,"card":0,"device":0},"chassisSerials":[],"materialRowsTotal":0,"materials":[]}];
