@@ -4,7 +4,7 @@
   const esc=value=>String(value==null||value===''?'—':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stateLabels={up:'UP',down:'DOWN',empty:'Chưa có module',unknown:'Chưa rõ trạng thái'};
   const actions={transceiver:['◈','Transceiver · Rx/Tx'],crc:['≋','CRC Check'],lacp:['⇄','LACP Check'],customers:['♙','Khách hàng thuộc PON'],drops:['⌖','Tập điểm thuộc PON'],speed:['↔','Đổi Port Speed']};
-  let layout=null,device=null,selected=null,tool='',loadState='idle',refreshHandler=null,view='face';
+  let layout=null,device=null,selected=null,tool='',loadState='idle',refreshHandler=null,view='face',lastListWidth=0;
   const viewStorageKey='netauto-device-port-view';
   try { const saved=localStorage.getItem(viewStorageKey);if(saved==='face'||saved==='grid')view=saved; } catch { /* Storage is optional; keep the in-memory preference. */ }
   function setMenu(open) {
@@ -48,28 +48,36 @@
     get('deviceHardwarePanel').hidden=view!=='face';get('devicePortGridContent').hidden=view!=='grid';
     get('deviceFaceView').setAttribute('aria-pressed',String(view==='face'));get('deviceGridView').setAttribute('aria-pressed',String(view==='grid'));
     setMenu(false);
-    requestAnimationFrame(fitHardware);
+    requestAnimationFrame(fitPortViews);
   }
-  function renderBanks() {
+  function listWidth() {
+    // Both views occupy the same panel. Hidden views may report zero width.
+    return Math.max(1,(get('devicePortBanks').clientWidth || get('deviceHardwareScroll').clientWidth || 960)-26);
+  }
+  function fitPortViews() {
+    fitHardware();
+    if(layout&&view==='grid'&&lastListWidth!==listWidth())renderList();
+  }
+  function renderList() {
     let total=0;
+    const width=listWidth();lastListWidth=width;
     get('devicePortBanks').innerHTML=layout.hardware.units.map(unit=>{
-      // Model/observed-card rules use the full layout, not filtered results.
-      const rows=window.NETAUTO_PORT_MODELS.listRows(layout,unit);
+      // Geometry uses full banks, never the filtered subset or a model exception.
+      const rows=window.NETAUTO_PORT_MODELS.listRows(layout,unit,width);
       const content=rows.map(row=>{
-        const banks=row.groups.map(group=>{
+        const banks=row.groups.map((group,index)=>{
         const ports=group.ports.filter(filtered);total+=ports.length;if(!ports.length)return '';
-        // Unfiltered bank sizes keep port widths stable when searching.
-        const columns=Math.min(!row.balanced&&group.ports.length>24?16:8,group.ports.length);
-        const compactColumns=Math.min(4,columns);
-        return `<section class="l2-port-bank" data-bank="${esc(group.id)}" style="--bank-columns:${columns};--bank-compact-columns:${compactColumns}"><header class="l2-bank-head"><span class="l2-kind">${esc(group.ports[0].kind)}</span><b title="${esc(group.bank)}">${esc(group.media)}</b><span>${ports.length} port</span></header><div class="l2-port-tiles">${ports.map(port=>`<div class="l2-port-tile${selected===port.name?' is-selected':''}" data-state="${port.state}"><button type="button" class="l2-port-open" data-select-port="${esc(port.name)}" aria-label="${esc(port.name)} · ${stateLabels[port.state]}" aria-pressed="${selected===port.name}" title="${esc(port.name)} · ${stateLabels[port.state]}"><b>${esc(port.label)}</b></button></div>`).join('')}</div></section>`;
+        const bank=row.banks[index];
+        return `<section class="l2-port-bank" data-bank="${esc(group.id)}" style="--bank-columns:${bank.columns};--bank-width:${bank.width}px;--list-port-width:${row.portWidth}px"><header class="l2-bank-head"><span class="l2-kind">${esc(group.ports[0].kind)}</span><b title="${esc(group.bank)}">${esc(group.media)}</b><span>${ports.length} port</span></header><div class="l2-port-tiles">${ports.map(port=>`<div class="l2-port-tile${selected===port.name?' is-selected':''}" data-state="${port.state}"><button type="button" class="l2-port-open" data-select-port="${esc(port.name)}" aria-label="${esc(port.name)} · ${stateLabels[port.state]}" aria-pressed="${selected===port.name}" title="${esc(port.name)} · ${stateLabels[port.state]}"><b>${esc(port.label)}</b></button></div>`).join('')}</div></section>`;
         }).join('');
-        const wide=!row.balanced&&row.kind==='service'&&row.groups.some(group=>group.ports.length>24);
-        return banks?`<div class="l2-list-banks${row.balanced?' is-balanced':''}${wide?' is-wide':''}" data-list-row="${row.kind}">${banks}</div>`:'';
+        return banks?`<div class="l2-list-banks" data-list-row="${row.kind}">${banks}</div>`:'';
       }).join('');
-      return content?`<section class="l2-list-unit" data-list-member="${esc(unit.id)}">${layout.hardware.stack?`<header class="l2-list-member">${esc(unit.label)}</header>`:''}${content}</section>`:'';
+      return content?`<section class="l2-list-unit" data-list-member="${esc(unit.id)}"><header class="l2-list-member"><b>${esc(layout.profile.vendor || device.vendor)} · ${esc(layout.profile.name || device.model)}</b><span>${esc(unit.label)}</span></header>${content}</section>`:'';
     }).join('') || `<div class="l2-empty">${layout.summary.total?'Không có port phù hợp bộ lọc.':'Chưa có inventory port cho thiết bị này. Số port và card sẽ được xác định từ dữ liệu thiết bị.'}</div>`;
     get('devicePortCount').textContent=`Hiển thị ${total} / ${layout.summary.total} port · chọn port để xem thông tin và công cụ.`;
-    renderHardware();
+  }
+  function renderBanks() {
+    renderList();renderHardware();
   }
   function speedOptions(port) {
     const name=port.name;
@@ -176,7 +184,10 @@
   get('devicePortsRefresh').addEventListener('click',()=>{if(device){open(device,false,loadState);if(refreshHandler)refreshHandler();}});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!get('devicePortMenu').hidden){setMenu(false);get('devicePortMenuToggle').focus();}});
   document.addEventListener('click',event=>{if(!event.target.closest('#devicePortInspector'))setMenu(false);});
-  if(typeof window.ResizeObserver==='function')new window.ResizeObserver(fitHardware).observe(get('deviceHardwareScroll'));
-  window.addEventListener('resize',fitHardware);
+  if(typeof window.ResizeObserver==='function'){
+    const observer=new window.ResizeObserver(fitPortViews);
+    observer.observe(get('deviceHardwareScroll'));observer.observe(get('devicePortBanks'));
+  }
+  window.addEventListener('resize',fitPortViews);
   window.NETAUTO_DEVICE_PORTS={open,closeMenu:()=>setMenu(false),setRefreshHandler:handler=>{refreshHandler=handler;}};
 })();

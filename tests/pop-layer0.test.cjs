@@ -21,6 +21,7 @@ function element(id = '', dataset = {}) {
     },
     setAttribute(key, value) { this.attrs[key] = value; },
     addEventListener(type, callback) { this.listeners[type] = callback; },
+    click() { this.listeners.click?.({target:this,currentTarget:this}); },
     focus() { document.activeElement = this; }, scrollIntoView() {}, scrollTo() {}, querySelectorAll() { return []; },
     showModal() { this.open=true; this.attrs.open=''; },
     close() { this.open=false; delete this.attrs.open; this.listeners.close?.(); },
@@ -67,7 +68,7 @@ const document = {
   head:{appendChild(script){vm.runInNewContext(fs.readFileSync(path.join(mockup,script.src),'utf8'),context,{filename:script.src});script.onload();}},
 };
 const context = {
-  document, window: {listeners: {}, addEventListener(type, callback) { this.listeners[type] = callback; }}, console, Intl,
+  document, window: {listeners: {}, addEventListener(type, callback) { const previous=this.listeners[type];this.listeners[type]=previous?event=>{previous(event);callback(event);}:callback; }}, console, Intl,
   location: {hash: ''},
   localStorage: {getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value)},
   requestAnimationFrame: callback => callback(),
@@ -594,16 +595,16 @@ const detailCss=fs.readFileSync(path.join(mockup,'shared/netauto-pop-detail.css'
 assert(detailCss.includes('animation:na-topo-enter 220ms'));
 assert(detailCss.includes('animation:na-topo-backdrop-enter 180ms'));
 assert(detailCss.includes('@media(prefers-reduced-motion:reduce){#popDetailPage .l1-topo-dialog[open],#popDetailPage .l1-topo-dialog::backdrop{animation:none}}'));
-assert(portCss.includes('grid-template-columns:repeat(var(--list-columns,8),minmax(0,1fr))'));
-assert(/@media\(max-width:1120px\).*--list-columns:var\(--bank-compact-columns\)/.test(portCss));
-assert(/@media\(max-width:650px\).*--list-columns:2;flex-basis:100%/.test(portCss));
+assert(portCss.includes('grid-template-columns:repeat(var(--list-columns,8),minmax(0,var(--list-port-width,110px)))'));
+assert(portCss.includes('flex:0 1 var(--bank-width)'),'Track width comes from the shared planner');
+assert(!portCss.includes('--bank-compact-columns'),'No CSS breakpoint can contradict the responsive planner');
 assert(get('devicePortBanks').innerHTML.includes('<b>G0/1</b>'),'Port cards show readable interface names');
 assert(!get('devicePortBanks').innerHTML.includes('data-port-tools'));
 assert(!get('devicePortBanks').innerHTML.includes('⋮'),'No three-dot action on port cards');
 assert(!get('devicePortBanks').innerHTML.includes('<small>'),'List cards display only the port name, not status text');
 assert(/title="G0\/1 · [^"]+"/.test(get('devicePortBanks').innerHTML),'Status remains available in tooltips and accessible labels');
 assert(portCss.includes('min-height:34px'),'Desktop list port buttons stay compact, close to the 35px faceplate ports');
-assert(portCss.includes('max-width:calc(var(--list-columns)*116px + 18px)'),'Small and large banks cap port growth equally at 110px');
+assert(get('devicePortBanks').innerHTML.includes('--list-port-width:'),'Every bank receives a shared readable port width');
 assert(portCss.includes('.l2-port-open{min-height:40px}'),'Narrow/touch layouts retain a larger click target');
 assert(portCss.includes('#deviceHardwarePanel,#devicePortWorkspace{overflow-anchor:none}'),'Swapping views excludes the changing content from scroll anchoring');
 for(const state of ['up','down','empty','unknown'])assert(portCss.includes(`.l2-port-tile[data-state=${state}]`));
@@ -731,10 +732,20 @@ devicePage.open(stackPop,groupedSwitch);
 const bankMarkup=get('devicePortBanks').innerHTML;
 assert.equal((bankMarkup.match(/class="l2-list-banks"/g)||[]).length,1,'Service and uplink banks share a single wrapping row');
 assert(bankMarkup.indexOf('data-bank="NNI:XGigabitEthernet0/0"')<bankMarkup.indexOf('data-bank="NNI:40GE0/0"'),'10G precedes 40G, matching the faceplate');
-assert(bankMarkup.includes('--bank-columns:8;--bank-compact-columns:4'));
-assert(bankMarkup.includes('--bank-columns:2;--bank-compact-columns:2'),'Two uplink ports use two columns, not a full-width eight-column bank');
+assert(bankMarkup.includes('--bank-columns:12;'),'24-port fixed switch keeps Giả lập columns when there is room');
+assert(bankMarkup.includes('--bank-columns:2;'),'Two uplink ports use two columns, not a full-width eight-column bank');
 assert.equal((bankMarkup.match(/data-select-port=/g)||[]).length,26);
 assert(bankMarkup.includes('data-list-row="mixed"'),'A small two-port uplink bank can still share a fixed switch row');
+const sixUplinkSwitch={...groupedSwitch,name:'TEST-24-PLUS-6',ports:[
+  ...groupedSwitch.ports.slice(0,24),
+  ...Array.from({length:6},(_,i)=>({name:`40GE0/0/${i+1}`,module:null}))
+]};
+devicePage.open(stackPop,sixUplinkSwitch);
+const compactSwitchMarkup=get('devicePortBanks').innerHTML;
+assert.equal((compactSwitchMarkup.match(/data-list-row=/g)||[]).length,1,'24 service + 6 uplink ports share one balanced wrapping row');
+assert(compactSwitchMarkup.includes('data-list-row="mixed"'));
+assert(compactSwitchMarkup.includes('--bank-columns:3;'),'Six uplink ports are arranged as two rows of three, not a detached row of six');
+assert.equal((compactSwitchMarkup.match(/data-select-port=/g)||[]).length,30);
 const modularPop=allPops.find(pop=>pop.devices.some(device=>device.model==='ZA62'&&device.inventoryAvailable));
 vm.runInNewContext(fs.readFileSync(path.join(mockup,context.window.NETAUTO_DATA.inventoryFiles[modularPop.code]),'utf8'),context);
 const modularDevice=dataset.pops[modularPop.code].find(device=>device.model==='ZA62'&&device.ports.length);
@@ -745,13 +756,12 @@ const modularMarkup=get('devicePortBanks').innerHTML;
 const serviceBanks=modularLayout.hardware.units[0].groups.filter(group=>!group.uplink);
 assert(serviceBanks.length>1,'Real C620 snapshot contains multiple PON banks');
 assert.equal((modularMarkup.match(/data-list-row="service"/g)||[]).length,1,'Two PON banks share the upper balanced row');
-assert.equal((modularMarkup.match(/class="l2-list-banks is-balanced"/g)||[]).length,2,'Four zones form two equal-width rows, not an uplink inserted beside a PON bank');
+assert.equal((modularMarkup.match(/class="l2-list-banks"/g)||[]).length,2,'Four zones form two equal-width rows, not an uplink inserted beside a PON bank');
 assert.equal((modularMarkup.match(/class="l2-port-bank"/g)||[]).length,4);
-assert(portCss.includes('grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}'),'Balanced cards use the full available panel width');
-assert(portCss.includes('.l2-list-banks.is-balanced .l2-port-bank{--list-columns:var(--bank-columns);max-width:none}'),'Each 16-port PON card keeps eight ports per row, not four');
-assert(modularMarkup.includes('--bank-columns:8;--bank-compact-columns:4'));
-assert(portCss.includes('grid-template-columns:repeat(var(--list-columns),minmax(0,var(--balanced-port-width)))'),'Uplink tiles use the same compact width as PON tiles');
-assert(/@container port-list \(max-width:1300px\).*grid-template-columns:1fr/.test(portCss),'Cards stack based on actual content width before squeezing labels');
+assert(modularMarkup.includes('--bank-columns:8;'),'Each 16-port PON card keeps eight ports per row when readable');
+const modularWidths=[...modularMarkup.matchAll(/--bank-width:([\d.]+)px/g)].map(match=>Number(match[1]));
+assert.equal(new Set(modularWidths).size,1,'Modular card tracks have matching widths');
+assert.equal(new Set([...modularMarkup.matchAll(/--list-port-width:([\d.]+)px/g)].map(match=>match[1])).size,1,'Uplink tiles share the same compact width as PON tiles');
 assert.equal((modularMarkup.match(/data-list-row="uplink"/g)||[]).length,1,'All uplink banks are grouped into a dedicated row below the PON banks');
 assert(!modularMarkup.includes('data-list-row="mixed"'),'No uplink is inserted alongside the second PON bank');
 assert(modularMarkup.lastIndexOf('data-list-row="service"')<modularMarkup.indexOf('data-list-row="uplink"'));
@@ -769,13 +779,28 @@ const longSwitch={...groupedSwitch,name:'TEST-LONG-PORT-GROUPS',ports:[
 devicePage.open(stackPop,longSwitch);
 assert(get('devicePortBanks').innerHTML.includes('data-list-row="uplink"'),'A 48-port service run moves even a small uplink bank onto its own row');
 assert(!get('devicePortBanks').innerHTML.includes('data-list-row="mixed"'));
-assert(get('devicePortBanks').innerHTML.includes('class="l2-list-banks is-wide"'),'A dense fixed-switch bank uses the full row, not a capped narrow card');
-assert(get('devicePortBanks').innerHTML.includes('--bank-columns:16;--bank-compact-columns:4'),'48 service ports use sixteen columns when there is room');
-assert(portCss.includes('.l2-list-banks.is-wide .l2-port-bank{--list-columns:var(--bank-columns);flex-basis:100%;max-width:none}'));
-assert(/@container port-list \(max-width:1330px\).*\.l2-list-banks.is-wide.*--list-columns:8/.test(portCss));
-assert(/@container port-list \(max-width:800px\).*\.l2-list-banks.is-wide.*--list-columns:4/.test(portCss));
-assert(/@container port-list \(max-width:650px\).*\.l2-list-banks.is-wide.*--list-columns:2/.test(portCss));
+assert(get('devicePortBanks').innerHTML.includes('--bank-width:1374px;'),'A dense bank occupies the complete measured chassis width');
+assert(get('devicePortBanks').innerHTML.includes('--bank-columns:16;'),'48 service ports use sixteen columns when there is room');
+get('devicePortBanks').clientWidth=600;context.window.listeners.resize();
+assert(get('devicePortBanks').innerHTML.includes('--bank-columns:4;'),'Actual panel width controls columns, not the window or sidebar');
+get('devicePortBanks').clientWidth=3000;context.window.listeners.resize();
+assert(get('devicePortBanks').innerHTML.includes('--bank-columns:24;'),'Wide screens restore Giả lập columns automatically');
+assert(get('devicePortBanks').innerHTML.includes('data-list-row="mixed"'),'Wide screens restore service/uplink placement without an unconditional model exception');
+get('devicePortBanks').clientWidth=0;context.window.listeners.resize();
 assert.equal((get('devicePortBanks').innerHTML.match(/data-select-port=/g)||[]).length,50);
+const selectedLongPort='XGigabitEthernet0/0/1';selectPort(selectedLongPort);
+get('devicePortSearch').value='0/0/1';get('devicePortSearch').listeners.input();
+const beforeResizeCount=(get('devicePortBanks').innerHTML.match(/data-select-port=/g)||[]).length;
+get('devicePortBanks').clientWidth=650;context.window.listeners.resize();
+assert.equal(get('devicePortSearch').value,'0/0/1','Resize keeps the search');
+assert.equal(get('devicePortInspector').hidden,false,'Resize does not dismiss the selected port dock');
+assert.equal(get('deviceSelectedPortName').textContent,'XG0/0/1');
+assert.equal((get('devicePortBanks').innerHTML.match(/data-select-port=/g)||[]).length,beforeResizeCount,'Resize preserves filtered results');
+assert(get('devicePortBanks').innerHTML.includes('is-selected'),'Selected tile survives replanning');
+get('deviceFaceView').listeners.click();get('devicePortBanks').clientWidth=3000;
+context.window.listeners.resize();get('deviceGridView').listeners.click();
+assert(get('devicePortBanks').innerHTML.includes('--bank-columns:24;'),'Showing the previously hidden view measures its new width');
+get('devicePortBanks').clientWidth=0;get('devicePortSearch').value='';
 devicePage.open(stackPop,groupedSwitch);
 get('deviceGridView').listeners.click();
 assert.equal(storage.get('netauto-device-port-view'),'grid');
@@ -806,3 +831,46 @@ context.localStorage=workingStorage;
 console.log('PASS: compact side-by-side service/uplink banks, intact stack members, unchanged port counts and persisted view across navigation/reset/reload, including invalid/unavailable storage.');
 console.log('PASS: Layer 2 port banks/search/filter, real Rx/Tx including zero, PON/NNI tools, safe speed preview, inventory tabs, preserved asynchronous state and no selection/data leakage.');
 console.log('PASS: reused standalone faceplate styles/tool dock, default hardware view, real stack members, preserved slot geometry under filters, dropdown tools, click-again/close/reset and context menu.');
+// Floating back uses the existing back controls and actual content viewport.
+const viewport=get('portalContent'),floating=get('detailFloatingBack');
+const savedViewportRect=viewport.getBoundingClientRect;
+const savedPopBackRect=get('backToPopList').getBoundingClientRect;
+const savedDeviceBackRect=get('backToPopDetail').getBoundingClientRect;
+context.window.innerHeight=900;
+viewport.getBoundingClientRect=()=>({left:350,top:120,bottom:840,right:1400});
+get('backToPopList').getBoundingClientRect=()=>({top:130,bottom:172});
+context.location.hash='#pop/AGGP006';context.window.listeners.hashchange();
+assert.equal(floating.hidden,true,'No duplicate floating button while the header back control is visible');
+get('backToPopList').getBoundingClientRect=()=>({top:-40,bottom:0});
+viewport.listeners.scroll();
+assert.equal(floating.hidden,false,'Floating back appears after the POP header scrolls out of view');
+assert.equal(floating.dataset.backTarget,'backToPopList');
+assert.equal(floating.style.left,'368px');assert.equal(floating.style.top,'132px');
+assert.equal(floating.style.bottom,'auto','Back floats near the content header, not above bottom controls');
+const searchBeforeFloatingBack=get('popSearch').value;
+floating.click();
+assert.equal(get('popPage').hidden,false);assert.equal(floating.hidden,true);
+assert.equal(get('popSearch').value,searchBeforeFloatingBack,'Floating back preserves Layer 0 filters');
+get('backToPopDetail').getBoundingClientRect=()=>({top:130,bottom:172});
+context.location.hash=`#pop/AGGP006/device/${encodeURIComponent(realGcom.name)}`;context.window.listeners.hashchange();
+assert.equal(get('deviceDetailPage').hidden,false);assert.equal(floating.hidden,true);
+get('backToPopDetail').getBoundingClientRect=()=>({top:-40,bottom:0});
+viewport.listeners.scroll();
+assert.equal(floating.dataset.backTarget,'backToPopDetail');assert.equal(floating.hidden,false);
+assert.equal(floating.textContent,'← Quay lại POP');
+viewport.getBoundingClientRect=()=>({left:80,top:60,bottom:900,right:1400});
+context.window.listeners.resize();
+assert.equal(floating.style.left,'98px');assert.equal(floating.style.top,'72px','Top position follows the viewport in fullscreen/collapsed sidebar mode');
+assert.equal(floating.style.bottom,'auto');
+floating.click();
+assert.equal(get('popDetailPage').hidden,false);assert.equal(get('detailPopName').textContent,'AGGP006');
+assert.equal(floating.dataset.backTarget,'backToPopList','Back changes from device-to-POP to POP-to-list without stale targets');
+assert.equal(document.activeElement,get('backToPopList'),'Keyboard focus returns to the current page back control');
+viewport.getBoundingClientRect=()=>({left:350,top:950,bottom:1500,right:1400});viewport.listeners.scroll();
+assert.equal(floating.hidden,true,'Do not draw the floating control when the portal is outside the window');
+context.location.hash='#customer';context.window.listeners.hashchange();
+assert.equal(floating.hidden,true);assert.equal(floating.dataset.backTarget,undefined,'Unrelated modules have no stale floating back action');
+viewport.getBoundingClientRect=savedViewportRect;
+get('backToPopList').getBoundingClientRect=savedPopBackRect;
+get('backToPopDetail').getBoundingClientRect=savedDeviceBackRect;
+console.log('PASS: scroll-aware floating back on Layer 1/2, original route/filter preservation, keyboard focus, viewport/sidebar/fullscreen positioning and hidden outside detail pages.');

@@ -144,20 +144,68 @@
     }
     return {portWidth:Math.max(54,Math.floor(width*10)/10),portHeight:35};
   }
-  function listRows(layout,unit) {
-    const service=unit.groups.filter(group=>!group.uplink);
-    const uplinks=unit.groups.filter(group=>group.uplink);
-    const serviceCount=service.reduce((sum,group)=>sum+group.ports.length,0);
-    const uplinkCount=uplinks.reduce((sum,group)=>sum+group.ports.length,0);
-    // Modular OLT cards form a balanced gallery; fixed/stack switches retain
-    // their own member banks. Never invent empty zones to complete a grid.
-    const balanced=service.length>1 && (layout.hardware.modular || service.every(group=>group.ports[0]?.kind==='PON'));
-    const separate=service.length>1 || serviceCount>24 || uplinkCount>4;
-    const groups=balanced?[service,uplinks]:separate?[...service.map(group=>[group]),uplinks]:[unit.groups];
-    return groups.filter(row=>row.length).map(row=>({
-      groups:row,balanced,
-      kind:row.every(group=>group.uplink)?'uplink':row.every(group=>!group.uplink)?'service':'mixed'
-    }));
+  function listRows(layout,unit,availableWidth=1400) {
+    // Pure, framework-independent planner. Input is the SAME ordered banks as
+    // Giả lập; only viewport capacity may change their rows/column counts.
+    // Width is the inner chassis width (caller subtracts its padding/border).
+    if(!unit.groups.length)return [];
+    const width=Math.max(1,Number(availableWidth)||1),chrome=24,gap=10,portGap=6;
+    const longest=Math.max(0,...unit.groups.flatMap(group=>group.ports.map(port=>port.label.length)));
+    // 11px monospace label + button/border/pattern-mask padding.
+    const minPortWidth=Math.max(76,Math.ceil(longest*6.6+16));
+    const size=columns=>chrome+columns*minPortWidth+(columns-1)*portGap;
+    const fitColumns=(group,space)=>[group.columns,24,16,12,8,4,2,1]
+      .filter((columns,index,all)=>columns<=group.columns&&columns<=group.ports.length&&all.indexOf(columns)===index)
+      .sort((a,b)=>b-a).find(columns=>size(columns)<=space)||1;
+    const required=banks=>banks.reduce((sum,bank)=>sum+size(bank.columns),0)+Math.max(0,banks.length-1)*gap;
+    const makeBank=group=>({group,columns:group.columns});
+    const planned=[];
+    function pack(groups) {
+      let row=[];
+      for(const group of groups) {
+        const bank=makeBank(group);
+        if(row.length&&required([...row,bank])>width){planned.push(row);row=[];}
+        if(!row.length)bank.columns=fitColumns(group,width);
+        row.push(bank);
+      }
+      if(row.length)planned.push(row);
+    }
+    if(layout.hardware.modular) {
+      // Match Giả lập's two card tracks, including additional/missing cards.
+      // Preserve those tracks while labels fit; otherwise stack whole cards.
+      for(let i=0;i<unit.groups.length;i+=2) {
+        const pair=unit.groups.slice(i,i+2);
+        const track=(width-gap*(pair.length-1))/pair.length;
+        if(pair.length===2&&track<size(Math.min(4,...pair.map(group=>group.columns))))pack(pair);
+        else planned.push(pair.map(group=>({group,columns:fitColumns(group,track),equalTrack:true})));
+      }
+    } else {
+      const original=unit.groups.map(makeBank);
+      const service=unit.groups.filter(group=>!group.uplink),uplinks=unit.groups.filter(group=>group.uplink);
+      // A compact fixed chassis can keep uplinks on the right using eight
+      // service ports per row. Dense banks use their own full-width row instead.
+      const compact=original.map(bank=>({...bank,columns:bank.group.uplink?bank.columns:Math.min(bank.columns,8)}));
+      if(required(original)<=width)planned.push(original);
+      else if(service.length===1&&service[0].ports.length<=24&&required(compact)<=width)planned.push(compact);
+      else {pack(service);pack(uplinks);}
+    }
+    const capacity=planned.map(banks=>{
+      if(banks[0]?.equalTrack)return Math.min(...banks.map(bank=>((width-gap*(banks.length-1))/banks.length-chrome-(bank.columns-1)*portGap)/bank.columns));
+      const columns=banks.reduce((sum,bank)=>sum+bank.columns,0);
+      return (width-banks.length*chrome-(banks.length-1)*gap-(columns-banks.length)*portGap)/columns;
+    });
+    const portWidth=Math.max(1,Math.floor(Math.min(110,...capacity)*10)/10);
+    return planned.map(banks=>{
+      const columns=banks.reduce((sum,bank)=>sum+bank.columns,0);
+      const columnWidth=(width-banks.length*chrome-(banks.length-1)*gap-(columns-banks.length)*portGap)/columns;
+      return {
+        groups:banks.map(bank=>bank.group),portWidth,minPortWidth,width,
+        banks:banks.map(bank=>({id:bank.group.id,columns:bank.columns,
+          width:bank.equalTrack?(width-gap*(banks.length-1))/banks.length:
+            chrome+bank.columns*columnWidth+(bank.columns-1)*portGap})),
+        kind:banks.every(bank=>bank.group.uplink)?'uplink':banks.every(bank=>!bank.group.uplink)?'service':'mixed'
+      };
+    });
   }
   window.NETAUTO_PORT_MODELS=Object.freeze({catalog,resolve,clean,build,faceplateGeometry,listRows});
 })();

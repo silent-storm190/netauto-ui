@@ -93,7 +93,7 @@ Nhấn lại port đang chọn hoặc × để đóng, nhấn chuột phải ho�
 để mở menu. Hai chế độ “Giả lập” (mặt trước thiết bị) / “Mô phỏng” (các nhóm port)
 dùng chung thanh chuyển chế độ,
 bộ lọc và tìm kiếm ở phía trên; chuyển chế độ giữ nguyên bộ lọc và port đang chọn.
-Mô phỏng chia theo nhóm, 8 hoặc 16 port/hàng theo mật độ port (4 hoặc 2 trên màn hình hẹp), hiển thị
+Mô phỏng chia nhóm theo Giả lập, tự tính số port/hàng theo chiều rộng thực tế, hiển thị
 tên port thay vì chỉ số thứ tự, không có nút ⋮ hay dòng trạng thái trên từng ô.
 Ô port cao khoảng 36 px gồm viền trên desktop, nút tối thiểu 40 px trên màn hình hẹp;
 chiều rộng không giãn quá 110 px, khoảng cách 6 px, đệm nhóm 11 px. Vùng đổi chế độ
@@ -111,23 +111,19 @@ chiều cao hay tự cuộn; tôn trọng prefers-reduced-motion. Đổi cùng c
 nạp lại snapshot không phát lại hiệu ứng kết quả.
 Các bank được xếp theo bố cục mặt trước: port dịch vụ bên trái, uplink bên phải,
 cùng hàng khi đủ chỗ; nhóm nhỏ dùng ít cột thay vì chiếm cả chiều ngang.
-Nếu có nhiều bank dịch vụ, hơn 24 port dịch vụ hoặc hơn 4 port uplink thì mỗi
-bank dịch vụ có hàng riêng, toàn bộ bank uplink gom ở hàng dưới. Quy tắc dựa
-trên bố cục đầy đủ nên tìm kiếm/lọc không khiến uplink chen lại vào hàng dịch vụ.
-OLT modular/nhiều card PON: các bank dịch vụ và uplink chia thành hai hàng vùng
-riêng, mỗi hàng hai cột cân bằng; trường hợp hai bank PON + hai uplink thành 2×2.
-Không tạo vùng trống nếu thiếu bank. Mỗi card PON 16 port chia hai hàng × 8 port,
-hai card nằm cạnh nhau khi panel đủ rộng; hai card uplink ở hàng dưới. Dùng toàn
-bề ngang panel thay vì bó hẹp 974 px; PON/uplink dùng chung chiều rộng ô port,
-không giãn quá 110 px. Khi panel dưới 1.300 px, xếp card thành một cột để vẫn đọc
-được tám tên port mỗi hàng; panel dưới 650 px giảm còn hai port/hàng.
-GCOM GC08/GC16 giữ dãy PON chính và gom GE Combo + 10GE vào hàng dưới. Huawei
-fixed 24 + 2/4 port có thể ghép ngang khi đủ chỗ. H3C 24/48 + 6 uplink tách hàng
-uplink trong từng member; ZTE C620/Huawei MA5800 theo card thực tế của snapshot.
-Bank dịch vụ trên 24 port dùng hết chiều ngang, tối đa 16 port/hàng (48 port =
-3 hàng) khi panel rộng hơn 1.330 px; dưới ngưỡng này giảm còn 8, dưới 800 px
-còn 4, dưới 650 px còn 2. Uplink ít port vẫn nhỏ gọn, không kéo giãn thành ô lớn.
+Không còn điều kiện/breakpoint sửa riêng cho GCOM, Huawei, H3C hay từng ảnh.
+Mọi model dùng cùng planner dựa trên bank/card/member và độ dài tên port.
+OLT modular giữ hai track card như Giả lập; nếu có hai PON + hai uplink thì
+thành 2×2. Không tạo vùng trống/card giả nếu inventory thiếu bank.
+Khung thiết bị dùng hết chiều ngang, nhãn vendor/model và member ở phía trên.
+Port dùng chung chiều rộng trong mỗi unit và giới hạn 110px. Chỉ giảm số cột
+hoặc tách hàng khi không đủ chỗ cho tên port; màn hình rộng có thể giữ nguyên
+24 cột của Giả lập thay vì buộc bank 48 port luôn xuống hàng.
 Stack tách theo member, không trộn các member; màn hình hẹp tự xuống hàng.
+Nút quay lại nổi ở góc trên trái của vùng nội dung, cách mép trên 12 px (dưới
+thanh công cụ portal), khi nút đầu trang khuất khỏi
+màn hình, áp dụng Layer 1/2. Dùng chính thao tác lui hiện tại để giữ bộ lọc/trạng
+thái; cập nhật vị trí khi cuộn, thu sidebar hoặc fullscreen, ẩn ở Layer 0.
 Tìm kiếm/lọc làm mờ port không khớp nhưng
 không xoá vị trí trên chassis. Sơ đồ chỉ mô phỏng theo bank/slot, không thay thế
 faceplate hay sơ đồ đấu nối vật lý chuẩn của hãng.
@@ -164,3 +160,40 @@ Bản standalone `device-port-workspace.html` giữ nguyên để tham chiếu t
 Layer 2 chính dùng chung `device-port-workspace.css`, tái sử dụng model engine
 Huawei, bố cục faceplate/tool dock và nạp trạng thái từ snapshot thật thay vì
 inventory giả lập của bản standalone. Đèn SYS/PWR chưa có dữ liệu nên để “—”.
+
+### Bố trí port dùng chung cho FE
+
+`shared/netauto-device-port-models.js` cung cấp hàm thuần
+`NETAUTO_PORT_MODELS.listRows(layout, unit, availableWidth)`. Không có nhánh
+riêng cho từng mã model trong hàm bố trí này. `layout` là kết quả `build(device)`;
+`unit` lấy từ `layout.hardware.units`, cũng chính là nguồn dựng **Giả lập**.
+`availableWidth` là chiều rộng bên trong khung thiết bị, tính bằng px.
+
+- Giữ nguyên thứ tự bank/card/member và port của Giả lập. Nếu đủ chỗ, giữ
+  cả số cột gốc. Với chassis modular, giữ hai track card như Giả lập.
+- Khi thiếu chỗ: chassis nhỏ có thể giảm số port mỗi hàng để giữ uplink bên
+  phải; bank dày sẽ dùng hàng riêng, uplink xuống dưới. Số cột giảm theo
+  các mức 24/16/12/8/4/2/1, không làm mất tên port hoặc tự thêm card.
+- Kết quả mỗi hàng gồm `groups` (tham chiếu dữ liệu gốc), `kind`, `banks`
+  (`id`, `columns`, `width`) và `portWidth` dùng chung trong một unit.
+  Các bank phủ đủ chiều rộng khung; tile port tối đa 110px, không kéo giãn
+  port ít số lượng thành các ô quá lớn.
+- Controller đo `devicePortBanks.clientWidth` và trừ 26px padding/border
+  của khung unit. `ResizeObserver` tính lại khi đổi mode, sidebar hoặc
+  kích thước vùng nội dung. CSS không ghi đè số cột bằng breakpoint riêng.
+- Bộ lọc chỉ lọc port hiển thị, không thay đổi cấu hình bank/member dùng
+  để tính bố cục. Trạng thái/module thiếu dữ liệu vẫn giữ nguyên.
+
+FE có thể tái sử dụng engine và các token/CSS/markup trong mockup; vẫn cần
+tích hợp component, API và vòng đời đo kích thước vào framework thực tế.
+Các thông số chrome/gap trong planner khớp CSS hiện tại: bank 24px, gap
+bank 10px, gap tile 6px, nhãn monospace 11px. Nếu đổi CSS các thông số
+này cần cập nhật đồng bộ.
+
+Kiểm tra bằng `node mockup_ui/tests/device-ports.test.cjs`: toàn bộ 12.083
+switch/OLT trong snapshot, 54 mã model, 153 cấu hình bank/card/member,
+7 chiều rộng 280–3000px. Kiểm tra thứ tự, không mất/trùng port, không sửa
+snapshot, đủ chỗ cho tên port và không vượt chiều rộng khung. Model
+không có inventory/profile được giữ trạng thái thiếu dữ liệu, không dựng
+sơ đồ phần cứng chưa được xác minh. Đây là kiểm tra logic, không thay thế
+việc đối chiếu hình ảnh trong trình duyệt.

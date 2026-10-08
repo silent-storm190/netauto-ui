@@ -1,5 +1,35 @@
 (() => {
   const DATA = window.NETAUTO_DATA;
+  const contentViewport=document.getElementById('portalContent');
+  const floatingBack=document.getElementById('detailFloatingBack');
+  function syncFloatingBack() {
+    const target=!document.getElementById('deviceDetailPage').hidden?'backToPopDetail':!document.getElementById('popDetailPage').hidden?'backToPopList':null;
+    if(!target){floatingBack.hidden=true;delete floatingBack.dataset.backTarget;return;}
+    const bounds=contentViewport.getBoundingClientRect();
+    const viewportHeight=window.innerHeight || document.documentElement.clientHeight || bounds.bottom;
+    const top=Math.max(0,bounds.top),bottom=Math.min(viewportHeight,bounds.bottom);
+    const button=document.getElementById(target).getBoundingClientRect();
+    floatingBack.hidden=bottom<=top || button.bottom>top+8;
+    floatingBack.dataset.backTarget=target;
+    floatingBack.textContent=target==='backToPopDetail'?'← Quay lại POP':'← Danh sách POP';
+    floatingBack.setAttribute('aria-label',target==='backToPopDetail'?'Quay lại POP':'Quay lại danh sách POP');
+    floatingBack.style.left=`${Math.max(12,bounds.left+18)}px`;
+    floatingBack.style.top=`${top+12}px`;
+    floatingBack.style.bottom='auto';
+  }
+  let floatingBackFrame=0;
+  function scheduleFloatingBack(){if(floatingBackFrame)return;floatingBackFrame=requestAnimationFrame(()=>{floatingBackFrame=0;syncFloatingBack();});}
+  contentViewport.addEventListener('scroll',scheduleFloatingBack,{passive:true});
+  window.addEventListener('scroll',scheduleFloatingBack,{passive:true});
+  window.addEventListener('resize',scheduleFloatingBack);
+  if(typeof window.ResizeObserver==='function')new ResizeObserver(scheduleFloatingBack).observe(contentViewport);
+  floatingBack.addEventListener('click',()=>{
+    const target=floatingBack.dataset.backTarget;
+    if(!target||floatingBack.hidden)return;
+    document.getElementById(target).click();
+    const focusTarget=!document.getElementById('popDetailPage').hidden?'backToPopList':'popSearch';
+    document.getElementById(focusTarget).focus({preventScroll:true});
+  });
   const dropPointResponse = window.NETAUTO_DROP_POINT_RESPONSE;
   const escapeHtml = value => String(value == null || value === '' ? '—' : value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   const detailArticle = (label, value) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></article>`;
@@ -223,6 +253,7 @@
     if (updateRoute && location.hash !== `#pop/${pop.code}`) history.pushState(null, '', `#pop/${pop.code}`);
     loadPopInventory(pop.code);
     document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
+    syncFloatingBack();
     return true;
   }
 
@@ -241,6 +272,7 @@
     if (updateRoute && location.hash!==route) history.pushState(null,'',route);
     loadPopInventory(pop.code);
     document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
+    syncFloatingBack();
     return true;
   }
 
@@ -262,6 +294,7 @@
     document.querySelectorAll('.na-page').forEach(page => page.hidden = page.dataset.page !== module);
     if (updateRoute) history.replaceState(null, '', `#${module}`);
     document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
+    syncFloatingBack();
   }
 
   window.NETAUTO_POP_DETAIL.setBackHandler(() => navigateModule('pop'));
@@ -650,8 +683,8 @@
   document.getElementById('workflowFrame').addEventListener('load', () => document.getElementById('frameLoader').hidden = true);
   document.getElementById('openWorkflowTab').addEventListener('click', () => window.open(caseFile(activeWorkflow,document.getElementById('workflowCase').value),'_blank'));
 
-  document.getElementById('sidebarToggle').addEventListener('click', () => portal.classList.toggle('is-sidebar-collapsed'));
-  document.getElementById('fullscreenButton').addEventListener('click', event => {portal.classList.toggle('is-fullscreen');event.currentTarget.querySelector('span').textContent=portal.classList.contains('is-fullscreen')?'Thoát Fullscreen':'Mở Fullscreen';});
+  document.getElementById('sidebarToggle').addEventListener('click', () => {portal.classList.toggle('is-sidebar-collapsed');scheduleFloatingBack();});
+  document.getElementById('fullscreenButton').addEventListener('click', event => {portal.classList.toggle('is-fullscreen');event.currentTarget.querySelector('span').textContent=portal.classList.contains('is-fullscreen')?'Thoát Fullscreen':'Mở Fullscreen';scheduleFloatingBack();});
   const savedTheme = localStorage.getItem('netauto-ui-theme'); if (savedTheme) root.dataset.theme=savedTheme;
   document.getElementById('themeButton').addEventListener('click',()=>{root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('netauto-ui-theme',root.dataset.theme);});
 

@@ -1,4 +1,10 @@
 /* POP Layer 1: page-level workspace. No backdrop or floating sidebar. */
+.na-floating-back{position:fixed;z-index:120;display:inline-flex;align-items:center;min-height:42px;max-width:calc(100vw - 40px);padding:0 16px;border:1px solid color-mix(in srgb,var(--na-blue) 30%,var(--na-line));border-radius:999px;background:var(--na-panel);color:var(--na-blue);font:inherit;font-size:12px;font-weight:650;box-shadow:0 5px 18px color-mix(in srgb,var(--na-text) 12%,transparent)}
+.na-floating-back:hover{background:var(--na-blue-soft);border-color:var(--na-blue)}
+.na-floating-back:focus-visible{outline:2px solid var(--na-blue);outline-offset:3px}
+.na-floating-back:not([hidden]){animation:na-back-enter 150ms ease-out}
+@keyframes na-back-enter{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.na-floating-back:not([hidden]){animation:none}}
 #popDetailPage svg{width:20px;height:20px;flex:0 0 auto}
 #popDetailPage h1,#popDetailPage h2,#popDetailPage h3,#popDetailPage p{margin:0}
 #popDetailPage h2{font-size:17px;letter-spacing:-.02em;font-weight:750}

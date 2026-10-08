@@ -53,7 +53,7 @@
         <div class="na-sidebar-info"><span>NETAUTO</span><strong>Production UI mockup</strong><small>Đối chiếu screenshot 02/10/2026</small></div>
       </aside>
 
-      <main class="na-content">
+      <main class="na-content" id="portalContent">
         <section class="na-page" id="popPage" data-page="pop">
           <div class="na-page-heading">
             <div><div class="na-breadcrumb">Vận hành <span>/</span> POP & Thiết bị</div><h1>Quản lý POP và Thiết bị</h1><p>Chọn vùng, chi nhánh hoặc tìm trực tiếp POP và thiết bị.</p></div>
@@ -230,6 +230,7 @@
     </section>
   </div>
 
+  <button class="na-floating-back" id="detailFloatingBack" type="button" hidden aria-label="Quay lại">← Quay lại</button>
   <div class="na-modal-backdrop" id="commandPalette">
     <div class="na-command" role="dialog" aria-modal="true" aria-label="Tìm nhanh"><label>⌕<input id="commandInput" type="search" placeholder="Tìm POP, thiết bị hoặc nghiệp vụ..."><kbd>Esc</kbd></label><div id="commandResults"></div></div>
   </div>
