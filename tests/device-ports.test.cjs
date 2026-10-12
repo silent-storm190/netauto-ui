@@ -45,16 +45,21 @@ const clean=models.build(odd);assert.equal(clean.ports.find(port=>port.name==='T
 const s5721=models.build({model:'HW57',type:'SWITCH'});
 assert.deepEqual(clone(s5721.hardware.units[0].groups.map(group=>group.columns)),[12,4],'24 service ports use 12 columns; 4 uplinks use 4 columns');
 assert.equal(models.faceplateGeometry(s5721,1400).portWidth,79.8,'Both GE and 10GE share one width instead of stretching each bank equally');
-assert.equal(models.faceplateGeometry(s5721,500).portWidth,54,'Narrow views scroll rather than squeeze port labels');
+assert(models.faceplateGeometry(s5721,500).portWidth>=54,'Narrow views add rows rather than squeeze port labels');
+assert(models.faceplateGeometry(s5721,500).units[0].rows.length>1,'Uplinks move below a service bank that no longer fits');
 assert.equal(models.faceplateGeometry(s5721,3000).portWidth,86,'Do not create oversized ports on very wide screens');
 const compact24=models.build({model:'HW24',type:'SWITCH',ports:Array.from({length:24},(_,i)=>({name:`XGigabitEthernet0/0/${i+1}`,module:null}))});
 const compactGeometry=models.faceplateGeometry(compact24,1400);
 assert.equal(compactGeometry.portWidth,86);
 assert.equal(compactGeometry.chassisWidth,1118,'A single 24-port bank ends at its actual footprint instead of stretching to 1400px');
 assert.equal(models.faceplateGeometry(compact24,3000).chassisWidth,1118,'Extra viewport width must not add empty shell space');
+const gentlyExpanded=models.faceplateGeometry(compact24,1200);
+assert.equal(gentlyExpanded.portWidth,92.8,'A small remaining gap is absorbed by a modest shared expansion');
+assert.equal(gentlyExpanded.chassisWidth,1200);
+assert(models.faceplateGeometry(compact24,1300).portWidth<=96,'Expansion stays bounded even near the gap threshold');
 const singleCard=models.build({model:'ZA62',type:'OLT',ports:Array.from({length:16},(_,i)=>({name:`gpon_olt-1/1/${i+1}`,module:null}))});
 assert.equal(models.faceplateGeometry(singleCard,2000).chassisWidth,758,'A modular device with one observed card does not reserve a phantom second track');
-assert(models.faceplateGeometry(s5721,500).chassisWidth>500,'Preserve readable port widths and horizontal scrolling on narrow screens');
+assert(models.faceplateGeometry(s5721,500).chassisWidth<=500,'Fixed banks adapt their columns before needing horizontal scrolling');
 for(const code of ['HW12','HS12']){
   const device=modelDevice(code),before=JSON.stringify(device),layout=models.build(device);
   assert.equal(layout.hardware.cardTracks,1,'CE12804 cards are arranged vertically in one track');
@@ -69,6 +74,12 @@ for(const code of ['HW12','HS12']){
     const face=models.faceplateGeometry(layout,viewport);
     assert(face.portWidth>=70);
     assert(face.portWidth>=Math.ceil(Math.max(...layout.ports.map(port=>port.label.length))*5.4+14),'Room for the longest member/slot/subslot/port label at 9px');
+    assert(Object.values(face.bankColumns).every(columns=>[8,12,16].includes(columns)));
+    if(viewport===1400){
+      assert(Object.values(face.bankColumns).every(columns=>columns===16),'Wide CE12804 cards use sixteen ports per row');
+      assert(face.chassisWidth>=1399&&face.chassisWidth<=1400,'Dense cards occupy the available width without a large right-hand void');
+    }
+    if(viewport===400)assert(Object.values(face.bankColumns).every(columns=>columns===8),'Narrow CE12804 cards add rows rather than squeeze names');
   }
   const profile=context.window.HuaweiDeviceLayouts.get(code);
   assert(profile.layoutGroups.every(group=>group.columns===12),'The standalone CE12804 preview shares the twelve-column card layout');
@@ -77,11 +88,21 @@ for(const code of ['HW12','HS12']){
 }
 for(const code of ['GC08','GC16','CH52','CV53','ZA62','HA58']){
   const layout=models.build(modelDevice(code));
+  const layoutBefore=JSON.stringify(layout);
   for(const availableWidth of [400,960,1400,2000]){
     const geometry=models.faceplateGeometry(layout,availableWidth);
-    assert(geometry.portWidth>=54&&geometry.portWidth<=86);
+    assert(geometry.portWidth>=geometry.minPortWidth&&geometry.portWidth<=Math.max(96,geometry.minPortWidth));
     assert.equal(geometry.portHeight,35);
   }
+  assert.equal(JSON.stringify(layout),layoutBefore,'Responsive faceplate planning does not mutate the layout or original column counts');
+}
+for(const code of ['GC08','GC16','CH52','CV53','ZA62','HA58']){
+  const layout=models.build(modelDevice(code));
+  const narrow=models.faceplateGeometry(layout,400),wide=models.faceplateGeometry(layout,1400);
+  assert(narrow.chassisWidth<=400,'All representative fixed/OLT/IRF models adapt to narrow widths');
+  if(layout.hardware.modular)assert(narrow.units.every(unit=>unit.tracks===1),'Narrow OLT card layouts collapse their tracks');
+  else assert(narrow.units.some(unit=>unit.rows.length>1),'Fixed chassis move banks onto additional rows');
+  assert(wide.chassisWidth<=1400,'Wide layouts remain within their container');
 }
 for(const code of ['GC08','GC16','CH52','CH53','CV52','CV53','ZA62','HA58']){
   const device=modelDevice(code);const before=JSON.stringify(device);const layout=models.build(device);
@@ -129,9 +150,29 @@ for(const pop of data.pops){
     for(const width of [280,400,650,960,1400,2000,3000])for(const unit of layout.hardware.units){
       const face=models.faceplateGeometry(layout,width);
       assert(Number.isInteger(face.chassisWidth)&&face.chassisWidth>=280);
-      const groups=layout.hardware.modular?Array.from({length:Math.min(layout.hardware.cardTracks,unit.groups.length)},()=>({columns:Math.max(0,...unit.groups.map(group=>group.columns))})):unit.groups;
-      const footprint=26+groups.reduce((sum,group)=>sum+16+group.columns*face.portWidth+(group.columns-1)*4,0)+Math.max(0,groups.length-1)*8;
-      assert(face.chassisWidth>=footprint-.01,'Every original port bank fits within the compact chassis, including stack/modular units');
+      const plan=face.units[layout.hardware.units.indexOf(unit)];
+      assert.deepEqual(clone(plan.rows.flatMap(row=>row.banks.map(bank=>bank.id))),clone(unit.groups.map(group=>group.id)),'Every bank remains once, in source order, inside its original member');
+      assert(face.portWidth>=face.minPortWidth,'Every model reserves enough width for its longest port label');
+      assert(face.portWidth<=Math.max(96,face.minPortWidth),'No oversized ports except when required by an unusually long source name');
+      for(const row of plan.rows){
+        const footprint=26+row.slots.reduce((sum,bank)=>sum+16+bank.columns*face.portWidth+(bank.columns-1)*4,0)+Math.max(0,row.slots.length-1)*8;
+        assert(face.chassisWidth>=footprint-.01,'Every adaptive row fits within the compact chassis');
+        for(const bank of row.banks){
+          const source=unit.groups.find(group=>group.id===bank.id);
+          assert(bank.columns>0&&bank.columns<=source.ports.length);
+          assert.equal(face.bankColumns[bank.id],bank.columns);
+        }
+      }
+      const gridTracks=plan.gridColumns.split(' ').map(parseFloat);
+      assert(gridTracks.every(track=>Number.isFinite(track)&&track>=0));
+      assert(Math.abs(gridTracks.reduce((sum,track)=>sum+track,0)-(face.chassisWidth-26))<.02,'CSS tracks occupy the computed inner chassis width');
+      for(const bank of plan.placements){
+        const [start,end]=bank.column.split(' / ').map(Number);
+        const left=gridTracks.slice(0,start-1).reduce((sum,track)=>sum+track,0);
+        const right=gridTracks.slice(0,end-1).reduce((sum,track)=>sum+track,0);
+        assert(Math.abs(left-bank.start)<.02&&Math.abs(right-bank.end)<.02,'Rendered CSS placement matches the planner');
+        assert(bank.end<=face.chassisWidth-26+.01);
+      }
       const rows=models.listRows(layout,unit,width);checks++;
       assert.deepEqual(clone(rows.flatMap(row=>row.groups.map(group=>group.id))),clone(unit.groups.map(group=>group.id)),`${indexed.model}: preserve Giả lập bank/member order`);
       for(const row of rows){
@@ -156,4 +197,4 @@ assert.equal(devices,12083,'All snapshot switches and OLTs are checked');
 console.log(`PASS: ${devices} devices / ${covered.size} models / ${shapes.size} observed geometries / ${checks} responsive unit layouts.`);
 console.log('PASS: adaptive list layout for GCOM fixed, Huawei fixed, H3C/IRF members and ZTE/Huawei modular cards, no forced four-zone grids or source mutations.');
 console.log('PASS: source telemetry, GCOM 8/16 PON + 6 NNI, H3C 30/54/IRF, ZTE/Huawei modular banks, explicit unknown/missing modules, aliases, raw-name normalization and immutable data.');
-console.log('PASS: shared port dimensions across service/uplink banks, stack members and modular cards; responsive sizing with a readable minimum and bounded maximum.');
+console.log('PASS: adaptive faceplate bank rows/card tracks for all models, shared dimensions, readable labels, bounded gentle expansion and planner-driven CSS placement.');

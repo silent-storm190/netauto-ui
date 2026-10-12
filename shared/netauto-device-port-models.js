@@ -131,33 +131,97 @@
   function faceplateGeometry(layout,availableWidth) {
     // Match the shared faceplate CSS: chassis padding+border 26, bank chrome 16,
     // bank gap 8, port gap 4. One port width is shared by every bank/member.
-    let width=86;
-    const rowsForUnit=unit=>{
-      if(!layout.hardware.modular)return [unit.groups];
-      const columns=Math.max(0,...unit.groups.map(group=>group.columns));
-      return [Array.from({length:Math.min(layout.hardware.cardTracks,unit.groups.length)},()=>({columns}))];
-    };
+    const available=Math.max(0,Number(availableWidth)||0);
+    const denseCards=layout.model==='HW12'||layout.model==='HS12';
+    const longest=Math.max(0,...layout.ports.map(port=>port.label.length));
+    const minPortWidth=Math.max(denseCards?70:54,Math.ceil(longest*5.4+14));
     const rowSize=(groups,portWidth)=>{
       const columns=groups.reduce((sum,group)=>sum+group.columns,0);
       return {columns,overhead:26+groups.length*16+Math.max(0,groups.length-1)*8+Math.max(0,columns-groups.length)*4,
         width:26+groups.length*16+Math.max(0,groups.length-1)*8+Math.max(0,columns-groups.length)*4+columns*portWidth};
     };
-    for(const unit of layout.hardware.units) {
-      // Modular panels use the model's card tracks; size for the widest card in
-      // each track, not a short four-port bank sharing a row with a wider bank.
-      for(const groups of rowsForUnit(unit)) {
+    const fitColumns=(group,space)=>{
+      const maximum=denseCards&&group.ports.length>12?16:group.columns;
+      const candidates=(denseCards&&group.ports.length>12?[16,12,8]:[maximum,24,16,12,8,4,2,1]).filter((count,index,all)=>
+        count<=maximum&&count<=group.ports.length&&all.indexOf(count)===index).sort((a,b)=>b-a);
+      return candidates.find(columns=>rowSize([{columns}],minPortWidth).width<=space)||candidates[candidates.length-1];
+    };
+    // Pure geometry for EVERY model: preserve card/member order, fit banks,
+    // then add rows before squeezing names or reserving empty chassis space.
+    const plans=layout.hardware.units.map(unit=>{
+      let tracks=1;
+      const rows=[];
+      const make=(group,columns=group.columns)=>({id:group.id,columns});
+      if(layout.hardware.modular){
+        tracks=Math.min(layout.hardware.cardTracks,Math.max(1,unit.groups.length));
+        const minimumColumns=Math.min(4,...unit.groups.map(group=>group.columns));
+        if(rowSize(Array.from({length:tracks},()=>({columns:minimumColumns})),minPortWidth).width>available)tracks=1;
+        const trackSpace=26+(available-26-(tracks-1)*8)/tracks;
+        const banks=unit.groups.map(group=>make(group,fitColumns(group,trackSpace)));
+        const columns=Math.max(0,...banks.map(bank=>bank.columns));
+        for(let i=0;i<banks.length;i+=tracks)rows.push({banks:banks.slice(i,i+tracks),slots:Array.from({length:tracks},()=>({columns}))});
+      }else{
+        const original=unit.groups.map(group=>make(group));
+        const compact=unit.groups.map(group=>make(group,group.uplink?group.columns:Math.min(8,group.columns)));
+        const pack=groups=>{
+          let banks=[];
+          for(const group of groups){
+            const bank=make(group,fitColumns(group,available));
+            if(banks.length&&rowSize([...banks,bank],minPortWidth).width>available){rows.push({banks,slots:banks});banks=[];}
+            banks.push(bank);
+          }
+          if(banks.length)rows.push({banks,slots:banks});
+        };
+        if(rowSize(original,minPortWidth).width<=available)rows.push({banks:original,slots:original});
+        else if(unit.groups.every(group=>group.uplink||group.ports.length<=24)&&rowSize(compact,minPortWidth).width<=available)rows.push({banks:compact,slots:compact});
+        else{
+          // Long service banks stay whole; uplinks get their own next row.
+          pack(unit.groups.filter(group=>!group.uplink));pack(unit.groups.filter(group=>group.uplink));
+        }
+      }
+      return {tracks,rows};
+    });
+    const rows=plans.flatMap(plan=>plan.rows.map(row=>row.slots));
+    let width=86;
+    for(const groups of rows){
         const {columns,overhead}=rowSize(groups,0);
         if(!columns)continue;
-        width=Math.min(width,(Math.max(0,Number(availableWidth)||0)-overhead)/columns);
-      }
+        width=Math.min(width,(available-overhead)/columns);
     }
-    const longest=Math.max(0,...layout.ports.map(port=>port.label.length));
-    const minPortWidth=layout.model==='HW12'||layout.model==='HS12'?Math.max(70,Math.ceil(longest*5.4+14)):54;
-    const portWidth=Math.max(minPortWidth,Math.floor(width*10)/10);
+    let portWidth=Math.max(minPortWidth,Math.floor(width*10)/10);
+    const shellWidth=port=>Math.max(280,...rows.map(groups=>rowSize(groups,port).width));
+    // Absorb a small remainder with a gentle, shared expansion (max 96px).
+    // Large unused areas remain outside a compact chassis, not inside it.
+    const naturalWidth=shellWidth(portWidth);
+    if(rows.length&&naturalWidth<available&&naturalWidth>=available*.88){
+      const expanded=Math.min(...rows.map(groups=>{
+        const {columns,overhead}=rowSize(groups,0);
+        return columns?(available-overhead)/columns:Infinity;
+      }));
+      if(expanded<=96)portWidth=Math.max(portWidth,Math.floor(expanded*10)/10);
+    }
     // Fit the shell to the actual bank footprint, not the whole viewport.
     // Stack members keep a common width; dense models still scroll when needed.
-    const chassisWidth=Math.ceil(Math.max(280,...layout.hardware.units.flatMap(unit=>rowsForUnit(unit).map(groups=>rowSize(groups,portWidth).width))));
-    return {portWidth,portHeight:35,chassisWidth};
+    const chassisWidth=Math.ceil(shellWidth(portWidth));
+    const bankColumns={};
+    for(const plan of plans){
+      const boundaries=new Set([0,chassisWidth-26]);
+      plan.placements=[];
+      plan.rows.forEach((row,index)=>{
+        let start=0;
+        row.banks.forEach((bank,i)=>{
+          bankColumns[bank.id]=bank.columns;
+          const columns=row.slots[i].columns;
+          const end=start+16+columns*portWidth+(columns-1)*4;
+          boundaries.add(start);boundaries.add(end);
+          plan.placements.push({id:bank.id,row:index+1,start,end});start=end+8;
+        });
+      });
+      const edges=[...boundaries].sort((a,b)=>a-b);
+      plan.gridColumns=edges.slice(1).map((edge,i)=>`${Math.round((edge-edges[i])*1000)/1000}px`).join(' ')||'auto';
+      plan.placements.forEach(bank=>bank.column=`${edges.indexOf(bank.start)+1} / ${edges.indexOf(bank.end)+1}`);
+    }
+    return {portWidth,minPortWidth,portHeight:35,chassisWidth,bankColumns,units:plans};
   }
   function listRows(layout,unit,availableWidth=1400) {
     // Pure, framework-independent planner. Input is the SAME ordered banks as

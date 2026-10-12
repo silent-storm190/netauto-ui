@@ -44,9 +44,21 @@
       else style[name]=value;
     }
     get('deviceHardware').querySelectorAll('.pw-chassis-unit').forEach((node,index)=>{
-      const tracks=Math.min(layout.hardware.cardTracks,Math.max(1,layout.hardware.units[index].groups.length));
+      const tracks=geometry.units[index].tracks;
       if(typeof node.style.setProperty==='function')node.style.setProperty('--face-card-tracks',String(tracks));
       else node.style['--face-card-tracks']=String(tracks);
+      if(typeof node.style.setProperty==='function')node.style.setProperty('--face-grid-columns',geometry.units[index].gridColumns);
+      else node.style['--face-grid-columns']=geometry.units[index].gridColumns;
+    });
+    const banks=layout.hardware.units.flatMap(unit=>unit.groups);
+    const placements=new Map(geometry.units.flatMap(unit=>unit.placements).map(bank=>[bank.id,bank]));
+    get('deviceHardware').querySelectorAll('.pw-face-group').forEach((node,index)=>{
+      const id=banks[index].id,placement=placements.get(id);
+      const properties={'--port-columns':String(geometry.bankColumns[id]),'--face-bank-row':String(placement.row),'--face-bank-column':placement.column};
+      for(const [name,value] of Object.entries(properties)){
+        if(typeof node.style.setProperty==='function')node.style.setProperty(name,value);
+        else node.style[name]=value;
+      }
     });
   }
   function setView(next) {

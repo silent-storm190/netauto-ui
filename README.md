@@ -179,16 +179,28 @@ thái; cập nhật vị trí khi cuộn, thu sidebar hoặc fullscreen, ẩn �
 Tìm kiếm/lọc làm mờ port không khớp nhưng
 không xoá vị trí trên chassis. Sơ đồ chỉ mô phỏng theo bank/slot, không thay thế
 faceplate hay sơ đồ đấu nối vật lý chuẩn của hãng.
-Mọi bank/member dùng chung chiều rộng ô port (54–86 px theo vùng hiển thị) và
-chiều cao 35 px; nhóm ít port không giãn lớn riêng. Màn hình hẹp cuộn ngang.
+Mọi model dùng chung planner Giả lập theo số port/bank/card và chiều rộng thực.
+Giữ các bank cùng hàng khi đủ chỗ; bank dài tự giảm số cột và thêm hàng, uplink
+xuống hàng riêng nếu không vừa. Card modular giữ track của profile khi đủ chỗ,
+tự chuyển thành một track ở màn hình hẹp; không trộn bank hoặc stack member.
+Mọi bank/member dùng chung chiều rộng ô port (thông thường 54–86 px) và chiều
+cao 35 px; nhóm ít port không giãn lớn riêng. Chiều rộng tối thiểu còn tính
+theo tên port dài nhất của mọi model. Chỉ cuộn ngang khi không thể thu gọn thêm
+mà vẫn giữ tên dễ đọc và cấu trúc card. CSS grid nhận track/row từ planner,
+không áp dụng breakpoint hay bố cục ngoại lệ riêng cho từng model.
+Nếu footprint chiếm ít nhất 88% vùng hiển thị, port có thể giãn nhẹ đến tối đa
+96px để hấp thụ phần trống nhỏ. Phần trống lớn vẫn giữ ngoài vỏ thiết bị gọn.
 Vỏ thiết bị trong Giả lập co theo footprint thực của các bank (đệm/viền +
 số cột và kích thước port), không ép tối thiểu 720px hay 100% vùng chứa.
 Các stack member giữ chung chiều rộng theo member lớn nhất; chassis chỉ có
 một card được ghi nhận dùng một track, không chừa track trống thứ hai.
-Resize tính lại chiều rộng vỏ; tìm kiếm/lọc không làm đổi vị trí hoặc độ rộng.
-HW12/HS12 (CE12804S) dùng card xếp dọc, mỗi card tối đa 12 port/hàng:
-card 48 port có 4 hàng. Member của HS12 vẫn nằm trong chassis riêng. Chế độ
-Mô phỏng và profile preview dùng cùng cấu trúc card. Ô port của hai model
+Resize tính lại chiều rộng vỏ, cột và hàng của bank; cập nhật style trên DOM
+hiện tại, không dựng lại nút port hay làm mất lựa chọn. Tìm kiếm/lọc không làm
+đổi vị trí hoặc độ rộng.
+HW12/HS12 (CE12804S) dùng card xếp dọc. Giả lập tự chọn 16/12/8 port/hàng
+theo chiều rộng và tên port: card 48 port có 3/4/6 hàng. Member của HS12 vẫn
+nằm trong chassis riêng. Mô phỏng và profile preview giữ cùng cấu trúc card,
+với bố cục cơ sở 12 cột. Resize chỉ cập nhật geometry hiển thị. Ô port của hai model
 này có chiều rộng tối thiểu theo tên dài nhất (ít nhất 70px), để giữ đủ phần
 member/slot/subslot/port; màn hình quá hẹp cuộn ngang, không cắt tên. Ảnh tham
 chiếu chỉ định hướng bố cục, không thêm card, slot hay port chưa có trong snapshot.

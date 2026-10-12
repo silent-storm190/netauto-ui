@@ -90,11 +90,13 @@
 #deviceDetailPage .pw-port-header h2{font-size:16px;display:flex;align-items:center;gap:9px}
 #deviceDetailPage .pw-port-header p{margin:6px 0 0;line-height:1.5}
 #deviceDetailPage .pw-hardware{width:var(--face-chassis-width,max-content);min-width:0}
-#deviceDetailPage .pw-fixed-panel{justify-content:flex-start}
+#deviceDetailPage .pw-fixed-panel,#deviceDetailPage .pw-fixed-panel.is-modular-panel{display:grid;grid-template-columns:var(--face-grid-columns,max-content);gap:8px 0;justify-content:flex-start}
+#deviceDetailPage .pw-face-group{grid-row:var(--face-bank-row,auto);grid-column:var(--face-bank-column,auto)}
+#deviceDetailPage .pw-face-group>header{flex-wrap:wrap;gap:3px 8px}
+#deviceDetailPage .pw-face-group>header b{min-width:0;overflow-wrap:anywhere}
 #deviceDetailPage .pw-face-group,#deviceDetailPage .pw-face-group.is-uplink-group{flex:0 0 auto;min-width:0}
 #deviceDetailPage .pw-face-grid,#deviceDetailPage .pw-face-group.is-uplink-group .pw-face-grid{grid-template-columns:repeat(var(--port-columns),var(--face-port-width,64px));gap:4px}
 #deviceDetailPage .pw-face-port,#deviceDetailPage .pw-face-port.is-large{width:var(--face-port-width,64px);min-width:var(--face-port-width,64px);height:35px;border-radius:5px}
-#deviceDetailPage .pw-fixed-panel.is-modular-panel{display:grid;grid-template-columns:repeat(var(--face-card-tracks,2),minmax(0,1fr));gap:8px}
 #deviceDetailPage .pw-face-port span{font-size:9px}
 #deviceDetailPage .pw-face-port.status-unknown{border-color:#829fcb;border-style:dashed}
 #deviceDetailPage .pw-face-port.status-unknown i{background:#829fcb;box-shadow:none}
