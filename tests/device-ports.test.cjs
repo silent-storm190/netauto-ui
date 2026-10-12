@@ -48,6 +48,17 @@ assert.equal(models.faceplateGeometry(s5721,1400).portWidth,79.8,'Both GE and 10
 assert(models.faceplateGeometry(s5721,500).portWidth>=54,'Narrow views add rows rather than squeeze port labels');
 assert(models.faceplateGeometry(s5721,500).units[0].rows.length>1,'Uplinks move below a service bank that no longer fits');
 assert.equal(models.faceplateGeometry(s5721,3000).portWidth,86,'Do not create oversized ports on very wide screens');
+for(const kind of ['NNI','PON','UNKNOWN'])for(const status of ['UP','DOWN','UNKNOWN'])for(const modulePresent of [true,false,null])for(const vendor of ['HUAWEI','DASAN','H3C','GCOM','ZTE'])for(const type of ['SWITCH','OLT']){
+  const device={type,vendor},layout={profile:{vendor}},port={kind,status,modulePresent};
+  const tools=models.portTools(device,layout,port),keys=tools.map(tool=>tool.key);
+  assert.equal(tools.find(tool=>tool.key==='crc').enabled,modulePresent===true);
+  assert.equal(keys.includes('lacp'),kind==='NNI');
+  if(kind==='NNI')assert.equal(tools.find(tool=>tool.key==='lacp').enabled,status==='UP');
+  assert.equal(keys.includes('speed'),kind==='NNI'&&type==='SWITCH'&&['HUAWEI','DASAN'].includes(vendor));
+  assert.equal(keys.includes('clearOffline'),kind==='PON');
+}
+assert.equal(models.portTools({type:'SWITCH',vendor:'HUAWEI'},{profile:{vendor:'H3C'}},{kind:'NNI',status:'UP',modulePresent:true}).some(tool=>tool.key==='speed'),false,'Canonical H3C profile is not mistaken for Huawei legacy driver bucket');
+assert.equal(models.build({model:'TEST',type:'SWITCH',ports:[{name:'GigabitEthernet0/1'}]}).ports[0].modulePresent,null,'Missing module field must not count as a present transceiver');
 const compact24=models.build({model:'HW24',type:'SWITCH',ports:Array.from({length:24},(_,i)=>({name:`XGigabitEthernet0/0/${i+1}`,module:null}))});
 const compactGeometry=models.faceplateGeometry(compact24,1400);
 assert.equal(compactGeometry.portWidth,86);

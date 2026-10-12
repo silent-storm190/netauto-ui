@@ -35,7 +35,7 @@
   function make(name,kind,info,origin='profile') {
     const status=String(info?.status || '').trim().toUpperCase();
     const state=status==='UP'?'up':status==='DOWN'?'down':info===null?'empty':'unknown';
-    return {name,label:compact(name),kind,bank:bank(name,kind),module:info??null,modulePresent:origin==='snapshot'?info!==null:null,status:status==='UP'||status==='DOWN'?status:'UNKNOWN',state,origin};
+    return {name,label:compact(name),kind,bank:bank(name,kind),module:info??null,modulePresent:origin==='snapshot'?(info===null?false:info&&typeof info==='object'&&!Array.isArray(info)?true:null):null,status:status==='UP'||status==='DOWN'?status:'UNKNOWN',state,origin};
   }
   function hardwareOf(device,model,profile,ports) {
     const huawei=window.HuaweiDeviceLayouts?.get(model);
@@ -90,7 +90,7 @@
     for(const entry of device.ports || []) {
       const name=clean(entry.name);if(!name)continue;
       if(name!==entry.name)normalizedNames++;
-      const port={...make(name,kindOf(name,entry.module,device),entry.module,'snapshot'),rawName:entry.name};
+      const port={...make(name,kindOf(name,entry.module,device),entry.module,'snapshot'),rawName:entry.name,snapshot:entry};
       if(!observed.has(name)||entry.module)observed.set(name,port);
     }
     const ports=new Map();
@@ -287,5 +287,13 @@
       };
     });
   }
-  window.NETAUTO_PORT_MODELS=Object.freeze({catalog,resolve,clean,build,faceplateGeometry,listRows});
+  function portTools(device,layout,port){
+    const tools=[{key:'crc',enabled:port.modulePresent===true,reason:port.modulePresent===false?'Port không có transceiver':'Chưa xác nhận transceiver từ snapshot'}];
+    if(port.kind==='NNI')tools.push({key:'lacp',enabled:port.status==='UP',reason:port.status==='DOWN'?'Port đang DOWN':'Chưa xác nhận port UP'});
+    const vendor=String(layout.profile.vendor || device.vendor || '').trim().toUpperCase();
+    if(port.kind==='NNI'&&device.type==='SWITCH'&&['HUAWEI','DASAN'].includes(vendor))tools.push({key:'speed',enabled:true});
+    if(port.kind==='PON')tools.push({key:'clearOffline',enabled:true});
+    return tools;
+  }
+  window.NETAUTO_PORT_MODELS=Object.freeze({catalog,resolve,clean,build,faceplateGeometry,listRows,portTools});
 })();

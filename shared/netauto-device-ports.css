@@ -9,7 +9,13 @@
 #deviceDetailPage .l2-port-summary .up b{color:var(--na-green)}
 #deviceDetailPage .l2-port-summary .down b{color:var(--na-orange)}
 #deviceDetailPage .l2-port-summary .unknown b{color:var(--na-muted)}
-#deviceDetailPage .l2-device-fields{gap:17px 24px}
+#deviceDetailPage .l2-device-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#deviceDetailPage .l2-metadata-group{min-width:0;padding:14px 16px;background:var(--na-panel-soft);border:1px solid var(--na-line);border-radius:10px}
+#deviceDetailPage .l2-metadata-group h3{font-size:11px;font-weight:700;color:var(--na-muted);margin:0 0 12px}
+#deviceDetailPage .l2-metadata-group dl{display:grid;gap:11px;margin:0}
+#deviceDetailPage .l2-metadata-group dt{font-size:11px;color:var(--na-muted);margin:0 0 3px}
+#deviceDetailPage .l2-metadata-group dd{font-size:13px;font-weight:600;color:var(--na-text);margin:0;overflow-wrap:anywhere}
+#deviceDetailPage .l2-metadata-group dd small{display:block;font-size:10px;font-weight:400;color:var(--na-muted);margin-top:4px}
 #deviceDetailPage .l2-view-tabs{display:flex;gap:7px;margin:0 0 15px;border-bottom:1px solid var(--na-line)}
 #deviceDetailPage .l2-view-tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--na-muted);padding:11px 15px;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
 #deviceDetailPage .l2-view-tabs button[aria-pressed=true]{color:var(--l2-accent);border-bottom-color:var(--l2-accent)}
@@ -61,10 +67,6 @@
 #deviceDetailPage .l2-port-menu button:hover,#deviceDetailPage .l2-port-menu button:focus-visible{background:var(--l2-tint)}
 #deviceDetailPage .l2-port-menu button:disabled{opacity:.45;cursor:not-allowed}
 #deviceDetailPage .l2-tool-result h4{font-size:13px;margin:18px 0 12px}
-#deviceDetailPage .l2-optical-values{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px}
-#deviceDetailPage .l2-optical-values>div{border:1px solid var(--na-line);border-radius:8px;background:var(--na-panel);padding:11px}
-#deviceDetailPage .l2-optical-values span{display:block;font-size:11px;color:var(--na-muted);margin-bottom:6px}
-#deviceDetailPage .l2-optical-values b{font-size:20px;color:var(--l2-accent)}
 #deviceDetailPage .l2-module-fields{margin:0}
 #deviceDetailPage .l2-module-fields>div{display:grid;grid-template-columns:95px minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid var(--na-line);font-size:11px;line-height:1.5}
 #deviceDetailPage .l2-module-fields dt{color:var(--na-muted)}
@@ -118,7 +120,27 @@
 #deviceDetailPage .l2-port-view-switch{display:flex;align-items:center;flex:0 0 auto;height:36px;box-sizing:border-box;border:1px solid var(--na-line);border-radius:8px;padding:3px;background:var(--na-panel);gap:3px}
 #deviceDetailPage .l2-port-view-switch button{height:28px;font:inherit;font-size:12px;white-space:nowrap;border:0;border-radius:5px;padding:4px 11px;background:transparent;color:var(--na-muted);cursor:pointer}
 #deviceDetailPage .l2-port-view-switch button[aria-pressed=true]{color:var(--na-blue);background:var(--na-blue-soft);font-weight:650}
-#deviceDetailPage .pw-tool-dock .pw-inspector-header h2{font-size:19px;overflow-wrap:anywhere}
+#deviceDetailPage .pw-tool-dock .pw-inspector-header h2{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:13px;font-weight:600;font-style:normal;letter-spacing:.01em;line-height:1.4;margin:0;padding:5px 7px;max-width:100%;overflow-wrap:anywhere}
+#deviceDetailPage .pw-tool-port-panel .pw-inspector-header>div{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;flex:1;min-width:0}
+#deviceDetailPage .pw-tool-port-panel .pw-port-meta{display:flex;align-items:center;gap:5px;margin-left:auto}
+#deviceDetailPage .pw-tool-port-panel .pw-port-meta small{font-size:9px;padding:3px 5px;letter-spacing:0}
+#deviceDetailPage .pw-tool-port-panel .pw-inspector-header .pw-icon-button{flex:0 0 28px}
+#deviceDetailPage .pw-tool-dock{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
+#deviceDetailPage .pw-tool-port-panel{border-right:1px solid var(--na-line);border-bottom:0}
+#deviceDetailPage .pw-port-info-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#deviceDetailPage .pw-port-info-heading small{font-size:9px;color:var(--na-muted);font-weight:400}
+#deviceDetailPage .l2-port-info-fields{min-width:0;margin-top:12px}
+#deviceDetailPage .l2-module-serial{display:inline-block;max-width:100%;box-sizing:border-box;padding:2px 6px;border:1px solid color-mix(in srgb,var(--na-muted) 40%,var(--na-line));border-radius:5px;background:var(--na-panel);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+#deviceDetailPage .pw-tool-port-panel .pw-detail-list>div{display:grid;grid-template-columns:minmax(90px,.75fr) minmax(0,1.65fr);gap:8px;padding:6px 0}
+#deviceDetailPage .pw-tool-port-panel .pw-detail-list dd{min-width:0;overflow-wrap:anywhere}
+#deviceDetailPage .l2-optical-pair{font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--na-text)}
+#deviceDetailPage .l2-optical-pair b{font-weight:650}
+#deviceDetailPage .l2-optical-pair small{font-size:10px;font-family:inherit;line-height:1.5;color:var(--na-muted);white-space:nowrap}
+#deviceDetailPage .l2-value-json{display:block;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 ui-monospace,Consolas,monospace;text-align:left}
+#deviceDetailPage .l2-port-extra{margin-top:12px;font-size:11px}
+#deviceDetailPage .l2-port-extra summary{cursor:pointer;color:var(--na-muted)}
+#deviceDetailPage .l2-port-menu button:disabled{opacity:.45;cursor:not-allowed}
+#deviceDetailPage .l2-port-menu button small{margin-left:auto;font-size:10px}
 #deviceDetailPage .pw-tool-dock .pw-port-meta p{font-size:10px}
 #deviceDetailPage .pw-tool-dock[data-status=unknown] .pw-port-meta p{color:var(--na-muted);background:var(--na-panel-muted)}
 #deviceDetailPage .pw-tool-dock .pw-detail-list dt{font-size:11px;margin:0}
@@ -129,3 +151,5 @@
 #deviceDetailPage .pw-grid-footer{font-size:10px;line-height:1.6}
 @media(max-width:760px){#deviceDetailPage .l2-workspace-filters .pw-search{margin-left:0;flex:1 1 180px}#deviceDetailPage .pw-tool-dock .pw-tool-action-toolbar .pw-action-selector{width:100%}}
 @media(max-width:650px){#deviceDetailPage .l2-port-open{min-height:40px}#deviceDetailPage .l2-workspace-filters{margin-inline:14px}#deviceDetailPage .l2-port-view-switch{width:100%}#deviceDetailPage .l2-port-view-switch button{flex:1}}
+@media(max-width:850px){#deviceDetailPage .l2-device-fields{grid-template-columns:1fr}}
+@media(max-width:980px){#deviceDetailPage .pw-tool-dock{grid-template-columns:1fr}#deviceDetailPage .pw-tool-port-panel{border-right:0;border-bottom:1px solid var(--na-line)}}

@@ -2,13 +2,42 @@
 (() => {
   const get = id => document.getElementById(id);
   const escape = value => String(value == null || value === '' || value === 'UNKNOWN' ? '—' : value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const format = value => value == null ? '—' : new Intl.NumberFormat('vi-VN').format(value);
+  const format = value => (typeof value==='number'||typeof value==='string'&&value.trim())&&Number.isFinite(Number(value)) ? new Intl.NumberFormat('vi-VN').format(Number(value)) : '—';
   const labels = {device:'Chassis',transceiver:'Module quang',card:'Module card',power:'Module nguồn',fan:'Module quạt',rectifier:'Rectifier'};
   const kinds = {SWITCH:'Switch',OLT:'OLT',POWER:'Nguồn',PI:'PI'};
   let pop = null;
   let device = null;
   let backHandler = () => {};
   let activeTab='ports';
+  function firmwareValue(value){
+    if(!value||typeof value!=='object')return escape(value);
+    const version=escape(value.version);
+    const extra=Object.entries(value).filter(([key,item])=>key!=='version'&&item!=null&&item!=='').map(([key,item])=>`${escape(key==='patch'?'Patch':key==='epld'?'EPLD':key)}: ${escape(typeof item==='object'?JSON.stringify(item):item)}`);
+    return `<span>${version}</span>${extra.length?`<small>${extra.join(' · ')}</small>`:''}`;
+  }
+  function renderMetadata(){
+    const inventory=device.inventory?.device || {};
+    const pair=(first,second)=>`${escape(first)} · ${escape(second)}`;
+    const area=device.area ?? inventory.area ?? pop.area;
+    const serials=device.chassisSerials ?? inventory.serial;
+    const serial=(Array.isArray(serials)?serials.join(' · '):serials)||device.materials?.find(row=>row.category==='device')?.serial;
+    const fields=[
+      ['Nhận diện',[
+        ['IP thiết bị',escape(device.ip)],['Model',escape(device.model)],['Vendor',escape(device.vendor)],['Serial chassis',escape(serial)]
+      ]],
+      ['Vị trí',[
+        ['POP',escape(device.POP ?? inventory.POP ?? pop.code)],
+        ['Tỉnh · Chi nhánh',pair(device.province ?? inventory.province ?? pop.province,device.branch ?? inventory.branch ?? pop.branch)],
+        ['Miền · Vùng',pair(({MB:'Miền Bắc',MN:'Miền Nam'})[area] ?? area,device.zone ?? inventory.zone ?? pop.zone)]
+      ]],
+      ['Vận hành',[
+        ['Chức năng',escape(device.function ?? inventory.function)],
+        ['Firmware',firmwareValue(device.firmware ?? inventory.firmware)],
+        ['Total MAC',format(device.totalMac ?? device.total_mac ?? inventory.total_mac)]
+      ]]
+    ];
+    get('deviceDetailFields').innerHTML=fields.map(([title,rows])=>`<section class="l2-metadata-group"><h3>${title}</h3><dl>${rows.map(([label,value])=>`<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl></section>`).join('');
+  }
   function showTab(tab) {
     const hasPorts=['SWITCH','OLT'].includes(device?.type);
     activeTab=hasPorts?tab:'inventory';
@@ -36,8 +65,7 @@
     get('deviceDetailModel').textContent=`${profile.vendor || device.vendor || '—'} · ${profile.name || device.model || '—'} · ${device.ip || '—'}`;
     get('backToPopDetail').textContent = `← Quay lại POP ${pop.code}`;
     get('deviceDetailBreadcrumb').textContent = `Quản lý POP / ${pop.code} / Thiết bị`;
-    const serial = device.chassisSerials?.join(' · ') || device.materials?.find(row=>row.category==='device')?.serial;
-    get('deviceDetailFields').innerHTML = [['IP quản lý',device.ip],['Vendor',device.vendor],['Model',device.model],['Chức năng',device.function],['Serial chassis',serial],['POP',pop.code],['Tỉnh · Chi nhánh',`${escape(device.province ?? pop.province)} · ${escape(device.branch ?? pop.branch)}`],['Miền · Vùng',`${(device.area ?? pop.area) === 'MB' ? 'Miền Bắc' : 'Miền Nam'} · ${escape(device.zone ?? pop.zone)}`]].map(([label,value])=>`<div><dt>${label}</dt><dd>${label.includes(' · ') ? value : escape(value)}</dd></div>`).join('');
+    renderMetadata();
     get('deviceDetailSource').textContent = window.NETAUTO_POP_DETAIL_DATA.source;
     get('deviceDetailStats').innerHTML = Object.entries(labels).map(([key,label])=>`<article><span>${label}</span><b>${format(device.inventoryCounts?.[key])}</b></article>`).join('');
     const hasPorts=['SWITCH','OLT'].includes(device.type);

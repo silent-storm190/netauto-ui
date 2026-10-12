@@ -48,6 +48,11 @@ for (const d of records) {
   // Keep explicit null slots: absence of a module is not a DOWN interface.
   const ports=(d.inventory?.modules?.transceiver || []).flatMap(item=>item&&typeof item==='object'?Object.entries(item).map(([name,module])=>({name,module})):[]);
   const device={name:d.nameDev,ip:d.ipDev,type,function:d.function,group:d.group,model:d.modelDev,vendor:d.vendor,area:d.area,province:d.province,branch:d.branch,zone:d.zone,inventoryAvailable:!!d.inventory,inventoryCounts:d.inventory?.count || null,chassisSerials:d.inventory?.device?.serial || [],materialRowsTotal:materials.length};
+  // Preserve new job metadata only when supplied; never synthesize a version
+  // or MAC count for older snapshots, and never export device credentials.
+  for(const [target,key] of [['firmware','firmware'],['totalMac','total_mac']]){
+    if(Object.hasOwn(d.inventory?.device || {},key))device[target]=d.inventory.device[key];
+  }
   if (!grouped.has(d.POP)) grouped.set(d.POP,[]);
   grouped.get(d.POP).push({...device,materials,ports,inventoryStatus:d.inventory?.status??null,inventoryTime:d.inventory?.timeUpdate??null});
   branches[d.area]?.add(d.branch);

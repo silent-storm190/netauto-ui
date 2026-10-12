@@ -205,11 +205,42 @@ này có chiều rộng tối thiểu theo tên dài nhất (ít nhất 70px), �
 member/slot/subslot/port; màn hình quá hẹp cuộn ngang, không cắt tên. Ảnh tham
 chiếu chỉ định hướng bố cục, không thêm card, slot hay port chưa có trong snapshot.
 
-- PON: Transceiver (Rx/Tx), CRC, khách hàng, tập điểm. LACP hiện nhưng vô hiệu
-  vì không áp dụng trực tiếp cho Interface PON quang.
-- NNI: Transceiver (Rx/Tx), CRC, LACP, đổi speed. CRC/LACP/khách hàng/tập điểm
-  chưa có dữ liệu trong snapshot nên không tạo kết quả giả. Đổi speed chỉ xem
-  trước, không đổi snapshot hay gửi lệnh tới thiết bị.
+- Header giữ tên thiết bị; metadata xếp ba nhóm: Nhận diện (IP, Model, Vendor,
+  Serial chassis), Vị trí (POP, Tỉnh · Chi nhánh, Miền · Vùng), Vận hành (Chức
+  năng, Firmware, Total MAC). Firmware giữ version/patch/epld và các khóa bổ sung;
+  importer giữ `inventory.device.firmware`/`total_mac` nếu job cung cấp. Snapshot
+  hiện tại chưa có hai trường này nên hiển thị “—”, không bịa version/count;
+  giá trị 0 vẫn giữ nguyên. Không xuất username/password từ inventory device.
+  API POP `_build_inventory` giữ branch/firmware/total_mac qua allowlist;
+  không trả nguyên device document và không thay đổi quy tắc ghép tên/IP.
+- Khi chọn port, dock hiện Thông tin port bên trái, Công cụ port bên phải;
+  thông tin chiếm 1/3, công cụ chiếm 2/3; màn hình hẹp mới xếp dọc. Nhóm
+  Danh sách “Thông tin port - transceiver” đọc toàn bộ các khóa module từ
+  Device_Module_v2: nhận diện, status, loại/speed/description, ngày sản xuất,
+  temperature/wavelength/connector/distance, RX/TX và RXH/RXL/TXH/TXL nếu có.
+  Trường mới/chưa biết tên nằm trong Thông tin bổ sung; object/array nhiều kênh
+  được hiển thị đầy đủ, không chuyển thành `[object Object]`. Không cần chọn
+  công cụ Transceiver để xem dữ liệu quang. Rx/Tx PON không thay thế công suất ONU.
+  Tiêu đề dùng tên Interface đầy đủ với font Segoe UI sans-serif gọn, weight 600;
+  kind/status đặt bên phải. Bỏ các dòng lặp Interface đầy đủ, Media, Bank / Slot,
+  Trạng thái port, Loại port, chữ “(nguồn)” và ghi chú snapshot dư.
+  Bỏ tiêu đề phụ Interface/Transceiver; Speed nằm cùng các trường, sau Type.
+  Serial module hiển thị trực tiếp dưới Part number, trong tag có viền nhẹ.
+  Rx/Tx là công suất transceiver, gộp thành một trường
+  `-5.3 / 2.3 (dBm)`, không dùng hai ô
+  công suất lớn; ngưỡng quang chuyển vào Thông tin bổ sung để giữ phần chính gọn.
+- Policy `NETAUTO_PORT_MODELS.portTools` dùng chung cho menu, dropdown và handler:
+  CRC có trên các loại port nhưng disable khi chưa xác nhận transceiver hiện diện;
+  LACP chỉ có NNI, disable khi DOWN hoặc chưa xác nhận UP; đổi speed chỉ có NNI
+  trên switch Huawei/Dasan; Clear Offline Index chỉ có PON. Refresh inventory
+  tự bỏ công cụ không còn đủ điều kiện. Không còn bộ công cụ Transceiver,
+  Khách hàng/Tập điểm trong menu này.
+- CRC/LACP/Clear Offline chưa kết nối API nên không tạo kết quả giả hay gửi lệnh.
+  Clear Offline cần truy vấn danh sách Offline và xác nhận trước khi thực hiện;
+  mockup chỉ hiển thị mô tả/nút truy vấn disabled, không xóa ONU index nào.
+  Đổi speed chỉ xem trước khi có danh sách capability do nguồn cung cấp
+  (`ports[*].capabilities.speeds` hoặc `portCapabilities[interface].speeds`),
+  không suy ra tốc độ tương thích từ model/module, không thay đổi snapshot.
 - Giữ cả port có module `null`. Có module không suy ra UP; module `null`
   không suy ra DOWN. Rx/Tx `null` để “—”, số 0 vẫn hiển thị 0. Tên H3C có
   ký tự xuống dòng được làm sạch khi hiển thị, tên gốc vẫn nằm trong snapshot.

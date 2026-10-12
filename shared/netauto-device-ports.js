@@ -3,7 +3,7 @@
   const get=id=>document.getElementById(id);
   const esc=value=>String(value==null||value===''?'—':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stateLabels={up:'UP',down:'DOWN',empty:'Chưa có module',unknown:'Chưa rõ trạng thái'};
-  const actions={transceiver:['◈','Transceiver · Rx/Tx'],crc:['≋','CRC Check'],lacp:['⇄','LACP Check'],customers:['♙','Khách hàng thuộc PON'],drops:['⌖','Tập điểm thuộc PON'],speed:['↔','Đổi Port Speed']};
+  const actions={crc:['≋','CRC Check'],lacp:['⇄','LACP Check'],speed:['↔','Đổi Port Speed'],clearOffline:['⌫','Clear Offline Index']};
   let layout=null,device=null,selected=null,tool='',loadState='idle',refreshHandler=null,view='face',lastListWidth=0;
   const viewStorageKey='netauto-device-port-view';
   try { const saved=localStorage.getItem(viewStorageKey);if(saved==='face'||saved==='grid')view=saved; } catch { /* Storage is optional; keep the in-memory preference. */ }
@@ -100,11 +100,35 @@
     renderList();renderHardware();
   }
   function speedOptions(port) {
-    const name=port.name;
-    if(/^GC/.test(layout.model))return /^E1\//.test(name)?['1 Gbps']:/^E2\//.test(name)?['10 Gbps']:[];
-    if(/^(CH|CV)5/.test(layout.model))return /^Hundred/.test(name)?['40 Gbps','100 Gbps']:['1 Gbps','10 Gbps'];
-    // Other equipment needs a validated per-interface capability response.
-    return [];
+    // Never infer compatible speeds from a model name or transceiver label.
+    const speeds=port.snapshot?.capabilities?.speeds ?? device.portCapabilities?.[port.name]?.speeds;
+    return Array.isArray(speeds)?[...new Set(speeds.filter(value=>typeof value==='string'&&value.trim()))]:[];
+  }
+  function toolsFor(port){return window.NETAUTO_PORT_MODELS.portTools(device,layout,port);}
+  function portValue(value){return value&&typeof value==='object'?`<code class="l2-value-json">${esc(JSON.stringify(value,null,2))}</code>`:esc(value);}
+  function renderPortInfo(port){
+    const module=port.module || {},used=new Set();
+    const details=rows=>`<dl class="pw-detail-list">${rows.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${value}</dd></div>`).join('')}</dl>`;
+    const fields=(definitions)=>definitions.flatMap(([key,label])=>{
+      used.add(key);return Object.hasOwn(module,key)?[[label,key==='serial'?`<span class="l2-module-serial">${portValue(module[key])}</span>`:portValue(module[key])]]:[];
+    });
+    const optical=`<span class="l2-optical-pair"><b>${portValue(module.RX ?? module.rx)}</b> / <b>${portValue(module.TX ?? module.tx)}</b> <small>(dBm)</small></span>`;
+    used.add('status');used.add('port_type');used.add('speed');
+    used.add(module.RX!=null?'RX':'rx');used.add(module.TX!=null?'TX':'tx');
+    const thresholds=fields([['RXH','Rx ngưỡng cao (dBm)'],['RXL','Rx ngưỡng thấp (dBm)'],['TXH','Tx ngưỡng cao (dBm)'],['TXL','Tx ngưỡng thấp (dBm)']]);
+    const transceiver=[...fields([
+      ['vendor','Vendor module'],['transceiver_type','Transceiver type'],['type','Type'],['module_type','Module type']
+    ]),['Speed',portValue(module.speed)],...fields([
+      ['part_number','Part number'],['serial','Serial module'],
+      ['temperature','Nhiệt độ (°C)'],['wavelength','Bước sóng (nm)'],['connector','Connector'],['transfer_distance','Transfer distance'],['distance','Distance'],
+      ['manu_date','Ngày sản xuất'],['manufacture_date','Ngày sản xuất'],['description','Description']
+    ])];
+    transceiver.push(['Rx / Tx',optical]);
+    const extras=[...thresholds,
+      ...Object.entries(module).filter(([key])=>!used.has(key)).map(([key,value])=>[key,portValue(value)]),
+      ...Object.entries(port.snapshot || {}).filter(([key])=>!['name','module'].includes(key)).map(([key,value])=>[key,portValue(value)])];
+    const note=port.modulePresent===false?'Snapshot ghi nhận port không có transceiver.':port.modulePresent!==true?'Chưa có dữ liệu transceiver cho port này.':'';
+    get('devicePortInfo').innerHTML=`<div class="pw-port-info-heading"><b>Thông tin port - transceiver</b></div><div class="l2-port-info-fields">${details(transceiver)}</div>${note?`<p class="l2-note">${note}</p>`:''}${extras.length?`<details class="l2-port-extra"><summary>Thông tin bổ sung · ${extras.length} trường</summary>${details(extras)}</details>`:''}`;
   }
   function renderTool(animate=false) {
     const port=layout.ports.find(port=>port.name===selected);
@@ -113,16 +137,12 @@
     get('devicePortActionSelect').value=tool;
     get('devicePortActionTitle').textContent=actions[tool]?.[1] || 'Công cụ dành cho port';
     get('devicePortActionDescription').textContent=tool?'Dữ liệu snapshot · công cụ chưa kết nối thiết bị.':'Chọn một công cụ trong danh sách để xem nội dung chi tiết.';
-    const module=port.module;
     if(!tool) {
       get('devicePortResult').innerHTML='<div class="pw-tool-placeholder"><svg viewBox="0 0 96 72" aria-hidden="true"><rect x="18" y="14" width="60" height="44" rx="10"></rect><path d="M30 29h36M30 43h24"></path><circle cx="67" cy="43" r="8"></circle><path d="m73 49 8 8"></path></svg><b>Chọn công cụ để bắt đầu</b><p>Kiểm tra trạng thái hoặc thực hiện thao tác phù hợp trên port đang chọn.</p></div>';
-    } else if(tool==='transceiver') {
-      const rows=[['Vendor',module?.vendor],['Type',module?.type || module?.transceiver_type],['Part number',module?.part_number],['Serial',module?.serial],['Nhiệt độ (°C)',module?.temperature],['Bước sóng (nm)',module?.wavelength],['Connector',module?.connector],['Distance (nguồn)',module?.transfer_distance || module?.distance],['Speed (nguồn)',module?.speed]];
-      get('devicePortResult').innerHTML=`<h4>Transceiver</h4><div class="l2-optical-values"><div><span>Rx (dBm)</span><b>${esc(module?.RX ?? module?.rx)}</b></div><div><span>Tx (dBm)</span><b>${esc(module?.TX ?? module?.tx)}</b></div></div>${!module?`<p class="l2-note">${port.origin==='profile'?'Vị trí từ profile, chưa có telemetry/module trong snapshot.':'Snapshot chưa ghi nhận module cho port này.'}</p>`:''}<dl class="l2-module-fields">${rows.map(([label,value])=>`<div><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl><p class="l2-note">${port.kind==='PON'?'Rx trên PON có thể khác nhau theo ONU; không thay thế bằng Rx của khách hàng.':'Giá trị từ snapshot inventory, không phải phép đo mới.'}</p>`;
     } else {
-      const titles={crc:'CRC Check',lacp:'LACP Check',customers:'Khách hàng thuộc PON',drops:'Tập điểm thuộc PON',speed:'Đổi Port Speed'};
-      const messages={crc:'Snapshot chưa có bộ đếm CRC, thời điểm đo hoặc delta lỗi. Công cụ chưa kết nối thiết bị.',lacp:'Snapshot chưa có nhóm LAG, actor/partner hoặc trạng thái thành viên. Công cụ chưa kết nối thiết bị.',customers:'Nguồn hiện tại chưa có danh sách khách hàng liên kết theo port này.',drops:'Nguồn hiện tại chưa có danh sách tập điểm liên kết theo port này.',speed:'Chỉ xem trước thao tác. Chưa có kiểm tra compatibility với module/cấu hình đang chạy; không gửi lệnh tới thiết bị.'};
-      get('devicePortResult').innerHTML=`<h4>${titles[tool]}</h4><p class="l2-note">${messages[tool]}</p>`;
+      const messages={crc:'Snapshot chưa có bộ đếm CRC, thời điểm đo hoặc delta lỗi. Công cụ chưa kết nối thiết bị.',lacp:'Snapshot chưa có nhóm LAG, actor/partner hoặc trạng thái thành viên. Công cụ chưa kết nối thiết bị.',speed:'Chỉ xem trước thao tác. Chưa có kiểm tra compatibility với module/cấu hình đang chạy; không gửi lệnh tới thiết bị.',clearOffline:'Dọn các ONU index Offline trên port PON đang chọn. Cần truy vấn danh sách Offline và xác nhận trước khi thực hiện; mockup chưa kết nối thiết bị.'};
+      get('devicePortResult').innerHTML=`<h4>${actions[tool][1]}</h4><p class="l2-note">${messages[tool]}</p>`;
+      if(tool==='clearOffline')get('devicePortResult').innerHTML+='<button class="pw-button" type="button" disabled title="Cần dữ liệu Offline và API thiết bị">Xem danh sách Offline</button><p class="l2-note">Chưa xóa ONU index nào.</p>';
       if(tool==='crc'||tool==='lacp') {
         const fields=tool==='crc'?['CRC errors','Input errors','Output errors']:['Eth-Trunk / LAG','Member state','Actor / Partner'];
         get('devicePortResult').innerHTML+=`<dl class="pw-detail-list">${fields.map(label=>`<div><dt>${label}</dt><dd>—</dd></div>`).join('')}</dl><button class="pw-button primary" type="button" disabled title="Công cụ chưa kết nối API thiết bị">Kiểm tra ${tool.toUpperCase()}</button>`;
@@ -130,7 +150,7 @@
       if(tool==='speed') {
         const options=speedOptions(port);
         get('devicePortSpeedForm').hidden=!options.length;
-        get('devicePortSpeed').innerHTML=options.map(value=>`<option value="${value}">${value}</option>`).join('');
+        get('devicePortSpeed').innerHTML=options.map(value=>`<option value="${esc(value)}">${esc(value)}</option>`).join('');
         get('devicePortSpeed').value=options[0] || '';
         if(!options.length)get('devicePortResult').innerHTML+='<p class="l2-note">Cần dữ liệu capability theo interface trước khi chọn speed.</p>';
       }
@@ -148,17 +168,15 @@
     get('devicePortInspector').hidden=!port;
     if(!port)return;
     get('devicePortInspector').dataset.status=port.state;
-    get('deviceSelectedPortKind').textContent=port.kind==='PON'?'PON · ACCESS':port.kind==='NNI'?'NNI · PORT LINK':'PORT · CHƯA PHÂN LOẠI';
-    get('deviceSelectedPortName').textContent=port.label;
+    get('deviceSelectedPortKind').textContent=port.kind==='UNKNOWN'?'Port':port.kind;
+    get('deviceSelectedPortName').textContent=port.name;
     get('deviceSelectedPortState').textContent=`${stateLabels[port.state]}${port.origin==='profile'?' · Profile':''}`;
-    const group=layout.hardware.units.flatMap(unit=>unit.groups).find(group=>group.ports.some(item=>item.name===port.name));
-    const module=port.module;
-    const optical=`${esc(module?.RX??module?.rx)} / ${esc(module?.TX??module?.tx)}`;
-    const facts=[['Interface đầy đủ',esc(port.name)],['Bank / Slot',esc(group?.bank)],['Media',esc(group?.media)],['Module',esc(module?.type || module?.transceiver_type || (port.modulePresent===false?'Không có module':null))],['Hãng module',esc(module?.vendor)],['Serial module',esc(module?.serial)],['Rx / Tx (dBm)',optical]];
-    get('devicePortInfo').innerHTML=`<div class="pw-port-info-heading"><b>Thông tin port</b></div><dl class="pw-detail-list">${facts.map(([label,value])=>`<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>`;
-    const keys=port.kind==='PON'?['transceiver','crc','lacp','customers','drops']:port.kind==='NNI'?['transceiver','crc','lacp','speed']:['transceiver'];
-    get('devicePortMenu').innerHTML=keys.map(key=>`<button type="button" data-port-action="${key}"${key==='lacp'&&port.kind==='PON'?' disabled title="LACP áp dụng cho Ethernet/NNI, không áp dụng trực tiếp cho port PON"':''}><span aria-hidden="true">${actions[key][0]}</span>${actions[key][1]}</button>`).join('');
-    get('devicePortActionSelect').innerHTML='<option value="">Chọn công cụ…</option>'+keys.map(key=>`<option value="${key}"${key==='lacp'&&port.kind==='PON'?' disabled':''}>${actions[key][1]}${key==='lacp'&&port.kind==='PON'?' · Không áp dụng trên PON':''}</option>`).join('');
+    renderPortInfo(port);
+    get('deviceSelectedPortName').setAttribute('tabindex','-1');
+    const tools=toolsFor(port);
+    if(tool&&!tools.some(item=>item.key===tool&&item.enabled))tool='';
+    get('devicePortMenu').innerHTML=tools.map(({key,enabled,reason})=>`<button type="button" data-port-action="${key}"${enabled?'':` disabled title="${esc(reason)}"`}><span aria-hidden="true">${actions[key][0]}</span>${actions[key][1]}${enabled?'':`<small>${esc(reason)}</small>`}</button>`).join('');
+    get('devicePortActionSelect').innerHTML='<option value="">Chọn công cụ…</option>'+tools.map(({key,enabled,reason})=>`<option value="${key}"${enabled?'':` disabled title="${esc(reason)}"`}>${actions[key][1]}${enabled?'':` · ${esc(reason)}`}</option>`).join('');
     renderTool();
   }
   function open(record,preserve=false,status='idle') {
@@ -173,7 +191,7 @@
     const port=layout.ports.find(port=>port.name===name);if(!port||!filtered(port))return;
     if(contextMenu)event.preventDefault();
     if(selected===name&&!contextMenu){closePort();return;}
-    selected=name;tool='';renderBanks();inspect();setMenu(contextMenu);get('devicePortActionSelect').focus();
+    selected=name;tool='';renderBanks();inspect();setMenu(contextMenu);get('deviceSelectedPortName').focus({preventScroll:true});
   }
   function closePort(){selected=null;tool='';setMenu(false);renderBanks();inspect();get(view==='face'?'deviceFaceView':'deviceGridView').focus();}
   get('devicePortBanks').addEventListener('click',selectPort);
@@ -186,8 +204,7 @@
   get('devicePortMenuToggle').addEventListener('click',()=>setMenu(get('devicePortMenu').hidden));
   function pickTool(action) {
     const port=layout.ports.find(port=>port.name===selected);if(!port)return;
-    const allowed=port.kind==='PON'?['','transceiver','crc','customers','drops']:port.kind==='NNI'?['','transceiver','crc','lacp','speed']:['','transceiver'];
-    if(!allowed.includes(action)){get('devicePortActionSelect').value=tool;return;}
+    if(action&&!toolsFor(port).some(item=>item.key===action&&item.enabled)){get('devicePortActionSelect').value=tool;return;}
     const changed=tool!==action;
     tool=action;setMenu(false);renderTool(changed);
   }
@@ -197,7 +214,7 @@
     pickTool(button.dataset.portAction);get('devicePortActionSelect').focus();
   });
   get('devicePortSpeedForm').addEventListener('submit',event=>{
-    event.preventDefault();const port=layout?.ports.find(port=>port.name===selected);if(!port||port.kind!=='NNI'||tool!=='speed'||!speedOptions(port).includes(get('devicePortSpeed').value))return;
+    event.preventDefault();const port=layout?.ports.find(port=>port.name===selected);if(!port||tool!=='speed'||!toolsFor(port).some(item=>item.key==='speed'&&item.enabled)||!speedOptions(port).includes(get('devicePortSpeed').value))return;
     get('devicePortResult').innerHTML=`<h4>Xem trước · ${esc(get('devicePortSpeed').value)}</h4><p class="l2-note">Mô phỏng cho ${esc(port.name)}. Chưa áp dụng thay đổi; dữ liệu snapshot giữ nguyên.</p>`;
   });
   for(const [id,event] of [['devicePortSearch','input'],['devicePortType','change'],['devicePortState','change']])get(id).addEventListener(event,()=>{setMenu(false);renderBanks();});
