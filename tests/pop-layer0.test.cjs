@@ -804,6 +804,8 @@ assert(!/cổng/i.test(get('devicePortBanks').innerHTML));
 assert(!/cổng/i.test(get('deviceHardware').innerHTML));
 assert(!html.includes('Lưới Port'));
 const portCss=fs.readFileSync(path.join(mockup,'shared/netauto-device-ports.css'),'utf8');
+assert(portCss.includes('#deviceDetailPage .pw-hardware{width:var(--face-chassis-width,max-content);min-width:0}'),'Faceplate shell uses its actual bank width instead of stretching across the viewport');
+assert(portCss.includes('repeat(var(--face-card-tracks,2),minmax(0,1fr))'),'A single observed modular card can use one track');
 assert(portCss.includes('border:1px solid color-mix(in srgb,var(--na-muted) 24%,var(--na-line))'),'Port group outlines are slightly stronger without increasing border thickness');
 assert(portCss.includes('#devicePortInspector:not([hidden]){animation:na-port-dock-enter 180ms'));
 assert(portCss.includes('#devicePortMenu:not([hidden]){animation:na-port-menu-enter 140ms'));
@@ -941,6 +943,21 @@ assert.equal((get('devicePortBanks').innerHTML.match(/data-select-port=/g)||[]).
 get('deviceHardwareScroll').clientWidth=1400;
 context.window.listeners.resize();
 assert.equal(get('deviceHardware').style['--face-port-width'],`${context.window.NETAUTO_PORT_MODELS.faceplateGeometry(stackLayout,1400).portWidth}px`,'Changing available width recalculates one shared size for all members');
+assert.equal(get('deviceHardware').style['--face-chassis-width'],`${context.window.NETAUTO_PORT_MODELS.faceplateGeometry(stackLayout,1400).chassisWidth}px`,'Resize also fits the shell to its common stack bank footprint');
+const cePop=allPops.find(pop=>pop.devices.some(device=>device.model==='HS12'&&device.inventoryAvailable));
+vm.runInNewContext(fs.readFileSync(path.join(mockup,context.window.NETAUTO_DATA.inventoryFiles[cePop.code]),'utf8'),context);
+const ceDevice=dataset.pops[cePop.code].find(device=>device.model==='HS12'&&device.ports.length);
+const ceLayout=context.window.NETAUTO_PORT_MODELS.build(ceDevice);
+const chassisNodes=ceLayout.hardware.units.map(()=>element());
+const hardwareQuery=get('deviceHardware').querySelectorAll;
+get('deviceHardware').querySelectorAll=selector=>selector==='.pw-chassis-unit'?chassisNodes:[];
+devicePage.open(cePop,ceDevice);
+assert(chassisNodes.every(node=>node.style['--face-card-tracks']==='1'),'CE12804 stack renderer uses one vertical card track per member');
+assert.equal((get('deviceHardware').innerHTML.match(/data-select-port=/g)||[]).length,ceLayout.summary.total,'Every CE12804 stack port remains selectable');
+assert.equal((get('deviceHardware').innerHTML.match(/data-member=/g)||[]).length,ceLayout.hardware.units.length,'Do not mix stack members');
+assert(!get('deviceHardware').innerHTML.includes('--port-columns:24'),'No dense 24-column cards remain on CE12804');
+assert(get('deviceHardware').innerHTML.includes('--port-columns:12'));
+get('deviceHardware').querySelectorAll=hardwareQuery;
 const groupedSwitch={...stackDevice,name:'TEST-PORT-GROUPS',type:'SWITCH',model:'HW57',vendor:'HUAWEI',ports:[
   ...Array.from({length:24},(_,i)=>({name:`XGigabitEthernet0/0/${i+1}`,module:null})),
   ...Array.from({length:2},(_,i)=>({name:`40GE0/0/${i+1}`,module:null}))

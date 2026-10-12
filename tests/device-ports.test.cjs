@@ -47,6 +47,34 @@ assert.deepEqual(clone(s5721.hardware.units[0].groups.map(group=>group.columns))
 assert.equal(models.faceplateGeometry(s5721,1400).portWidth,79.8,'Both GE and 10GE share one width instead of stretching each bank equally');
 assert.equal(models.faceplateGeometry(s5721,500).portWidth,54,'Narrow views scroll rather than squeeze port labels');
 assert.equal(models.faceplateGeometry(s5721,3000).portWidth,86,'Do not create oversized ports on very wide screens');
+const compact24=models.build({model:'HW24',type:'SWITCH',ports:Array.from({length:24},(_,i)=>({name:`XGigabitEthernet0/0/${i+1}`,module:null}))});
+const compactGeometry=models.faceplateGeometry(compact24,1400);
+assert.equal(compactGeometry.portWidth,86);
+assert.equal(compactGeometry.chassisWidth,1118,'A single 24-port bank ends at its actual footprint instead of stretching to 1400px');
+assert.equal(models.faceplateGeometry(compact24,3000).chassisWidth,1118,'Extra viewport width must not add empty shell space');
+const singleCard=models.build({model:'ZA62',type:'OLT',ports:Array.from({length:16},(_,i)=>({name:`gpon_olt-1/1/${i+1}`,module:null}))});
+assert.equal(models.faceplateGeometry(singleCard,2000).chassisWidth,758,'A modular device with one observed card does not reserve a phantom second track');
+assert(models.faceplateGeometry(s5721,500).chassisWidth>500,'Preserve readable port widths and horizontal scrolling on narrow screens');
+for(const code of ['HW12','HS12']){
+  const device=modelDevice(code),before=JSON.stringify(device),layout=models.build(device);
+  assert.equal(layout.hardware.cardTracks,1,'CE12804 cards are arranged vertically in one track');
+  for(const unit of layout.hardware.units){
+    for(const group of unit.groups){
+      assert(group.columns<=12,'Dense CE12804 cards use no more than 12 ports per row');
+      if(group.ports.length===48)assert.equal(Math.ceil(group.ports.length/group.columns),4,'A 48-port card is split into four readable rows');
+    }
+    assert(models.listRows(layout,unit,1400).every(row=>row.banks.length===1),'Mô phỏng follows the same vertical card structure');
+  }
+  for(const viewport of [400,960,1400,3000]){
+    const face=models.faceplateGeometry(layout,viewport);
+    assert(face.portWidth>=70);
+    assert(face.portWidth>=Math.ceil(Math.max(...layout.ports.map(port=>port.label.length))*5.4+14),'Room for the longest member/slot/subslot/port label at 9px');
+  }
+  const profile=context.window.HuaweiDeviceLayouts.get(code);
+  assert(profile.layoutGroups.every(group=>group.columns===12),'The standalone CE12804 preview shares the twelve-column card layout');
+  assert.equal(Math.max(...profile.interfaces.map(port=>port.face.row)),4);
+  assert.equal(JSON.stringify(device),before,'Do not replace observed ports or install sample cards from the photo');
+}
 for(const code of ['GC08','GC16','CH52','CV53','ZA62','HA58']){
   const layout=models.build(modelDevice(code));
   for(const availableWidth of [400,960,1400,2000]){
@@ -99,6 +127,11 @@ for(const pop of data.pops){
     const signature=JSON.stringify([layout.model,layout.hardware.modular,layout.hardware.units.map(unit=>unit.groups.map(group=>[group.id,group.columns,group.ports.length,group.uplink,Math.max(...group.ports.map(port=>port.label.length))]))]);
     if(shapes.has(signature))continue;shapes.add(signature);
     for(const width of [280,400,650,960,1400,2000,3000])for(const unit of layout.hardware.units){
+      const face=models.faceplateGeometry(layout,width);
+      assert(Number.isInteger(face.chassisWidth)&&face.chassisWidth>=280);
+      const groups=layout.hardware.modular?Array.from({length:Math.min(layout.hardware.cardTracks,unit.groups.length)},()=>({columns:Math.max(0,...unit.groups.map(group=>group.columns))})):unit.groups;
+      const footprint=26+groups.reduce((sum,group)=>sum+16+group.columns*face.portWidth+(group.columns-1)*4,0)+Math.max(0,groups.length-1)*8;
+      assert(face.chassisWidth>=footprint-.01,'Every original port bank fits within the compact chassis, including stack/modular units');
       const rows=models.listRows(layout,unit,width);checks++;
       assert.deepEqual(clone(rows.flatMap(row=>row.groups.map(group=>group.id))),clone(unit.groups.map(group=>group.id)),`${indexed.model}: preserve Giả lập bank/member order`);
       for(const row of rows){

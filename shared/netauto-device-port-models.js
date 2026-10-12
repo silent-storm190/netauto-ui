@@ -40,6 +40,7 @@
   function hardwareOf(device,model,profile,ports) {
     const huawei=window.HuaweiDeviceLayouts?.get(model);
     const modular=!!profile.modular || !!huawei?.chassis;
+    const verticalCards=model==='HW12'||model==='HS12';
     const units=new Map();
     for(const port of ports) {
       const member=port.name.match(/^(?:Ten-GigabitEthernet|HundredGigE|XGigabitEthernet|GigabitEthernet|\d+GE)(\d+)\//)?.[1];
@@ -76,9 +77,10 @@
       for(const group of unit.groups) {
         const count=group.ports.length;
         group.columns=group.uplink?Math.min(count,count===6?3:4):count<=16?Math.min(count,8):count<=24?12:24;
+        if(verticalCards)group.columns=Math.min(group.columns,12);
       }
     }
-    return {stack,modular,units:hardwareUnits};
+    return {stack,modular,cardTracks:verticalCards?1:2,units:hardwareUnits};
   }
   function build(device) {
     const model=resolve(device.model);
@@ -130,19 +132,32 @@
     // Match the shared faceplate CSS: chassis padding+border 26, bank chrome 16,
     // bank gap 8, port gap 4. One port width is shared by every bank/member.
     let width=86;
+    const rowsForUnit=unit=>{
+      if(!layout.hardware.modular)return [unit.groups];
+      const columns=Math.max(0,...unit.groups.map(group=>group.columns));
+      return [Array.from({length:Math.min(layout.hardware.cardTracks,unit.groups.length)},()=>({columns}))];
+    };
+    const rowSize=(groups,portWidth)=>{
+      const columns=groups.reduce((sum,group)=>sum+group.columns,0);
+      return {columns,overhead:26+groups.length*16+Math.max(0,groups.length-1)*8+Math.max(0,columns-groups.length)*4,
+        width:26+groups.length*16+Math.max(0,groups.length-1)*8+Math.max(0,columns-groups.length)*4+columns*portWidth};
+    };
     for(const unit of layout.hardware.units) {
-      // Modular panels have two equal card tracks; size for the widest card in
+      // Modular panels use the model's card tracks; size for the widest card in
       // each track, not a short four-port bank sharing a row with a wider bank.
-      const widestCard=Math.max(0,...unit.groups.map(group=>group.columns));
-      const rows=layout.hardware.modular?[[{columns:widestCard},{columns:widestCard}]]:[unit.groups];
-      for(const groups of rows) {
-        const columns=groups.reduce((sum,group)=>sum+group.columns,0);
+      for(const groups of rowsForUnit(unit)) {
+        const {columns,overhead}=rowSize(groups,0);
         if(!columns)continue;
-        const overhead=26+groups.length*16+(groups.length-1)*8+(columns-groups.length)*4;
         width=Math.min(width,(Math.max(0,Number(availableWidth)||0)-overhead)/columns);
       }
     }
-    return {portWidth:Math.max(54,Math.floor(width*10)/10),portHeight:35};
+    const longest=Math.max(0,...layout.ports.map(port=>port.label.length));
+    const minPortWidth=layout.model==='HW12'||layout.model==='HS12'?Math.max(70,Math.ceil(longest*5.4+14)):54;
+    const portWidth=Math.max(minPortWidth,Math.floor(width*10)/10);
+    // Fit the shell to the actual bank footprint, not the whole viewport.
+    // Stack members keep a common width; dense models still scroll when needed.
+    const chassisWidth=Math.ceil(Math.max(280,...layout.hardware.units.flatMap(unit=>rowsForUnit(unit).map(groups=>rowSize(groups,portWidth).width))));
+    return {portWidth,portHeight:35,chassisWidth};
   }
   function listRows(layout,unit,availableWidth=1400) {
     // Pure, framework-independent planner. Input is the SAME ordered banks as
@@ -171,10 +186,11 @@
       if(row.length)planned.push(row);
     }
     if(layout.hardware.modular) {
-      // Match Giả lập's two card tracks, including additional/missing cards.
+      // Match Giả lập's model-specific card tracks, including missing cards.
       // Preserve those tracks while labels fit; otherwise stack whole cards.
-      for(let i=0;i<unit.groups.length;i+=2) {
-        const pair=unit.groups.slice(i,i+2);
+      const tracks=layout.hardware.cardTracks;
+      for(let i=0;i<unit.groups.length;i+=tracks) {
+        const pair=unit.groups.slice(i,i+tracks);
         const track=(width-gap*(pair.length-1))/pair.length;
         if(pair.length===2&&track<size(Math.min(4,...pair.map(group=>group.columns))))pack(pair);
         else planned.push(pair.map(group=>({group,columns:fitColumns(group,track),equalTrack:true})));

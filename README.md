@@ -181,6 +181,17 @@ không xoá vị trí trên chassis. Sơ đồ chỉ mô phỏng theo bank/slot,
 faceplate hay sơ đồ đấu nối vật lý chuẩn của hãng.
 Mọi bank/member dùng chung chiều rộng ô port (54–86 px theo vùng hiển thị) và
 chiều cao 35 px; nhóm ít port không giãn lớn riêng. Màn hình hẹp cuộn ngang.
+Vỏ thiết bị trong Giả lập co theo footprint thực của các bank (đệm/viền +
+số cột và kích thước port), không ép tối thiểu 720px hay 100% vùng chứa.
+Các stack member giữ chung chiều rộng theo member lớn nhất; chassis chỉ có
+một card được ghi nhận dùng một track, không chừa track trống thứ hai.
+Resize tính lại chiều rộng vỏ; tìm kiếm/lọc không làm đổi vị trí hoặc độ rộng.
+HW12/HS12 (CE12804S) dùng card xếp dọc, mỗi card tối đa 12 port/hàng:
+card 48 port có 4 hàng. Member của HS12 vẫn nằm trong chassis riêng. Chế độ
+Mô phỏng và profile preview dùng cùng cấu trúc card. Ô port của hai model
+này có chiều rộng tối thiểu theo tên dài nhất (ít nhất 70px), để giữ đủ phần
+member/slot/subslot/port; màn hình quá hẹp cuộn ngang, không cắt tên. Ảnh tham
+chiếu chỉ định hướng bố cục, không thêm card, slot hay port chưa có trong snapshot.
 
 - PON: Transceiver (Rx/Tx), CRC, khách hàng, tập điểm. LACP hiện nhưng vô hiệu
   vì không áp dụng trực tiếp cho Interface PON quang.

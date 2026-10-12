@@ -38,8 +38,16 @@
     const width=get('deviceHardwareScroll').clientWidth || 960;
     const geometry=window.NETAUTO_PORT_MODELS.faceplateGeometry(layout,width);
     const style=get('deviceHardware').style;
-    if(typeof style.setProperty==='function')style.setProperty('--face-port-width',`${geometry.portWidth}px`);
-    else style['--face-port-width']=`${geometry.portWidth}px`;
+    const dimensions={'--face-port-width':`${geometry.portWidth}px`,'--face-chassis-width':layout.hardware.units.length?`${geometry.chassisWidth}px`:'100%'};
+    for(const [name,value] of Object.entries(dimensions)){
+      if(typeof style.setProperty==='function')style.setProperty(name,value);
+      else style[name]=value;
+    }
+    get('deviceHardware').querySelectorAll('.pw-chassis-unit').forEach((node,index)=>{
+      const tracks=Math.min(layout.hardware.cardTracks,Math.max(1,layout.hardware.units[index].groups.length));
+      if(typeof node.style.setProperty==='function')node.style.setProperty('--face-card-tracks',String(tracks));
+      else node.style['--face-card-tracks']=String(tracks);
+    });
   }
   function setView(next) {
     if(next!=='face'&&next!=='grid')return;

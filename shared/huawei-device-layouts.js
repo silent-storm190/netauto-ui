@@ -104,9 +104,9 @@
         for (let port = 0; port < 48; port += 1) {
           const cliName = stack ? `10GE${member}/${slot}/0/${port}` : `10GE${slot}/0/${port}`;
           ids.push(cliName);
-          interfaces.push({id: cliName, cliName, label: compact(cliName), type: '10GE', speedGbps: 10, media: 'SFP+', role: 'service', member, slot, port, status: 'unknown', source: 'netauto-inventory-template', face: {groupId, row: Math.floor(port / 24) + 1, column: (port % 24) + 1, order: port + 1}});
+          interfaces.push({id: cliName, cliName, label: compact(cliName), type: '10GE', speedGbps: 10, media: 'SFP+', role: 'service', member, slot, port, status: 'unknown', source: 'netauto-inventory-template', face: {groupId, row: Math.floor(port / 12) + 1, column: (port % 12) + 1, order: port + 1}});
         }
-        layoutGroups.push({id: groupId, member, slot, label: `LPU ${slot} · 48 × 10GE`, kind: '10GE', media: 'SFP+', role: 'service', columns: 24, interfaceIds: ids});
+        layoutGroups.push({id: groupId, member, slot, label: `LPU ${slot} · 48 × 10GE`, kind: '10GE', media: 'SFP+', role: 'service', columns: 12, interfaceIds: ids});
       }
     }
     return {interfaces, layoutGroups, bays};
