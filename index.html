@@ -141,7 +141,7 @@
                 <div class="na-lookup-field">
                   <div class="na-drop-entry-heading"><label for="dropPointInput">Danh sách tập điểm</label><span id="dropPointQueueCount" aria-live="polite">0 / 20 tập điểm</span></div>
                   <div class="na-drop-queue" id="dropPointQueue" aria-label="Tập điểm đã thêm" hidden></div>
-                  <div class="na-drop-entry-row"><div class="na-input-shell" id="dropPointShell"><span>⌖</span><input id="dropPointInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ví dụ: TQGP008.0045" aria-describedby="dropPointHelp"><button id="clearDropPoint" type="button" aria-label="Xóa mã đang nhập" hidden>×</button></div><button class="na-button" id="addDropPoint" type="button">＋ Thêm</button></div>
+                  <div class="na-drop-entry-row"><div class="na-input-shell" id="dropPointShell"><span>⌖</span><input id="dropPointInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ví dụ: HNIP246.0096/HO" aria-describedby="dropPointHelp"><button id="clearDropPoint" type="button" aria-label="Xóa mã đang nhập" hidden>×</button></div><button class="na-button" id="addDropPoint" type="button">＋ Thêm</button></div>
                   <div class="na-suffix-suggestions" id="dropPointSuggestions" hidden>
                     <div><b>Chọn hậu tố thiết bị</b><small>Đã nhận diện mã gốc <strong id="dropPointBase">TQGP008.0045</strong></small></div>
                     <div class="na-suffix-list"><button type="button" data-suffix="/HO">/HO</button><button type="button" data-suffix="/HW">/HW</button><button type="button" data-suffix="/HU">/HU</button><button type="button" data-suffix="/HF">/HF</button></div>
@@ -171,16 +171,19 @@
 
             <section class="na-drop-results" id="dropPointResults" role="tabpanel" aria-live="polite" hidden>
               <div class="na-query-empty" id="dropPointUnavailable" hidden><span>⌁</span><b id="dropPointUnavailableName"></b><small>Chưa có response thật cho tập điểm này. Kết quả sẽ hiển thị khi có dữ liệu tương ứng.</small></div>
+              <section class="na-uplink-panel" id="dropPointUplinkPanel" aria-label="Thông tin tập điểm và tuyến uplink" hidden></section>
+              <p class="na-uplink-message" id="dropPointUplinkMessage" role="status" hidden></p>
               <section class="na-result-table-panel" id="dropPointTablePanel">
                 <header><div><h3>Thông tin ONU (SNMP)</h3><p id="dropPointResponseMessage">Hoàn tất kiểm tra tập điểm: 7/7 khách hàng có công suất ONU.</p></div><button class="na-button" id="exportDropPoint" type="button">⇩ Xuất kết quả</button></header>
+                <p class="na-response-note" id="dropPointDataNotice" role="note" hidden></p>
                 <div class="na-table-wrap na-onu-table-scroll" tabindex="0" role="region" aria-label="Kết quả khách hàng, cuộn ngang để xem các cột">
                   <table class="na-table na-customer-table na-onu-table">
-                    <colgroup><col style="width:17%"><col style="width:10%"><col style="width:15%"><col style="width:12%"><col style="width:20%"><col style="width:10%"><col style="width:9%"><col style="width:7%"></colgroup>
-                    <thead><tr><th scope="col">Hợp đồng</th><th scope="col">Trạng thái HĐ</th><th scope="col">OLT-Port<span class="na-header-sub">ONU index</span></th><th scope="col">IP WAN</th><th scope="col">Thiết bị ONU</th><th scope="col">Rx / Tx (dBm)</th><th scope="col">OLT - ONU (m)</th><th scope="col">Nguồn</th></tr></thead>
+                    <colgroup><col style="width:160px"><col style="width:150px"><col style="width:190px"><col style="width:170px"><col style="width:148px"><col style="width:220px"><col style="width:118px"><col style="width:112px"><col style="width:96px"></colgroup>
+                    <thead><tr><th scope="col">Hợp đồng</th><th scope="col">Trạng thái<span class="na-header-sub">HĐ / ONU</span></th><th scope="col">Phiên kết nối<span class="na-header-sub">Đăng nhập / Ngắt kết nối</span></th><th scope="col">OLT-Port<span class="na-header-sub">ONU index</span></th><th scope="col">IP WAN</th><th scope="col">Thiết bị ONU</th><th scope="col">Rx / Tx (dBm)</th><th scope="col">OLT - ONU (m)</th><th scope="col">Nguồn</th></tr></thead>
                     <tbody id="dropPointCustomerRows"></tbody>
                   </table>
                 </div>
-                <footer><span id="dropPointResultCount"></span><span class="na-real-data-badge">Dữ liệu thật</span></footer>
+                <footer><span id="dropPointResultCount"></span><span class="na-real-data-badge" id="dropPointDataBadge">Dữ liệu thật</span></footer>
               </section>
             </section>
           </section>
@@ -239,6 +242,7 @@
   <script src="shared/netauto-data.js"></script>
   <script src="shared/netauto-pop-index.js"></script>
   <script src="shared/drop-point-response.js"></script>
+  <script src="shared/drop-point-uplink-response.js"></script>
   <script src="shared/netauto-pop-store.js"></script>
   <script src="shared/netauto-pop-reference.js"></script>
   <script src="shared/netauto-pop-detail.js"></script>

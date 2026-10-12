@@ -81,8 +81,11 @@ context.history = {
   pushState(_state, _title, url) { context.location.hash = url; },
   replaceState(_state, _title, url) { context.location.hash = url; },
 };
-for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-response.js', 'netauto-pop-store.js', 'netauto-pop-reference.js', 'netauto-pop-detail.js', 'huawei-device-layouts.js', 'netauto-device-port-models.js', 'netauto-device-ports.js', 'netauto-device-detail.js', 'netauto-app.js']) {
-  vm.runInNewContext(fs.readFileSync(path.join(mockup, 'shared', script), 'utf8'), context, {filename: script});
+for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-response.js', 'drop-point-uplink-response.js', 'netauto-pop-store.js', 'netauto-pop-reference.js', 'netauto-pop-detail.js', 'huawei-device-layouts.js', 'netauto-device-port-models.js', 'netauto-device-ports.js', 'netauto-device-detail.js', 'netauto-app.js']) {
+  let source=fs.readFileSync(path.join(mockup, 'shared', script), 'utf8');
+  // Test-only access to the renderer, without adding a public hook to the app.
+  if(script==='netauto-app.js')source=source.replace('  function renderDropPointResponse(', '  window.__testRenderDropPointResponse=renderDropPointResponse;\n  function renderDropPointResponse(');
+  vm.runInNewContext(source, context, {filename: script});
 }
 const count = () => Number(get('popResultCount').textContent.split(' ')[0].replaceAll('.',''));
 const mode = value => modes.find(button => button.dataset.popScope === value).listeners.click();
@@ -242,6 +245,220 @@ checkTimer.callback();
 assert(get('dropPointCustomerRows').innerHTML.includes('TQAAB2928'));
 assert.equal((get('dropPointCustomerRows').innerHTML.match(/<tr>/g) || []).length, 7);
 assert.equal(get('checkDropPoint').disabled, false);
+
+// New fields are supplied by the backend, never guessed from old SNMP status.
+assert(html.includes('Trạng thái<span class="na-header-sub">HĐ / ONU</span>'));
+assert(!html.includes('Trạng thái HĐ</th>')&&!html.includes('Trạng thái ONU</th>'));
+assert(html.includes('Phiên kết nối<span'));
+let onuRows=[...get('dropPointCustomerRows').innerHTML.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map(match=>match[1]);
+assert.equal(onuRows.length,7);
+assert(onuRows.every(row=>row.includes('na-onu-status is-unknown')),'Legacy responses remain unknown rather than being labelled Online from RX/IP');
+assert(onuRows.every(row=>row.includes('data-field="last_logon"')&&row.includes('data-field="last_logout"')));
+const connectionResponse=context.window.NETAUTO_DROP_POINT_RESPONSE;
+const originalConnectionCustomers=connectionResponse.result.customers;
+const originalConnectionJson=JSON.stringify(connectionResponse);
+// Synthetic test fixtures only. Do not add invented dates/status to real data.
+connectionResponse.result.customers=originalConnectionCustomers.map((customer,i)=>({...customer,...[
+  {onu_status:'Offline',last_logon:'2026-10-11 15:04:03',last_logout:'2026-10-12 08:30:40',connection_time_source:'csoc',onu_status_source:'session_times',onu_status_reason:'Ngắt kết nối sau đăng nhập'},
+  {onu_status:'Online',status:false,ipwan:null,onu:null,last_logon:null,last_logout:null},
+  {onu_status:'Online',last_logon:'2026-10-12 10:20:30',last_logout:'',connection_time_source:'inside'},
+  {onu_status:'Offline',onu_status_source:'default',last_logon:'Unknown',last_logout:null,connection_time_source:'unavailable'},
+  {onu_status:'<img src=x onerror=alert(1)>',last_logon:'',last_logout:'',connection_time_source:'csoc'},
+  {onu_status:null,last_logon:'2026-02-30 10:20:30',last_logout:'0001-01-01 00:00:00',connection_time_source:'inside'},
+  {onu_status:'Offline',last_logon:'2026-10-12T03:20:30Z',last_logout:'2026-10-12T11:20:30.123+07:00',connection_time_source:'csoc',onu_status_reason:'<img src=x onerror=alert(1)> "reason"'}
+][i]}));
+const testConnectionJson=JSON.stringify(connectionResponse);
+checkTimer.callback();
+onuRows=[...get('dropPointCustomerRows').innerHTML.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map(match=>match[1]);
+assert(onuRows.every(row=>(row.match(/<td(?:\s|>)/g)||[]).length===9),'Each row matches the nine header columns after combining statuses');
+assert(onuRows.every(row=>row.includes('na-combined-status')&&row.includes('data-field="contract_status"')&&row.includes('data-field="onu_status"')),'Both independently labelled states remain in the merged cell');
+assert(onuRows.every(row=>row.includes('class="na-onu-index" title="ONU index"')),'ONU index is rendered as its own bordered tag');
+assert(css.includes('.na-session-label{display:flex;align-items:center;gap:6px}'),'Source badge stays next to the first label without adding a grid row');
+assert(onuRows[0].includes('<span class="na-session-label">Đăng nhập gần nhất<small class="na-session-source"'),'Source badge is inline with the logon label, not anchored to the far edge of the cell');
+assert(!css.includes('.na-session-source{position:absolute;'),'Source badge does not leave a large gap or shrink the timestamp');
+assert(css.includes('.na-onu-table .na-olt-cell .na-onu-index{border:1px solid'),'ONU index border uses theme-aware tokens');
+assert(onuRows.every(row=>row.includes('<td class="na-numeric na-distance-cell">')),'Only OLT-ONU distance values receive the centered-cell class');
+assert(css.includes('.na-onu-table .na-distance-cell{text-align:center}'),'OLT-ONU values are centered without changing other numeric columns');
+assert(css.includes('.na-onu-table .na-identifier-value{font-size:calc(12px + var(--na-text-increment,0px))}'),'IP WAN values are 2px larger without enlarging SN/MAC');
+assert(onuRows[0].includes('na-onu-status is-offline'),'Successful RX/positive IP does not override Offline');
+assert(onuRows[0].includes('11/10/2026 15:04:03')&&onuRows[0].includes('12/10/2026 08:30:40'));
+assert(onuRows[0].includes('<time class="is-latest-logout" datetime="2026-10-12T08:30:40"')&&!onuRows[0].includes('is-latest-logon'),'Only the newer Logout timestamp is orange');
+assert(!onuRows[2].includes('is-latest-logon')&&!onuRows[2].includes('is-latest-logout'),'An open session with no Logout cannot compare two timestamps');
+assert(!onuRows[5].includes('is-latest-'),'Invalid/missing dates do not receive recency colors');
+assert(onuRows[0].includes('>CSOC</small>'));
+assert(onuRows[1].includes('na-onu-status is-online'),'SNMP failure/missing IP does not override Online');
+assert(!onuRows[1].includes('<time'));
+assert(onuRows[2].includes('Phiên đang mở')&&onuRows[2].includes('>Inside</small>'));
+assert(onuRows[3].includes('Chưa xác nhận'),'Default Offline must disclose that evidence is insufficient');
+assert(onuRows[4].includes('na-onu-status is-unknown')&&!onuRows[4].includes('Phiên đang mở'),'Empty CSOC time fields are not an open Inside session');
+assert(!onuRows[5].includes('<time')&&!onuRows[5].includes('Phiên đang mở'),'Invalid calendar dates/year-0001 placeholders never appear as usable dates');
+assert(onuRows[6].includes('datetime="2026-10-12T03:20:30Z"')&&onuRows[6].includes('12/10/2026 03:20:30 Z'),'Do not shift timestamps to the browser timezone');
+assert(onuRows[6].includes('12/10/2026 11:20:30.123 +07:00'));
+assert(!get('dropPointCustomerRows').innerHTML.includes('<img'));
+assert(onuRows[6].includes('&lt;img src=x onerror=alert(1)&gt; &quot;reason&quot;'),'Status explanation is HTML-escaped');
+assert.equal(JSON.stringify(connectionResponse),testConnectionJson,'Rendering never mutates the response');
+get('exportDropPoint').listeners.click();
+assert.equal(JSON.stringify(JSON.parse(document.lastCSV)),testConnectionJson,'JSON export keeps all new fields and their raw values, including an explicitly empty Logout');
+connectionResponse.result.customers=originalConnectionCustomers;
+assert.equal(JSON.stringify(connectionResponse),originalConnectionJson,'Restore all original source fixtures');
+checkTimer.callback();
+assert(!get('dropPointCustomerRows').innerHTML.includes('Phiên đang mở'));
+assert(css.includes('.na-session-event time.is-latest-logon{color:var(--na-green)}'));
+assert(css.includes('.na-session-event time.is-latest-logout{color:var(--na-orange)}'));
+for(const [last_logon,last_logout,tone] of [
+  ['2026-10-12 10:00:00','2026-10-12 09:59:59','is-latest-logon'],
+  ['2026-10-12T09:00:00+07:00','2026-10-12T03:00:00Z','is-latest-logout'],
+  ['2026-10-12 10:00:00','2026-10-12T03:00:00Z',''],
+  ['2026-10-12T03:00:00.0002Z','2026-10-12T03:00:00.0001Z','is-latest-logon'],
+  ['2026-10-12T03:00:00.1Z','2026-10-12T03:00:00.100000Z',''],
+  [null,'2026-10-12 10:00:00',''],
+  ['2026-02-30 10:00:00','2026-10-12 10:00:00','']
+]){
+  const fixture=JSON.parse(originalConnectionJson);
+  fixture.result.customers=[{...fixture.result.customers[0],last_logon,last_logout,onu_status:'Offline'}];
+  const before=JSON.stringify(fixture);
+  context.window.__testRenderDropPointResponse(fixture);
+  const markup=get('dropPointCustomerRows').innerHTML;
+  assert.equal((markup.match(/<time class="is-latest-/g)||[]).length,tone?1:0,'Color exactly one newer timestamp, none on equal/missing/invalid pairs');
+  if(tone)assert(markup.includes(`<time class="${tone}"`),'Compare absolute instants and full fractional precision, not lexical dates or browser-local time');
+  assert(markup.includes('na-onu-status is-offline'),'Time accents do not change the backend ONU status');
+  assert.equal(JSON.stringify(fixture),before);
+}
+checkTimer.callback();
+console.log('PASS: distinct ONU vs SNMP state, grouped session times, CSOC/Inside sources, open sessions, legacy/missing/invalid dates, preserved timezone, escaping and immutable responses.');
+console.log('PASS: newer session timestamp colors only, ties/missing/invalid neutral, UTC+7 versus explicit offsets, sub-millisecond precision and unchanged backend status/source.');
+
+// The latest complete user response replaces the earlier 9/10 excerpt.
+const hnResponses=context.window.NETAUTO_DROP_POINT_RESPONSES.filter(response=>response.result.drop_point==='HNIP246.0096/HO');
+assert.equal(hnResponses.length,1,'No duplicate/obsolete HNIP246 response');
+const hnResponse=hnResponses[0],hnBefore=JSON.stringify(hnResponse);
+assert.equal(hnResponse.result.customers.length,10);
+assert.equal(hnResponse.result.count.success,10);
+assert.equal(hnResponse.result.count.failed,0);
+assert.equal(hnResponse.result.duration_ms,2634);
+assert.deepEqual(Array.from(hnResponse.result.customers,customer=>customer.contract),['HNH646709','HNH260673','HNH704878','HNH709835','HNH234743','HND583266','HNH635550','HNAAG6115','HNAFN5540','HNH924206']);
+assert.deepEqual(Array.from(hnResponse.result.customers,customer=>customer.onu_index),['2/12/53','2/12/1','2/12/22','2/12/42','2/12/23','2/12/37','2/12/36','2/12/12','2/12/59','2/12/27']);
+for(const customer of hnResponse.result.customers){
+  assert.equal(customer.status,true,'All ten RX reads succeeded, including Offline ONU');
+  assert.equal(customer.connection_time_source,'csoc');
+  assert.equal(customer.selected_candidate.onu_index,customer.onu_index);
+  assert.equal(customer.selected_candidate.port_name,'G0/2/12');
+  assert.equal(customer.selected_candidate.slot,'2');
+  assert.equal(customer.selected_candidate.olt_ip,'10.85.48.67');
+  assert.deepEqual(JSON.parse(JSON.stringify(customer.candidates[0])),JSON.parse(JSON.stringify(customer.selected_candidate)));
+}
+const hnOffline=hnResponse.result.customers.find(customer=>customer.contract==='HNH260673');
+assert.equal(hnOffline.onu_status,'Offline');assert.equal(hnOffline.ipwan,null);assert.equal(hnOffline.onu.onu_rx,'-19.83');
+const latestOptics=hnResponse.result.customers.find(customer=>customer.contract==='HNAFN5540').onu;
+assert.equal(latestOptics.onu_rx,'-18.96');assert.equal(latestOptics.onu_tx,'2.77','Use latest telemetry rather than the earlier excerpt');
+get('resetDropPoint').listeners.click();
+get('dropPointInput').value='HNIP246.0096/HO';get('checkDropPoint').listeners.click();
+[...timers.values()].filter(timer=>timer.delay===420).at(-1).callback();
+const hnMarkup=get('dropPointCustomerRows').innerHTML;
+const uplinkSource=context.window.NETAUTO_DROP_POINT_UPLINK_RESPONSE;
+const uplinkBefore=JSON.stringify(uplinkSource);
+const uplinkPoint=uplinkSource.payload[0];
+const uplinkMarkup=get('dropPointUplinkPanel').innerHTML;
+assert.equal(get('dropPointUplinkPanel').hidden,false);
+assert(html.indexOf('id="dropPointUplinkPanel"')<html.indexOf('id="dropPointTablePanel"'),'Uplink context is above the customer table');
+assert(uplinkMarkup.includes('Chi nhánh Hà Nội 11 (HN11)')&&uplinkMarkup.includes('HNIP246'));
+assert(!uplinkMarkup.includes('Tỉnh / thành phố')&&!uplinkMarkup.includes('Ha Noi'),'Province/city is omitted from the UI, not deleted from the source');
+assert(!uplinkMarkup.includes('na-route-preview')&&!uplinkMarkup.includes('Đầu tuyến')&&!uplinkMarkup.includes('Cuối tuyến'),'Remove the redundant start-to-end preview');
+assert(css.includes('.na-route-nodes{display:flex;flex-wrap:wrap;gap:6px;'),'Route nodes wrap as compact content-sized tiles');
+assert(css.includes('gap:7px;flex:0 0 auto;min-width:0;max-width:100%;padding:7px 9px;'),'Route tiles do not stretch to fill leftover row space');
+const routeMarkup=[...uplinkMarkup.matchAll(/<details class="na-uplink-route">([\s\S]*?)<\/details>/g)].map(match=>match[1]);
+assert.equal(routeMarkup.length,2,'Each BCC2 gets its own native keyboard-accessible disclosure');
+assert(!uplinkMarkup.includes('<details class="na-uplink-route" open'),'Routes are compact and collapsed by default');
+for(let i=0;i<2;i++){
+  const sourceRoute=uplinkPoint.bcc2_and_uplink_parameters[i];
+  const hops=sourceRoute.uplink_parameters.split('=>');
+  assert.equal(hops.length,11);
+  assert(routeMarkup[i].includes(sourceRoute.bcc2));
+  assert(routeMarkup[i].includes('11 điểm'));
+  assert(!routeMarkup[i].split('</summary>')[0].includes(hops[0]),'Collapsed summary only shows BCC2 and hop count');
+  const expandedRoute=routeMarkup[i].slice(routeMarkup[i].indexOf('<ol class="na-route-nodes"'));
+  const displayedHops=[...expandedRoute.matchAll(/<code title="([^"]+)">/g)].map(match=>match[1]);
+  assert.deepEqual(displayedHops,hops,'Expanded route retains every hop in order, including repeats and intermediate nodes');
+  assert.equal((routeMarkup[i].match(/class="na-route-step"/g)||[]).length,11);
+}
+assert(css.includes('@media(prefers-reduced-motion:reduce){.na-route-body{animation:none}'),'Route expansion respects reduced-motion preferences');
+assert.equal(JSON.stringify(uplinkSource),uplinkBefore,'Uplink rendering never mutates the raw endpoint response');
+assert(uplinkMarkup.includes('Dữ liệu demo'),'The standalone fixture is explicitly labelled demo');
+const renderLive=context.window.__testRenderDropPointResponse;
+const liveResponse=JSON.parse(hnBefore);
+liveResponse.result.uplink=JSON.parse(uplinkBefore);
+liveResponse.result.uplink.payload.unshift({tap_diem:'OTHER/HO',name_branch:'Wrong branch'});
+liveResponse.result.uplink.payload[1].name_branch='Live branch <script>alert(1)</script>';
+const liveBefore=JSON.stringify(liveResponse);
+renderLive(liveResponse);
+assert.equal(get('dropPointUplinkPanel').hidden,false);
+assert(get('dropPointUplinkPanel').innerHTML.includes('CSOC · kết quả API'));
+assert(get('dropPointUplinkPanel').innerHTML.includes('Live branch &lt;script&gt;alert(1)&lt;/script&gt;'));
+assert(!get('dropPointUplinkPanel').innerHTML.includes('Wrong branch'),'Select the payload matching result.drop_point, not the first item');
+assert(!get('dropPointUplinkPanel').innerHTML.includes('Dữ liệu demo'),'Live envelope wins over standalone demo');
+assert.equal(JSON.stringify(liveResponse),liveBefore);
+for(const unavailable of [null,undefined,{success:false,payload:[uplinkPoint]},{success:true,payload:[]},{success:true,payload:[{...uplinkPoint,tap_diem:'OTHER/HO'}]},{success:true,payload:[{...uplinkPoint,bcc2_and_uplink_parameters:[]}]},{success:true,payload:[{...uplinkPoint,bcc2_and_uplink_parameters:[{bcc2:'Empty route',uplink_parameters:' => '}]}]}]){
+  liveResponse.result.uplink=unavailable;
+  liveResponse.result.warnings=['Chưa lấy được tuyến uplink <img src=x onerror=alert(1)>'];
+  renderLive(liveResponse);
+  assert.equal(get('dropPointUplinkPanel').hidden,true,'Unavailable live uplink must not fall back to demo');
+  assert.equal(get('dropPointUplinkPanel').innerHTML,'');
+  assert.equal(get('dropPointUplinkMessage').hidden,false,'Failed/empty uplink only displays a text message');
+  assert.equal(get('dropPointUplinkMessage').textContent,liveResponse.result.warnings[0],'Preserve the backend warning as plain text, never HTML');
+  assert.equal(get('dropPointUplinkMessage').innerHTML,'');
+  assert.equal(get('dropPointWarnings').hidden,true,'Do not duplicate the uplink message in the ONU warning panel');
+  assert.equal((get('dropPointCustomerRows').innerHTML.match(/<tr>/g)||[]).length,10,'Uplink warning never removes customer results');
+}
+delete liveResponse.result.uplink;
+delete liveResponse.result.warnings;
+renderLive(liveResponse);
+assert.equal(get('dropPointUplinkPanel').hidden,true,'A live object without uplink never inherits a demo fixture');
+assert.equal(get('dropPointUplinkMessage').hidden,false);
+assert.equal(get('dropPointUplinkMessage').textContent,'Chưa có dữ liệu tuyến uplink cho tập điểm này.');
+assert.equal(get('dropPointWarnings').hidden,true,'Warnings clear when switching away from a warning response');
+liveResponse.result.uplink={success:false,message:'Không lấy được tuyến uplink từ CSOC.',payload:[]};
+liveResponse.result.warnings=['Cảnh báo dữ liệu khách hàng khác'];
+renderLive(liveResponse);
+assert.equal(get('dropPointUplinkMessage').textContent,'Không lấy được tuyến uplink từ CSOC.');
+assert(get('dropPointWarnings').innerHTML.includes('Cảnh báo dữ liệu khách hàng khác'),'Keep unrelated backend warnings');
+renderLive({...liveResponse,result:{drop_point:'HNIP246.0096/HO',customers:[],uplink:JSON.parse(uplinkBefore)}});
+assert.equal(get('dropPointUplinkPanel').hidden,false,'An empty PortNet customer result can still show live uplink');
+assert.equal(get('dropPointUplinkMessage').hidden,true,'Successful route clears previous failure message');
+assert.equal(get('dropPointCustomerRows').innerHTML,'');
+assert(get('dropPointResultCount').textContent.includes('0 / 0'));
+// Even a known demo object must honor an explicit backend null.
+hnResponse.result.uplink=null;
+renderLive(hnResponse);
+assert.equal(get('dropPointUplinkPanel').hidden,true);
+delete hnResponse.result.uplink;
+renderLive(hnResponse);
+assert.equal(get('dropPointUplinkPanel').hidden,false);
+assert.equal(JSON.stringify(hnResponse),hnBefore);
+assert.equal((hnMarkup.match(/<tr>/g)||[]).length,10);
+assert.equal((hnMarkup.match(/na-onu-status is-online/g)||[]).length,9);
+assert.equal((hnMarkup.match(/na-onu-status is-offline/g)||[]).length,1);
+assert.equal((hnMarkup.match(/<time /g)||[]).length,20);
+assert.equal((hnMarkup.match(/<time class="is-latest-logon"/g)||[]).length,8,'Eight strictly newer logons are green; the equal pair stays neutral');
+assert.equal((hnMarkup.match(/<time class="is-latest-logout"/g)||[]).length,1,'The only strictly newer logout is orange');
+assert.equal(get('dropPointDataNotice').hidden,true,'Complete response has no incomplete-data notice');
+assert.equal(get('dropPointDataBadge').textContent,'Dữ liệu thật');
+assert(get('dropPointResultCount').textContent.includes('10 / 10'));
+assert(get('dropPointStats').innerHTML.includes('Thời gian xử lý (ms)'));
+assert(get('dropPointStats').innerHTML.includes('<strong>2.634</strong>'),'Processing time displays source milliseconds, not seconds');
+get('exportDropPoint').listeners.click();
+assert.equal(JSON.stringify(JSON.parse(document.lastCSV)),hnBefore,'Export preserves the entire supplied response');
+assert.equal(JSON.stringify(hnResponse),hnBefore);
+get('resetDropPoint').listeners.click();
+assert.equal(get('dropPointUplinkPanel').hidden,true,'Reset clears supplemental uplink context');
+assert.equal(get('dropPointUplinkPanel').innerHTML,'');
+assert.equal(get('dropPointUplinkMessage').hidden,true,'Reset also clears the text-only uplink notice');
+get('dropPointInput').value=connectionResponse.result.drop_point;get('checkDropPoint').listeners.click();
+[...timers.values()].filter(timer=>timer.delay===420).at(-1).callback();
+assert.equal(get('dropPointUplinkPanel').hidden,true,'Other real responses never inherit the HNIP246 route');
+assert.equal(get('dropPointUplinkPanel').innerHTML,'');
+console.log('PASS: complete HNIP246 user snapshot, 10 RX successes vs 9 Online/1 Offline, 20 session timestamps, latest optics, source/candidate integrity and lossless JSON export.');
+console.log('PASS: supplemental uplink response, compact BCC2 disclosures, all 22 source-ordered hops including repeats, reduced motion, immutable source and clean reset/other-point isolation.');
+console.log('PASS: backend result.uplink priority, exact point matching, null/error/missing envelope isolation, explicit demo label, escaped warnings, empty customer result and unchanged counters/source responses.');
 
 const layer0Css = css.slice(css.indexOf('/* Approved POP Layer 0 only.'));
 assert(layer0Css.includes('#popPage #popSearch:focus-visible{outline:none;box-shadow:none}'));

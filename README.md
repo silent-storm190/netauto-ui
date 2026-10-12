@@ -23,6 +23,58 @@ Mở `index.html` để xem mockup tổng thể của nền tảng NetAuto.
 
 ## File vào chính
 
+Tool Kiểm tra tập điểm gom trạng thái HĐ và ONU vào cột “Trạng thái”, gồm
+hai dòng có nhãn HĐ/ONU. Tag Online/Offline chỉ thể hiện ONU, không gộp ý
+nghĩa với trạng thái HĐ hay kết quả SNMP. Cột “Phiên kết nối” gom `last_logon`
+(Đăng nhập gần nhất) và `last_logout` (Ngắt kết nối gần nhất), có nhãn nguồn
+CSOC/Inside nhỏ ngay bên phải nhãn Đăng nhập gần nhất, không chiếm dòng riêng, khi response
+cung cấp `connection_time_source`. ONU index có tag viền nhẹ để dễ nhận biết. Dùng trực tiếp
+`onu_status` của backend, không tính lại từ boolean `status`, RX hoặc IP WAN.
+Offline có `onu_status_source=default` được ghi “Chưa xác nhận”; lý do quyết
+định có trong tooltip. Inside có Logon hợp lệ và Logout là chuỗi rỗng được
+hiển thị “Phiên đang mở”; null/missing không được hiểu là phiên đang mở.
+
+`shared/drop-point-uplink-response.js` giữ riêng JSON bổ sung gồm tỉnh/thành
+phố, chi nhánh, POP, BCC2 và `uplink_parameters`. Ghép hiển thị theo mã
+`tap_diem` của kết quả đang chọn, không gộp hoặc sửa response SNMP. Với
+`HNIP246.0096/HO`, khối “Tuyến uplink” nằm trên bảng khách hàng: hai thẻ BCC2
+thu gọn mặc định, chỉ hiện BCC2 và số điểm; bỏ phần điểm đầu → điểm cuối và
+Tỉnh/Thành phố. Nhấn thẻ để mở các ô ngắn vừa nội dung, tự xuống hàng, đánh
+số theo thứ tự. Mỗi tuyến giữ đủ 11 điểm, các port, “Trung Gian” và mọi
+điểm lặp trong chuỗi gốc. Không suy ra Online hay so sánh PortNet/Radius từ
+response này. Đổi tập điểm/Xóa dữ liệu sẽ xóa ngữ cảnh cũ; không có dữ liệu
+bổ sung thì ẩn khối này. Có bố cục responsive, bàn phím và reduced-motion.
+
+Đồng bộ DTO backend: ưu tiên nguyên envelope `result.uplink` khi field này
+hiện diện; chọn payload có `tap_diem === result.drop_point`. `null`, payload
+lỗi/rỗng hoặc không khớp sẽ ẩn và xóa tuyến cũ, chỉ hiện thông báo chữ thay
+vì khung tuyến trống, tuyệt đối không dùng fixture để thay thế. Ưu tiên
+message uplink từ `result.warnings`, rồi envelope message, cuối cùng là
+thông báo chưa có dữ liệu. Không lặp thông báo uplink trong khung cảnh báo
+ONU; các cảnh báo khác vẫn giữ nguyên. Không đổi customers/count.
+Response không có khách hàng và thiếu count vẫn có thể hiển thị uplink.
+Fixture độc lập chỉ dùng cho các object snapshot đã nạp trong demo và có
+nhãn “Dữ liệu demo”; object response live mới không được hưởng fallback này.
+Không gọi CSOC riêng từ trình duyệt hay yêu cầu thêm token cho payload UI.
+
+Thời gian hiển thị theo `dd/mm/yyyy hh:mm:ss`, giữ offset/timezone nếu có,
+không dịch theo múi giờ máy người xem. Snapshot cũ chưa có ba trường mới giữ
+“—”; không bổ sung ngày giờ/trạng thái giả vào file response thật. Xuất JSON
+giữ nguyên giá trị backend. Bảng hỗ trợ cuộn ngang và ghim cột Hợp đồng.
+Nếu cả hai mốc hợp lệ, chỉ tô màu giá trị mới hơn: Logon xanh, Logout cam;
+mốc còn lại giữ màu chữ mặc định. Hai mốc bằng nhau hoặc thiếu/không hợp lệ
+thì không tô màu thời gian. So sánh theo thời điểm tuyệt đối (mốc không có
+offset dùng UTC+7), giữ chính xác phần giây thập phân; không tính lại ONU status.
+
+Response `HNIP246.0096/HO` được nạp từ JSON đầy đủ người dùng gửi ngày
+12/10/2026: 10 hợp đồng, lấy công suất 10/10, ONU 9 Online + 1 Offline,
+thời gian xử lý 2.634ms. HNH260673 vẫn Offline dù RX đọc được. BCC1 trong
+nguồn là `HNIP246.0162/HO.01`, khác mã tập điểm truy vấn; giữ nguyên cả hai.
+Nhập `HNIP246.0096/HO` và nhấn Kiểm tra để xem bản này; các response cũ vẫn
+được giữ. Bản rút gọn 9/10 trước đó đã được thay bằng bản đầy đủ, không trộn
+telemetry cũ/mới. Khi response có thiếu bản ghi, UI báo rõ số chi tiết thực
+có so với số tổng hợp API.
+
 - `index.html`: portal tổng thể, mở được trực tiếp bằng trình duyệt.
 - `shared/netauto-shell.css`: layout và design token của portal tổng thể.
 - `shared/netauto-data.js`: dữ liệu mẫu cho kế hoạch / nghiệp vụ. Dữ liệu POP

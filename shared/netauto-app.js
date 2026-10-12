@@ -31,6 +31,9 @@
     document.getElementById(focusTarget).focus({preventScroll:true});
   });
   const dropPointResponse = window.NETAUTO_DROP_POINT_RESPONSE;
+  // Only the explicitly loaded demo response objects may use the standalone
+  // uplink fixture. New/live response objects never inherit that fallback.
+  const demoDropPointResponses=new WeakSet(window.NETAUTO_DROP_POINT_RESPONSES || [dropPointResponse]);
   const escapeHtml = value => String(value == null || value === '' ? '—' : value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   const detailArticle = (label, value) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></article>`;
   const formatOnuTemperature = value => {
@@ -38,8 +41,56 @@
     const temperature = Number(value);
     return Number.isFinite(temperature) ? `${Math.round(temperature)} °C` : '—';
   };
+  function connectionTime(value) {
+    if(typeof value!=='string')return null;
+    const raw=value.trim();
+    const match=raw.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/);
+    if(!match)return null;
+    const [,year,month,day,hour,minute,second,fraction='',zone='']=match;
+    const y=Number(year),m=Number(month),d=Number(day);
+    const days=[31,y%4===0&&(y%100!==0||y%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
+    if(y<=1||m<1||m>12||d<1||d>days[m-1]||Number(hour)>23||Number(minute)>59||Number(second)>59)return null;
+    if(zone&&zone!=='Z'&&(Number(zone.slice(1,3))>23||Number(zone.slice(4))>59))return null;
+    // Compare absolute instants, interpreting naive source times as UTC+7,
+    // while preserving the original timezone and value in the visible text.
+    const utc=new Date(0);
+    utc.setUTCFullYear(y,m-1,d);
+    utc.setUTCHours(Number(hour),Number(minute),Number(second),0);
+    const offset=zone==='Z'?0:zone?(zone[0]==='-'?-1:1)*(Number(zone.slice(1,3))*60+Number(zone.slice(4))):420;
+    return {datetime:raw.replace(' ','T'),label:`${day}/${month}/${year} ${hour}:${minute}:${second}${fraction}${zone?` ${zone}`:''}`,seconds:utc.getTime()/1000-offset*60,fraction:fraction.slice(1)};
+  }
+  function compareConnectionTimes(left,right) {
+    if(!left||!right)return 0;
+    if(left.seconds!==right.seconds)return left.seconds>right.seconds?1:-1;
+    // Do not truncate sub-millisecond precision when deciding which is newer.
+    const length=Math.max(left.fraction.length,right.fraction.length);
+    const a=left.fraction.padEnd(length,'0'),b=right.fraction.padEnd(length,'0');
+    return a===b?0:a>b?1:-1;
+  }
+  function renderOnuStatus(customer) {
+    // The old boolean status is SNMP success, NOT Online/Offline.
+    const value=typeof customer.onu_status==='string'?customer.onu_status.trim().toLowerCase():'';
+    const label=value==='online'?'Online':value==='offline'?'Offline':'—';
+    const tone=label==='—'?'unknown':value;
+    const reasons={session_times:'Thời gian phiên',csoc_status:'Trạng thái CSOC',ipwan:'IP WAN',snmp_rx:'Công suất RX',default:'Chưa đủ dữ liệu'};
+    const hint=label==='—'?'Response chưa có trạng thái ONU hợp lệ.':[
+      customer.onu_status_reason,reasons[customer.onu_status_source]
+    ].filter(item=>typeof item==='string'&&item.trim()).join(' · ')||`ONU ${label}`;
+    return `<span class="na-onu-status is-${tone}" data-field="onu_status" title="${escapeHtml(hint)}">${label}</span>${label!=='—'&&customer.onu_status_source==='default'?'<small class="na-onu-unconfirmed">Chưa xác nhận</small>':''}`;
+  }
+  function renderConnectionTimes(customer) {
+    const logon=connectionTime(customer.last_logon),logout=connectionTime(customer.last_logout);
+    const openSession=Boolean(logon)&&customer.connection_time_source==='inside'&&typeof customer.last_logout==='string'&&!customer.last_logout.trim();
+    const source=customer.connection_time_source==='csoc'?'CSOC':customer.connection_time_source==='inside'?'Inside':'';
+    const hasSource=Boolean(source&&(logon||logout));
+    const order=compareConnectionTimes(logon,logout);
+    const row=(label,field,time,open=false,showSource=false,tone='')=>`<div class="na-session-event" data-field="${field}"><span class="na-session-label">${label}${showSource?`<small class="na-session-source" title="Nguồn thời gian phiên kết nối">${source}</small>`:''}</span>${time?`<time${tone?` class="${tone}"`:''} datetime="${escapeHtml(time.datetime)}">${escapeHtml(time.label)}</time>`:`<span class="na-session-value${open?' is-open':''}">${open?'Phiên đang mở':'—'}</span>`}</div>`;
+    return `<div class="na-session-history">${row('Đăng nhập gần nhất','last_logon',logon,false,hasSource,order>0?'is-latest-logon':'')}${row('Ngắt kết nối gần nhất','last_logout',logout,openSession,false,order<0?'is-latest-logout':'')}</div>`;
+  }
   function renderSourceTags(customer) {
-    const sources = [...new Set(customer.selected_candidate?.sources ?? customer.sources ?? (customer.candidates || []).flatMap(candidate => candidate.sources || []))];
+    const candidateSources=candidate=>[...(candidate.sources||[]),...(candidate.olt_sources||[]),...(candidate.coordinate_sources||[])];
+    const selectedSources=customer.selected_candidate?candidateSources(customer.selected_candidate):[];
+    const sources = [...new Set(selectedSources.length?selectedSources:customer.sources ?? (customer.candidates || []).flatMap(candidateSources))];
     const knownSources = {isc_portnet:['ISC','isc'],csoc_contract:['CONTRACT','contract'],csoc_radius:['RADIUS','radius']};
     const orderedSources = ['isc_portnet','csoc_contract','csoc_radius'].filter(source => sources.includes(source));
     orderedSources.push(...sources.filter(source => !knownSources[source]));
@@ -48,31 +99,63 @@
       return `<span class="na-source-tag is-${tone}" title="${escapeHtml(source)}">${escapeHtml(label)}</span>`;
     }).join('')}</div>` : '<span class="na-source-empty">—</span>';
   }
+  function renderDropPointUplink(result, {demo=false}={}) {
+    const panel=document.getElementById('dropPointUplinkPanel');
+    const notice=document.getElementById('dropPointUplinkMessage');
+    const hasBackendUplink=Boolean(result)&&Object.prototype.hasOwnProperty.call(result,'uplink');
+    const source=hasBackendUplink?result.uplink:demo?window.NETAUTO_DROP_POINT_UPLINK_RESPONSE:null;
+    const point=source?.success===true&&Array.isArray(source.payload)?source.payload.find(item=>item?.tap_diem===result?.drop_point):null;
+    const routes=Array.isArray(point?.bcc2_and_uplink_parameters)?point.bcc2_and_uplink_parameters.filter(route=>typeof route?.uplink_parameters==='string'&&route.uplink_parameters.split('=>').some(hop=>hop.trim())):[];
+    panel.hidden=!routes.length;
+    notice.hidden=!result||Boolean(routes.length);
+    notice.textContent=notice.hidden?'':(Array.isArray(result.warnings)?result.warnings.find(warning=>typeof warning==='string'&&/uplink/i.test(warning)):'')||(typeof source?.message==='string'&&source.message.trim()?source.message:'Chưa có dữ liệu tuyến uplink cho tập điểm này.');
+    if(!routes.length){panel.innerHTML='';return;}
+    const routeCards=routes.map(route=>{
+      // Display every hop in source order, including repeated cabinet positions.
+      const hops=typeof route.uplink_parameters==='string'?route.uplink_parameters.split('=>').map(hop=>hop.trim()).filter(Boolean):[];
+      const nodes=hops.map((hop,index)=>{
+        const match=hop.match(/^(.*)\/(\d+)$/);
+        return `<li class="${index===0||index===hops.length-1?'is-endpoint':''}"><span class="na-route-step" aria-hidden="true">${index+1}</span><div><code title="${escapeHtml(hop)}">${escapeHtml(match?match[1]:hop)}</code>${match?`<small>Port <b>${escapeHtml(match[2])}</b></small>`:''}</div></li>`;
+      }).join('');
+      return `<details class="na-uplink-route"><summary><span class="na-route-bcc"><small>BCC2</small><code>${escapeHtml(route.bcc2)}</code></span><span class="na-route-count">${hops.length} điểm</span><span class="na-route-chevron" aria-hidden="true">⌄</span></summary><div class="na-route-body"><p>Thứ tự đường đi · giữ nguyên các điểm lặp từ dữ liệu nguồn</p><ol class="na-route-nodes" role="list" aria-label="Đường đi uplink của ${escapeHtml(route.bcc2)}">${nodes}</ol></div></details>`;
+    }).join('');
+    panel.innerHTML=`<header class="na-uplink-heading"><div><span class="na-uplink-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="15" width="6" height="6" rx="1.5"/><path d="M6 9v9h9M9 6h9v9"/></svg></span><div><h3>Tuyến uplink</h3><p>${hasBackendUplink?'CSOC · kết quả API':'Dữ liệu demo · snapshot người dùng cung cấp'} · chọn BCC2 để xem đường đi</p></div></div><span class="na-real-data-badge">${routes.length} BCC2</span></header><div class="na-uplink-context">${[['Chi nhánh',point.name_branch],['POP',point.pop]].map(([label,value])=>`<div><span>${label}</span><b>${escapeHtml(value)}</b></div>`).join('')}</div><div class="na-uplink-routes">${routeCards}</div>`;
+  }
   function renderDropPointResponse(response = dropPointResponse) {
     const {result, message} = response;
+    renderDropPointUplink(result,{demo:demoDropPointResponses.has(response)});
+    // The backend can return uplink metadata with an empty PortNet customer
+    // list and no count object. Display unavailable aggregates as “—”.
+    const count=result.count ?? {total:result.customers.length,success:null,failed:null};
     document.getElementById('dropPointStats').innerHTML = [
-      ['Tổng khách hàng',result.count.total,''],
-      ['Xác nhận thành công',result.count.success,'is-success'],
-      ['Cần kiểm tra lại',result.count.failed,'is-danger'],
-      ['Thời gian xử lý (s)',result.duration_ms == null ? '—' : new Intl.NumberFormat('vi-VN', {maximumFractionDigits:3}).format(result.duration_ms / 1000),'is-speed']
+      ['Tổng khách hàng',count.total,''],
+      ['Xác nhận thành công',count.success,'is-success'],
+      ['Cần kiểm tra lại',count.failed,'is-danger'],
+      ['Thời gian xử lý (ms)',result.duration_ms == null ? '—' : new Intl.NumberFormat('vi-VN', {maximumFractionDigits:3}).format(result.duration_ms),'is-speed']
     ].map(([label,value,className]) => `<article class="${className}"><span>${label}</span><strong>${escapeHtml(value)}</strong></article>`).join('');
     document.getElementById('dropPointResponseMessage').textContent = message.replace('có công suất ONU hợp lệ.', 'có công suất ONU.');
+    const incomplete=result.customers.length<count.total;
+    const dataNotice=document.getElementById('dropPointDataNotice');
+    dataNotice.hidden=!incomplete;
+    dataNotice.textContent=incomplete?`Bản dữ liệu được gửi đang rút gọn: có chi tiết ${result.customers.length}/${count.total} hợp đồng. Các số tổng hợp giữ nguyên theo API; ${count.total-result.customers.length} hợp đồng còn lại chưa có bản ghi chi tiết.`:'';
+    document.getElementById('dropPointDataBadge').textContent=incomplete?'Dữ liệu thật · bản rút gọn':'Dữ liệu thật';
     document.getElementById('dropPointCustomerRows').innerHTML = result.customers.map(customer => {
       const candidate = customer.selected_candidate || customer.candidates?.[0] || {};
       const temperatureWarning = String(customer.onu?.onu_temp) === '2147483647';
       const txWarning = customer.onu?.onu_tx === 'OFFLINE';
       return `<tr>
         <td class="na-contract-cell"><b>${escapeHtml(customer.contract)}</b><small>Port ${escapeHtml(customer.drop_point_port)}</small><small class="na-bcc-value">${escapeHtml(customer.bcc1)}</small></td>
-        <td><span class="na-state-dot ${customer.status ? 'success' : 'warning'}">${escapeHtml(customer.contract_status)}</span></td>
-        <td class="na-olt-cell"><b>${escapeHtml(candidate.olt_name)}</b><small>${escapeHtml(candidate.model)} · ${escapeHtml(candidate.port_name)}</small><code>${escapeHtml(customer.onu_index)}</code></td>
+        <td class="na-onu-status-cell"><div class="na-combined-status"><div class="na-status-line"><span class="na-status-label">HĐ</span><span class="na-contract-status" data-field="contract_status">${escapeHtml(customer.contract_status)}</span></div><div class="na-status-line"><span class="na-status-label">ONU</span><div>${renderOnuStatus(customer)}</div></div></div></td>
+        <td class="na-session-cell">${renderConnectionTimes(customer)}</td>
+        <td class="na-olt-cell"><b>${escapeHtml(candidate.olt_name)}</b><small>${escapeHtml(candidate.model)} · ${escapeHtml(candidate.port_name)}</small><code class="na-onu-index" title="ONU index">${escapeHtml(customer.onu_index)}</code></td>
         <td class="na-identifier-value">${escapeHtml(customer.ipwan)}</td>
         <td class="na-onu-identity"><b>${escapeHtml(customer.onu?.onu_model)}</b><span class="na-identity-line"><span>SN</span><span>${escapeHtml(customer.onu_sn)}</span></span><span class="na-identity-line"><span>MAC</span><span>${escapeHtml(customer.onu_mac)}</span></span><span class="na-onu-temperature"><span>Nhiệt độ</span><span class="${temperatureWarning ? 'na-value-warning' : ''}">${temperatureWarning ? '⚠ ' : ''}${escapeHtml(formatOnuTemperature(customer.onu?.onu_temp))}</span></span></td>
         <td class="na-numeric">${customer.onu ? `<span class="na-optical-values"><b>${escapeHtml(customer.onu.onu_rx)}</b><span>/</span><span class="${txWarning ? 'na-value-warning' : ''}">${escapeHtml(customer.onu.onu_tx)}</span></span>` : '—'}</td>
-        <td class="na-numeric">${escapeHtml(customer.onu?.onu_olt_distance)}</td>
+        <td class="na-numeric na-distance-cell">${escapeHtml(customer.onu?.onu_olt_distance)}</td>
         <td class="na-source-cell">${renderSourceTags(customer)}</td>
       </tr>`;
     }).join('');
-    document.getElementById('dropPointResultCount').textContent = `Hiển thị ${result.customers.length} / ${result.count.total} khách hàng`;
+    document.getElementById('dropPointResultCount').textContent = `Hiển thị ${result.customers.length} / ${count.total} khách hàng`;
     const warnings = result.customers.flatMap(customer => {
       const messages = [];
       if (!customer.status || customer.selected_candidate?.resolution_error) {
@@ -83,6 +166,8 @@
       if (customer.onu?.onu_tx === 'OFFLINE') messages.push('Tx được trả về là OFFLINE.');
       return messages.length ? [{contract:customer.contract,message:messages.join(' ')}] : [];
     });
+    const uplinkNotice=document.getElementById('dropPointUplinkMessage');
+    if(Array.isArray(result.warnings))warnings.unshift(...result.warnings.filter(item=>typeof item==='string'&&item.trim()&&(uplinkNotice.hidden||item!==uplinkNotice.textContent)).map(message=>({contract:'Thông tin bổ sung',message})));
     const warningPanel = document.getElementById('dropPointWarnings');
     warningPanel.hidden = !warnings.length;
     warningPanel.innerHTML = warnings.map(customer => `<div class="na-data-warning-item"><span aria-hidden="true">⚠</span><div><b>${escapeHtml(customer.contract)}</b><p>${escapeHtml(customer.message)}</p></div></div>`).join('');
@@ -383,8 +468,8 @@
     tabs.innerHTML = checkedDropPoints.map((value,index) => {
       const response = availableDropPointResponses.get(value);
       const isSelected = selectedDropPoint === value;
-      const tone = !response ? 'pending' : response.result.count.failed ? 'warning' : 'success';
-      return `<button id="drop-point-tab-${index}" role="tab" type="button" aria-selected="${isSelected}" aria-controls="dropPointResults" tabindex="${isSelected ? 0 : -1}" class="na-drop-result-tab${isSelected ? ' is-active' : ''}" data-result-drop-point="${escapeHtml(value)}"><span class="na-drop-tab-dot is-${tone}" aria-hidden="true"></span><span>${escapeHtml(value)}</span><small>${response ? `${response.result.count.success}/${response.result.count.total}` : 'Chưa có dữ liệu'}</small></button>`;
+      const tone = !response ? 'pending' : response.result.count?.failed ? 'warning' : 'success';
+      return `<button id="drop-point-tab-${index}" role="tab" type="button" aria-selected="${isSelected}" aria-controls="dropPointResults" tabindex="${isSelected ? 0 : -1}" class="na-drop-result-tab${isSelected ? ' is-active' : ''}" data-result-drop-point="${escapeHtml(value)}"><span class="na-drop-tab-dot is-${tone}" aria-hidden="true"></span><span>${escapeHtml(value)}</span><small>${response ? `${response.result.count?.success ?? '—'}/${response.result.count?.total ?? response.result.customers.length}` : 'Chưa có dữ liệu'}</small></button>`;
     }).join('');
     document.getElementById('dropPointTabsRegion').hidden = !checkedDropPoints.length;
     document.getElementById('dropPointBatchCount').textContent = `${checkedDropPoints.length} tập điểm`;
@@ -406,6 +491,7 @@
       renderDropPointResponse(response);
       document.getElementById('dropPointResultName').textContent = value;
     } else {
+      renderDropPointUplink(null);
       document.getElementById('dropPointPendingTitle').textContent = value;
       document.getElementById('dropPointPendingDescription').textContent = 'Chưa có response cho tập điểm này.';
       document.getElementById('dropPointUnavailableName').textContent = value;
@@ -416,6 +502,7 @@
 
   function resetDropPoint() {
     clearTimeout(dropPointCheckTimer);
+    renderDropPointUplink(null);
     queuedDropPoints = [];
     checkedDropPoints = [];
     selectedDropPoint = null;

@@ -1169,3 +1169,43 @@ window.NETAUTO_DROP_POINT_RESPONSES = [
   "status": true
 }
 ];
+
+// Complete user-provided response (2026-10-12), replacing the earlier excerpt.
+// Factor only fields repeated verbatim in all ten source records. No status,
+// timestamp, candidate coordinate or telemetry is inferred here.
+(() => {
+  const sources=['isc_portnet','csoc_radius','csoc_contract'];
+  const candidate=onu_index=>({
+    coordinate_sources:['csoc_radius'],model:'HA58',olt_ip:'10.85.48.67',olt_name:'HNIP24602HA58',
+    olt_sources:[...sources],onu_index,port:'12',port_name:'G0/2/12',reachable:true,
+    resolution_error:null,slot:'2',sources:[...sources]
+  });
+  const onlineReason='Lần đăng nhập gần nhất bằng hoặc mới hơn lần ngắt kết nối.';
+  const offlineReason='Lần ngắt kết nối gần nhất diễn ra sau lần đăng nhập gần nhất.';
+  const customers=[
+    {contract:'HNH646709',drop_point_port:'1',ipwan:'21.61.197.88',last_logon:'2026-10-07 03:30:15',last_logout:'2026-10-07 03:29:55',onu:{onu_model:'G-97RG6M',onu_olt_distance:'961',onu_rx:'-19.64',onu_temp:'39',onu_tx:'1.12'},onu_index:'2/12/53',onu_mac:'ec:84:b4:bd:ea:f2',onu_sn:'FPTT1920F810',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNH260673',drop_point_port:'3',ipwan:null,last_logon:'2026-10-11 15:04:03',last_logout:'2026-10-12 08:30:40',onu:{onu_model:'C40-100',onu_olt_distance:'1110',onu_rx:'-19.83',onu_temp:'57',onu_tx:'2.34'},onu_index:'2/12/1',onu_mac:'5c:18:dd:5c:d2:35',onu_sn:'FPTH2424F617',onu_status:'Offline',onu_status_reason:offlineReason},
+    {contract:'HNH704878',drop_point_port:'4',ipwan:'21.97.183.88',last_logon:'2026-10-10 03:11:03',last_logout:'2026-10-10 03:10:15',onu:{onu_model:'AX3000HI',onu_olt_distance:'1095',onu_rx:'-20.22',onu_temp:'57',onu_tx:'2.35'},onu_index:'2/12/22',onu_mac:'fc:57:03:e3:c2:c8',onu_sn:'FPTH2498032B',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNH709835',drop_point_port:'7',ipwan:'21.55.145.94',last_logon:'2026-10-07 12:11:58',last_logout:'2026-10-07 12:11:58',onu:{onu_model:'G-97RG6M',onu_olt_distance:'997',onu_rx:'-24.22',onu_temp:'38',onu_tx:'2.28'},onu_index:'2/12/42',onu_mac:'a4:81:7a:19:01:06',onu_sn:'FPTT19607395',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNH234743',drop_point_port:'8',ipwan:'100.103.55.34',last_logon:'2026-10-09 02:42:37',last_logout:'2026-10-09 02:42:04',onu:{onu_model:'G-97CL',onu_olt_distance:'1170',onu_rx:'-30.96',onu_temp:'57',onu_tx:'2.04'},onu_index:'2/12/23',onu_mac:'00:c8:96:23:f7:d1',onu_sn:'FPTT2442F0E2',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HND583266',drop_point_port:'9',ipwan:'21.54.142.216',last_logon:'2026-10-11 15:13:51',last_logout:'2026-10-11 15:11:44',onu:{onu_model:'F6600PC30-401',onu_olt_distance:'1192',onu_rx:'-18.99',onu_temp:'43',onu_tx:'2.34'},onu_index:'2/12/37',onu_mac:'0c:01:4b:19:fc:80',onu_sn:'ZTEGD4ED25E9',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNH635550',drop_point_port:'10',ipwan:'21.61.212.73',last_logon:'2026-10-10 04:41:17',last_logout:'2026-10-10 04:40:31',onu:{onu_model:'AX3000HI',onu_olt_distance:'1019',onu_rx:'-19.10',onu_temp:'59',onu_tx:'2.20'},onu_index:'2/12/36',onu_mac:'fc:57:03:f5:8d:78',onu_sn:'FPTH24A8CBBE',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNAAG6115',drop_point_port:'13',ipwan:'100.83.210.114',last_logon:'2026-10-06 01:46:34',last_logout:'2026-10-06 01:46:11',onu:{onu_model:'AC1000F',onu_olt_distance:'1187',onu_rx:'-17.23',onu_temp:'55',onu_tx:'2.20'},onu_index:'2/12/12',onu_mac:'d8:80:83:19:49:40',onu_sn:'FPTF000BBED9',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNAFN5540',drop_point_port:'15',ipwan:'21.225.43.113',last_logon:'2026-10-11 16:37:17',last_logout:'2026-10-11 15:13:09',onu:{onu_model:'AX3000HV2',onu_olt_distance:'1026',onu_rx:'-18.96',onu_temp:'48',onu_tx:'2.77'},onu_index:'2/12/59',onu_mac:'20:be:b4:c1:41:ae',onu_sn:'FPTH262AF53C',onu_status:'Online',onu_status_reason:onlineReason},
+    {contract:'HNH924206',drop_point_port:'16',ipwan:'118.70.101.222',last_logon:'2026-10-10 04:11:15',last_logout:'2026-10-10 04:10:29',onu:{onu_model:'AX3000HI',onu_olt_distance:'1089',onu_rx:'-18.79',onu_temp:'64',onu_tx:'2.22'},onu_index:'2/12/27',onu_mac:'fc:57:03:f7:c6:98',onu_sn:'FPTH24B82558',onu_status:'Online',onu_status_reason:onlineReason}
+  ].map(row=>({
+    attempts:[],bcc1:'HNIP246.0162/HO.01',candidates:[candidate(row.onu_index)],
+    connection_time_source:'csoc',contract_status:'Bình thường',...row,
+    message:'Đã lấy được công suất ONU.',onu_status_source:'session_times',
+    selected_candidate:candidate(row.onu_index),status:true,verification:'onu_index_and_rx'
+  }));
+  window.NETAUTO_DROP_POINT_RESPONSES.push({
+    error:null,message:'Đã kiểm tra tập điểm: lấy được công suất ONU cho 10/10 hợp đồng.',
+    result:{
+      count:{failed:0,success:10,total:10},customers,drop_point:'HNIP246.0096/HO',
+      drop_point_olt:{olt_ip:'10.85.48.67',olt_name:'HNIP24602HA58',selection:'first_ping',sources:[...sources]},
+      drop_point_pon:{coordinate_source:'csoc',olt_ip:'10.85.48.67',olt_name:'HNIP24602HA58',port:'12',port_name:'G0/2/12',selection:'first_ping',slot:'2'},
+      duration_ms:2634
+    },status:true
+  });
+})();
