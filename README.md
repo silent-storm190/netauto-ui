@@ -104,9 +104,15 @@ chuyển các giá trị này thành `null` trong bản xuất dùng cho trình 
 sửa file gốc. Mã SHA-256 của nguồn được lưu trong `NETAUTO_DATA.snapshot`.
 
 Theo yêu cầu duyệt bố cục, Layer 1 dùng ví dụ giả lập cho loại POP, ngày triển
-khai, chức năng, số khách hàng và địa chỉ khi nguồn thiếu. Các ví dụ được tạo
-ổn định theo mã POP, chỉ dùng ở lớp hiển thị và có nhãn “trường giả lập”; không
+khai, chức năng, số khách hàng và địa chỉ khi nguồn thiếu. Bộ mẫu theo yêu cầu:
+Outdoor, 03-11-2003, POP AON+PON, 727 khách hàng, Góc Hồ Xuân Hương - Nguyễn Thông.
+Chỉ dùng ở lớp hiển thị và có tooltip/data-demo; không
 ghi vào snapshot, không thay thế giá trị thật (kể cả số 0) nếu có.
+Tên POP có tag và icon tủ mạng SVG cùng tông với nền thẻ Chi tiết POP. Nền dùng
+đường mạch/nút kết nối SVG mảnh và lưới chấm CSS mờ, không còn vòng cung lớn;
+không animation hay tài nguyên tải ngoài. Mỗi lượt mở/quay lại POP đổi màu, tránh lặp màu lượt trước và màu lần gần
+nhất của chính POP đó; inventory/theme/hash trùng không đổi màu. Preference màu
+chỉ lưu hue tùy chọn, vẫn hoạt động nếu storage bị chặn; có tông chữ dark mode.
 Nguồn chưa có telemetry PI, liên kết LLDP hay bảng tài sản POP. Những mục này
 để trống hoặc ghi rõ “mẫu tham chiếu”, không dùng mẫu như dữ liệu thật của POP
 đang mở. Công cụ chưa kết nối production.
@@ -139,11 +145,13 @@ môi trường DOM mô phỏng, không thay thế kiểm tra hiển thị bằng
 
 ## SmartPOP
 
-SmartPOP đã tích hợp vào Giám sát & Cảnh báo tại Layer 1. Nguồn mặc định là
+SmartPOP đã tích hợp vào Giám sát & Cảnh báo tại Layer 1, mặc định thu gọn;
+bấm tiêu đề để mở/đóng. Đã bỏ các ghi chú và checkbox chọn nguồn. Nguồn mặc định là
 bản ghi thực tế 172.18.86.217: cảm biến/quạt/trạng thái tủ, 25 dịch vụ cảnh báo
 và số đo CAC/PIN1/PIN2. Nhãn Việt/hover mã gốc; cảnh báo chi tiết mở bằng popup.
-Ghi rõ dữ liệu đã thu, không trực tiếp và chưa tự ghép POP. Ba payload cấu hình
-OPMS 835 / 1097 / 2035 vẫn chọn xem được. Xem [SMARTPOP.md](SMARTPOP.md);
+Dữ liệu đã thu, không trực tiếp và chưa tự ghép POP; metadata nguồn ở tooltip IP.
+Ba payload cấu hình OPMS 835 / 1097 / 2035 vẫn xem được qua API local trong
+[SMARTPOP.md](SMARTPOP.md);
 test: `node mockup_ui/tests/smartpop.test.cjs` và
 `node mockup_ui/tests/smartpop-telemetry.test.cjs`.
 

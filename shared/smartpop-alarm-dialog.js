@@ -25,7 +25,7 @@
       <footer class="sp-dialog-footer"><span>${filtered.length?start+1:0}–${Math.min(start+size,filtered.length)} / ${filtered.length} dịch vụ · ${size} dòng/trang</span><div><button type="button" data-sp-alarm-page="-1" ${page===0?'disabled':''} aria-label="Trang cảnh báo trước">← Trước</button><span>${page+1}/${pages}</span><button type="button" data-sp-alarm-page="1" ${page===pages-1?'disabled':''} aria-label="Trang cảnh báo sau">Sau →</button></div></footer>`;
   }
   function close(){if(dialog?.open)dialog.close();}
-  function cleanup(){if(locked){scroll.unlock(dialog);locked=false;}const back=trigger;trigger=null;source=null;query='';page=0;if(content)content.innerHTML='';if(back?.isConnected!==false)back?.focus?.({preventScroll:true});}
+  function cleanup(){if(locked){scroll.unlock(dialog);locked=false;}const back=trigger;trigger=null;source=null;query='';page=0;if(content)content.innerHTML='';const disclosure=document.getElementById('smartpopDisclosure');if(disclosure&&!disclosure.open)document.getElementById('smartpopDisclosureSummary')?.focus?.({preventScroll:true});else if(back?.isConnected!==false)back?.focus?.({preventScroll:true});}
   if(dialog&&content){
     dialog.addEventListener('close',cleanup);
     dialog.addEventListener('cancel',event=>{event.preventDefault();close();});

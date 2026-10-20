@@ -402,3 +402,16 @@ html[data-theme=dark] #popDetailPage{
 #smartpopPeripheralDialog .sp-peripheral-tabs+.sp-reading-head{padding-top:7px;padding-bottom:6px;justify-content:flex-end}
 @media(max-width:480px){#smartpopPeripheralDialog .sp-peripheral-option{flex-basis:125px;padding:7px 8px}}
 @media(pointer:coarse){#smartpopPeripheralDialog .sp-peripheral-option{min-height:44px}}
+
+/* Native disclosure keeps the monitoring area closed until explicitly opened. */
+#popDetailPage .sp-disclosure-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;list-style:none;cursor:pointer;border-radius:6px}
+#popDetailPage .sp-disclosure-summary::-webkit-details-marker{display:none}
+#popDetailPage .sp-disclosure-summary::marker{content:""}
+#popDetailPage .sp-disclosure-label{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;min-width:0}
+#popDetailPage .sp-disclosure-title{font-size:16px;font-weight:700;color:var(--na-text)}
+#popDetailPage #detailPiSource{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+#popDetailPage .sp-disclosure-chevron{width:18px;height:18px;flex-shrink:0;color:var(--na-muted)}
+#popDetailPage .sp-disclosure[open]>.sp-disclosure-summary .sp-disclosure-chevron{transform:rotate(90deg)}
+#popDetailPage .sp-disclosure-summary:hover .sp-disclosure-title{color:var(--na-blue)}
+#popDetailPage .sp-disclosure-summary:focus-visible{outline:2px solid var(--na-blue);outline-offset:5px}
+#popDetailPage .sp-disclosure[open]>#detailPiSignals{margin-top:16px}

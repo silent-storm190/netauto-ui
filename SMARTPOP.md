@@ -1,8 +1,10 @@
 # SmartPOP · Giám sát & Cảnh báo chỉ đọc
 
-Vào **Quản lý POP & Thiết bị → mở POP → Giám sát & Cảnh báo**, bật **Payload
-tham chiếu**. Nguồn mặc định: **Bản ghi 172.18.86.217 · số đo & cảnh báo**.
-Ba nguồn cấu hình OPMS 835 / 1097 / 2035 vẫn chọn xem được.
+Vào **Quản lý POP & Thiết bị → mở POP → Giám sát & Cảnh báo (SmartPOP)**.
+Mục này mặc định thu gọn; bấm tiêu đề (hoặc Enter/Space) để mở/đóng.
+Nguồn mặc định vẫn là bản ghi 172.18.86.217; không còn checkbox Payload tham
+chiếu, thanh chọn nguồn, đoạn giải thích hay banner ghi chú trên trang.
+Thông tin bản ghi/ánh xạ giữ trong tooltip và accessible label của IP nguồn.
 
 ## Nguồn dữ liệu
 
@@ -24,7 +26,7 @@ Capture Socket.IO có 20 event mqtt_message_response:
 
 Định nghĩa OPMS 2035 khớp id/model/tên/số thanh ghi, chỉ dùng làm **schema
 tham chiếu**, chưa xác nhận IP ↔ OPMS ↔ POP. Không tự ghép bản ghi vào POP
-đang mở. Tắt Payload tham chiếu chỉ hiển thị binding đã xác nhận rõ ràng.
+đang mở. `useBoundSource()` chỉ hiển thị binding đã xác nhận rõ ràng.
 Không dùng số trong ảnh để điền giả, không lưu cookie/headers.
 
 Đây là **bản ghi đã thu, không trực tiếp**. Chọn mới nhất theo cmd và ts, không
@@ -35,6 +37,13 @@ trang làm giờ đo. firstUpdated=1 trong cấu hình không phải timestamp.
 
 ## UX
 
+- SmartPOP dùng native details/summary, mặc định đóng mỗi lần mở POP khác;
+  giữ trạng thái khi cập nhật inventory cùng POP. Thu gọn đóng cả hai popup,
+  khôi phục cuộn nền và trả focus về tiêu đề đang hiển thị. Không đổi số đo,
+  màu, bộ lọc hay hành vi mở popup từ các thẻ bên trong.
+- Bỏ ghi chú metadata “5 trường giả lập…” dưới địa chỉ và hướng dẫn “Chọn
+  thiết bị để mở trang chi tiết”. Các trường mẫu vẫn có data-demo/tooltip,
+  không sửa nguồn inventory hay thay thế giá trị thật.
 - Dải thống kê 4 mức có chữ/ký hiệu ngoài màu. Đếm từ alarm_code: 0/1/2 được
   xác nhận bằng tiền tố message trong capture; mã khác → Chưa xác định.
 - Hàng thống kê và hàng bốn nhóm dùng chung biến grid: desktop 4 cột bằng
@@ -68,8 +77,17 @@ trang làm giờ đo. firstUpdated=1 trong cấu hình không phải timestamp.
   cùng bên phải. T1–T2 ở hàng trên, T3–T4 ở hàng dưới (2×2); quạt bốn dòng
   ngắn với icon/tên/RPS/% trên cùng dòng, môi trường/hạ tầng được thu gọn. Tablet
   hai cột, mobile một cột. Trang chính không dựng sẵn bảng ngoại vi: nhấn
-  CAC/PIN1/PIN2 để mở native dialog 840px, cùng phong cách popup cảnh báo.
+  CAC/PIN1/PIN2 để mở native dialog compact 560px, cùng phong cách popup cảnh báo.
+  Trong popup có thẻ của toàn bộ ngoại vi cấu hình: mở đúng thẻ được bấm ở
+  layer ngoài; đổi CAC/PIN1/PIN2 ngay trong cùng popup. Đổi thiết bị reset
+  nhóm về Tổng quan, xóa query và về trang đầu, không đổi nguồn dữ liệu.
+  Thẻ có tên/model, highlight đang chọn, hỗ trợ bàn phím; nhiều thẻ cuộn
+  ngang thay vì kéo cao popup. Đóng vẫn trả focus về thẻ layer ngoài ban đầu.
   Popup giữ chọn nhóm, tìm kiếm và phân trang 25 dòng; đơn vị ghép cạnh số.
+  Chữ bảng 13px, padding hàng 7px; trạng thái Cần xác minh đặt cạnh giá trị
+  trên desktop, xuống dòng trên mobile. Bỏ nhãn tiêu đề phụ/tên-model lặp,
+  chiều cao theo số dòng và cuộn bên trong khi nhiều thông số. Touch target
+  giữ tối thiểu 44px trên thiết bị cảm ứng; không thu font để ép diện tích.
   Đóng bằng ×/Esc/backdrop, trả focus về thẻ mở; đổi nguồn/POP/điều hướng
   đóng và xóa nội dung cũ. Hai popup dùng chung scroll-lock để xử lý đúng
   cả khi sự kiện close bị trình duyệt xếp hàng. Không đổi số đo/trạng thái.
@@ -123,6 +141,12 @@ Không tuyên bố chứng nhận đầy đủ WCAG.
 - shared/smartpop-overview.js: tổng quan/cảnh báo/giá trị chỉ đọc.
 - shared/smartpop-alarm-dialog.js: popup mức cảnh báo, search/paging, focus/scroll.
 - shared/smartpop-workspace.js + .css: tương tác và binding vào Layer 1.
+
+Kiểm tra nguồn tham chiếu qua API local (không có bộ chọn nguồn trên UI):
+`NETAUTO_SMARTPOP.selectReference('capture:172.18.86.217')` hoặc
+`selectReference('opms835:835')` / `opms1097:1097` / `opms2035:2035`.
+`useBoundSource()` trở về binding đã xác nhận. Các API này không phát sinh
+network và không tự xác nhận ánh xạ POP.
 
 Sau xác thực/phân quyền và xác nhận ánh xạ POP ↔ OPMS ↔ IP:
 

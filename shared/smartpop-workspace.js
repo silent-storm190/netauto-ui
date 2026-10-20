@@ -1,11 +1,11 @@
 /* SmartPOP read-only configuration and recorded telemetry. No network/control commands. */
 (()=>{
   'use strict';
-  const M=window.NETAUTO_SMARTPOP_MODEL,fixtures=window.NETAUTO_SMARTPOP_CONFIG_RESPONSES||{},get=id=>document.getElementById(id),host=get('detailPiSignals'),dialog=get('smartpopPeripheralDialog'),dialogContent=get('smartpopPeripheralContent');
+  const M=window.NETAUTO_SMARTPOP_MODEL,fixtures=window.NETAUTO_SMARTPOP_CONFIG_RESPONSES||{},get=id=>document.getElementById(id),host=get('detailPiSignals'),dialog=get('smartpopPeripheralDialog'),dialogContent=get('smartpopPeripheralContent'),disclosure=get('smartpopDisclosure');
   const esc=v=>String(v==null||v===''?'—':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const kinds={battery:'Ắc quy',cooling:'Điều hòa tủ',energy:'Công tơ điện',other:'Ngoại vi'};
   const T=window.NETAUTO_SMARTPOP_TELEMETRY,P=window.NETAUTO_SMARTPOP_PRESENTATION;
-  const samples=[],bound=new Map();let sampleError='',pop=null,state=fresh(),popupRecord=null,popupTrigger=null,popupLocked=false;
+  const samples=[],bound=new Map();let sampleError='',pop=null,reference=true,state=fresh(),popupRecord=null,popupTrigger=null,popupLocked=false;
   function fresh(){return {sample:'',device:null,group:'overview',query:'',page:0};}
   for(const [key,payload] of Object.entries(fixtures)){try{for(const record of M.parse(payload))samples.push({key:key+':'+record.opmsId,record});}catch(err){sampleError=err.message;}}
   if(T&&P&&window.NETAUTO_SMARTPOP_CAPTURE){try{
@@ -13,12 +13,10 @@
     if(!schema||!capture.devices.every(d=>schema.devices.some(x=>String(x.id)===String(d.id)&&x.model===d.model&&x.name===d.name&&x.registers.length===d.regs.length)))throw new Error('Runtime không khớp định nghĩa ngoại vi.');
     samples.unshift({key:'capture:'+capture.ip,record:{...schema,capture}});
   }catch(err){sampleError=err.message;}}
-  function configuration(){return get('detailPiDemo').checked?(samples.find(s=>s.key===state.sample)||samples[0])?.record:bound.get(pop?.code);}
+  function configuration(){return reference?(samples.find(s=>s.key===state.sample)||samples[0])?.record:bound.get(pop?.code);}
   function currentDevice(record){return record.devices.find(d=>d.key===state.device)||record.devices.find(d=>d.kind==='battery')||record.devices[0];}
   function tooltip(reg){return esc(reg.code+' · '+String(reg.source.rdescription||'')+' · addr='+reg.source.addr+' · func='+reg.source.func+' · runit='+reg.source.runit);}
   function groupOptions(device){const keys=new Set(device.registers.map(r=>r.group));return ['overview',...Object.keys(M.groupLabels).filter(k=>keys.has(k)),'all'].map(k=>`<option value="${k}"${state.group===k?' selected':''}>${esc(M.groupLabels[k])}</option>`).join('');}
-  function sourceToolbar(record){const reference=get('detailPiDemo').checked;return `<div class="sp-source-bar"><div><span class="sp-source-tag">${record?.capture?'Bản ghi đã thu · không trực tiếp':reference?'Payload tham chiếu':'Cấu hình đã ghép POP'}</span>${record?`<b title="${record.capture?'gateway.network.IP':'opmsId'}">${record.capture?'IP '+esc(record.capture.ip):'OPMS '+esc(record.opmsId)}</b><span class="sp-muted" title="id">${record.capture?'Định nghĩa tham chiếu OPMS ':'Cấu hình '}${esc(record.capture?record.opmsId:record.id)}</span>`:''}</div>${reference?`<label class="sp-case-label">Nguồn dữ liệu<select data-sp-case aria-label="Chọn payload cấu hình SmartPOP">${samples.map(s=>`<option value="${esc(s.key)}"${configuration()===s.record?' selected':''}>${s.record.capture?'Bản ghi '+esc(s.record.capture.ip)+' · số đo & cảnh báo':'OPMS '+esc(s.record.opmsId)+' · cấu hình · '+s.record.devices.length+' ngoại vi'}</option>`).join('')}</select></label>`:''}</div>`;}
-  function readiness(record){if(record?.capture)return `<div class="sp-readiness sp-captured" role="status" aria-live="polite"><span class="sp-status-symbol" aria-hidden="true">◷</span><div><b>Dữ liệu thực tế đã ghi lại</b><p>${record.capture.devices.length} ngoại vi · ${record.capture.alarms.length} dịch vụ backend. Các nhóm có thời điểm báo cáo riêng; không phải kết nối trực tiếp.</p></div><span class="sp-updated">Bản tin mới nhất: ${esc(T.formatTime(record.capture.ts))}</span></div>`;return `<div class="sp-readiness" role="status" aria-live="polite"><span class="sp-status-symbol" aria-hidden="true">○</span><div><b>Chưa có dữ liệu đo</b><p>${record?`${record.devices.length} ngoại vi · ${record.registerCount} định nghĩa thanh ghi. Payload chưa có giá trị, cảnh báo hoặc thời gian đo.`:'Chưa có cấu hình SmartPOP được ghép với POP này.'}</p></div><span class="sp-updated">Cập nhật: —</span></div>`;}
   function peripheralTabs(record,active){
     return `<div class="sp-peripheral-tabs" role="group" aria-label="Chọn ngoại vi trong popup">${record.devices.map(d=>`<button type="button" class="sp-peripheral-option" data-sp-peripheral-device="${esc(d.key)}" data-sp-kind="${esc(d.kind)}" aria-pressed="${d.key===active.key}" aria-controls="smartpopPeripheralValues" title="${esc(d.name+' · '+d.model)}"><b>${esc(d.name)}</b><small>${esc(kinds[d.kind])} · ${esc(d.model)}</small></button>`).join('')}</div>`;
   }
@@ -37,12 +35,12 @@
   }
   function render(){
     window.NETAUTO_SMARTPOP_ALARMS?.close();closePeripheral();
-    if(!pop)return;const record=configuration(),reference=get('detailPiDemo').checked;
-    if(!record){host.innerHTML=sourceToolbar(null)+readiness(null)+`<div class="sp-empty">${sampleError?esc(sampleError):'Bật “Payload tham chiếu” để xem cấu hình đã cung cấp. Chưa có dữ liệu SmartPOP của '+esc(pop.code)+'.'}</div>`;return;}
+    if(!pop)return;const record=configuration();
+    if(!record){host.innerHTML=`<div class="sp-empty">${sampleError?esc(sampleError):'Chưa có cấu hình SmartPOP được ghép với POP này.'}</div>`;return;}
     const device=currentDevice(record);state.device=device?.key??null;
     const navigation=peripherals(record,device,!!record.capture);
-    host.innerHTML=sourceToolbar(record)+(reference?`<p class="sp-source-note">${record.capture?'Bản ghi từ IP '+esc(record.capture.ip)+', dùng cấu hình khớp ngoại vi làm định nghĩa tham chiếu. Chưa xác nhận ánh xạ với POP '+esc(pop.code)+'.':'Chưa có ánh xạ OPMS này với POP '+esc(pop.code)+'. Không dùng payload tham chiếu làm dữ liệu của POP đang mở.'}</p>`:'')+readiness(record)
-      +(record.capture?P.overview(record.capture,navigation):'<div class="sp-config-peripherals">'+navigation+'</div>');
+    const sourceTitle=record.capture?(reference?'Bản ghi đã thu · không trực tiếp · chưa xác nhận ánh xạ với POP '+pop.code:'Bản ghi đã ghép POP '+pop.code)+' · IP '+record.capture.ip:'';
+    host.innerHTML=record.capture?P.overview(record.capture,navigation,sourceTitle):'<div class="sp-config-peripherals">'+navigation+'</div>';
   }
   function renderPeripheral(){
     if(!popupRecord||!dialogContent)return;
@@ -54,7 +52,8 @@
     if(popupLocked){window.NETAUTO_SMARTPOP_MODAL_SCROLL?.unlock(dialog);popupLocked=false;}
     const back=popupTrigger;popupTrigger=null;popupRecord=null;if(dialogContent)dialogContent.innerHTML='';
     back?.setAttribute?.('aria-expanded','false');
-    if(back?.isConnected!==false)back?.focus?.({preventScroll:true});
+    if(disclosure&&!disclosure.open)get('smartpopDisclosureSummary')?.focus?.({preventScroll:true});
+    else if(back?.isConnected!==false)back?.focus?.({preventScroll:true});
   }
   function openPeripheral(key,button){
     const record=configuration(),device=record?.devices.find(d=>d.key===key);
@@ -66,9 +65,8 @@
     const selected=dialogContent.querySelector('[data-sp-peripheral-device][aria-pressed="true"]');selected?.focus({preventScroll:true});selected?.scrollIntoView?.({block:'nearest',inline:'nearest'});return true;
   }
   function resetDevice(){state.device=null;state.group='overview';state.query='';state.page=0;}
-  host.addEventListener('change',event=>{
-    if(event.target.dataset.spCase===undefined||!samples.some(s=>s.key===event.target.value))return;
-    state.sample=event.target.value;resetDevice();render();
+  disclosure?.addEventListener('toggle',()=>{
+    if(!disclosure.open){window.NETAUTO_SMARTPOP_ALARMS?.close();closePeripheral();}
   });
   host.addEventListener('click',event=>{
     const b=event.target.closest('button');if(!b||b.disabled)return;
@@ -97,16 +95,18 @@
     window.addEventListener?.('hashchange',closePeripheral);window.addEventListener?.('popstate',closePeripheral);
   }
   window.NETAUTO_SMARTPOP={
-    open(currentPop){pop=currentPop;state=fresh();get('detailPiDemo').checked=!bound.has(pop.code);render();},render,closePeripheral,
-    loadConfiguration(popCode,payload,opmsId){try{if(typeof popCode!=='string'||!popCode.trim())throw new Error('Cần POP đích rõ ràng.');const records=M.parse(payload),matches=records.filter(r=>opmsId==null||String(r.opmsId)===String(opmsId));if(matches.length!==1)throw new Error('Cần chọn đúng một opmsId để ghép POP.');bound.set(popCode,matches[0]);if(pop?.code===popCode){get('detailPiDemo').checked=false;resetDevice();render();}return {ok:true};}catch(err){return {ok:false,message:err.message};}},
+    open(currentPop){pop=currentPop;state=fresh();reference=!bound.has(pop.code);if(disclosure)disclosure.open=false;render();},render,closePeripheral,
+    selectReference(key){if(!samples.some(s=>s.key===key))return false;reference=true;state.sample=key;resetDevice();render();return true;},
+    useBoundSource(){reference=false;resetDevice();render();},
+    loadConfiguration(popCode,payload,opmsId){try{if(typeof popCode!=='string'||!popCode.trim())throw new Error('Cần POP đích rõ ràng.');const records=M.parse(payload),matches=records.filter(r=>opmsId==null||String(r.opmsId)===String(opmsId));if(matches.length!==1)throw new Error('Cần chọn đúng một opmsId để ghép POP.');bound.set(popCode,matches[0]);if(pop?.code===popCode){reference=false;resetDevice();render();}return {ok:true};}catch(err){return {ok:false,message:err.message};}},
     loadSnapshot(popCode,payload,expectedIP){try{
       if(!T||!P)throw new Error('Chưa nạp adapter telemetry.');
       if(typeof popCode!=='string'||!popCode.trim()||typeof expectedIP!=='string'||!expectedIP.trim())throw new Error('Cần POP và IP đích đã xác nhận.');
       const record=bound.get(popCode);if(!record)throw new Error('Cần ghép cấu hình cho POP trước.');
       const capture=T.parse(payload);if(capture.ip!==expectedIP)throw new Error('IP bản ghi không khớp IP đích.');
       if(!capture.devices.every(d=>record.devices.some(x=>String(x.id)===String(d.id)&&x.model===d.model&&x.name===d.name&&x.registers.length===d.regs.length)))throw new Error('Runtime không khớp định nghĩa ngoại vi.');
-      bound.set(popCode,{...record,capture});if(pop?.code===popCode){get('detailPiDemo').checked=false;render();}return {ok:true};
+      bound.set(popCode,{...record,capture});if(pop?.code===popCode){reference=false;render();}return {ok:true};
     }catch(err){return {ok:false,message:err.message};}},
-    getView(){return {popCode:pop?.code,reference:get('detailPiDemo').checked,opmsId:configuration()?.opmsId,device:state.device,group:state.group,query:state.query,page:state.page,peripheralOpen:!!dialog?.open,snapshot:!!configuration()?.capture,sourceIP:configuration()?.capture?.ip};}
+    getView(){return {popCode:pop?.code,reference,expanded:!!disclosure?.open,opmsId:configuration()?.opmsId,device:state.device,group:state.group,query:state.query,page:state.page,peripheralOpen:!!dialog?.open,snapshot:!!configuration()?.capture,sourceIP:configuration()?.capture?.ip};}
   };
 })();
