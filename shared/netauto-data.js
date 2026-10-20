@@ -12,6 +12,7 @@ window.NETAUTO_DATA = {
     switchce:{title:"SwitchCE Initialize",mark:"▤",kicker:"Configuration workflow",description:"Khởi tạo hoặc thay thế Switch CE, hỗ trợ cutover và rollback.",base:"switchCE_init"},
     bandwidth:{title:"Bandwidth Upgrade",mark:"↗",kicker:"Configuration workflow",description:"Mở rộng aggregate port và đồng bộ hai đầu liên kết.",base:"bandwidth_upgrade"},
     stack:{title:"Switch Stack Join",mark:"⧉",kicker:"Configuration workflow",description:"Kiểm tra khả năng stack, chọn master/slave và join stack.",base:"switch_stack_join"},
-    power:{title:"Power Monitoring",mark:"ϟ",kicker:"Configuration workflow",description:"Cấp phát đường giám sát nguồn qua OLT và xác minh topology.",base:"power_monitoring"}
+    power:{title:"Power Monitoring",mark:"ϟ",kicker:"Configuration workflow",description:"Cấp phát đường giám sát nguồn qua OLT và xác minh topology.",base:"power_monitoring"},
+    service:{title:"Kiểm tra dịch vụ",mark:"◎",kicker:"Read-only service workspace",description:"Đối chiếu Switch CE, PON và ONU; tìm kiếm và rà soát dữ liệu khách hàng trên toàn bộ response.",base:"service_checking"}
   }
 };

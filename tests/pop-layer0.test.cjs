@@ -81,7 +81,7 @@ context.history = {
   pushState(_state, _title, url) { context.location.hash = url; },
   replaceState(_state, _title, url) { context.location.hash = url; },
 };
-for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-response.js', 'drop-point-uplink-response.js', 'netauto-pop-store.js', 'netauto-pop-reference.js', 'netauto-pop-detail.js', 'huawei-device-layouts.js', 'netauto-device-port-models.js', 'netauto-device-ports.js', 'netauto-device-detail.js', 'netauto-app.js']) {
+for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-response.js', 'drop-point-uplink-response.js', 'netauto-pop-store.js', 'netauto-pop-reference.js', 'smartpop-config-responses.js', 'smartpop-model.js', 'smartpop-capture.js', 'smartpop-telemetry.js', 'smartpop-overview.js', 'smartpop-alarm-dialog.js', 'smartpop-workspace.js', 'netauto-pop-detail.js', 'huawei-device-layouts.js', 'netauto-device-port-models.js', 'netauto-device-ports.js', 'netauto-device-detail.js', 'netauto-app.js']) {
   let source=fs.readFileSync(path.join(mockup, 'shared', script), 'utf8');
   // Test-only access to the renderer, without adding a public hook to the app.
   if(script==='netauto-app.js')source=source.replace('  function renderDropPointResponse(', '  window.__testRenderDropPointResponse=renderDropPointResponse;\n  function renderDropPointResponse(');
@@ -500,12 +500,14 @@ assert.equal((get('detailPopFields').innerHTML.match(/<dt>/g)||[]).length,5,'All
 assert.equal((get('detailPopFields').innerHTML.match(/class="l1-pop-field"/g)||[]).length,4);
 assert(get('detailPopFields').innerHTML.includes('class="is-address"'));
 assert(!html.includes('popDrawerBackdrop'), 'Layer 1 must not use the old overlay');
-assert(get('detailPiSignals').innerHTML.includes('không phải chỉ số thực của POP AGGP006'));
+assert(get('detailPiSignals').innerHTML.includes('Chưa xác nhận ánh xạ với POP AGGP006'));
+assert(get('detailPiSource').innerHTML.includes('class="sp-controller-tag"'),'Controller name and IP are wrapped in inventory source tags');
 get('detailPiDemo').checked = false;
 get('detailPiDemo').listeners.change();
-assert(get('detailPiSignals').innerHTML.includes('Chưa có response telemetry'));
+assert(get('detailPiSignals').innerHTML.includes('Chưa có cấu hình SmartPOP được ghép với POP này'));
 get('detailPiDemo').checked = true; get('detailPiDemo').listeners.change();
-assert(get('detailPiSignals').innerHTML.includes('61'));
+assert(get('detailPiSignals').innerHTML.includes('172.18.86.217'));
+assert(get('detailPiSignals').innerHTML.includes('Dữ liệu thực tế đã ghi lại'));
 assert.equal(get('detailTopoPanel').hidden, true);
 get('detailTopoToggle').listeners.click();
 assert.equal(get('detailTopoPanel').hidden, false);
@@ -649,9 +651,12 @@ assert(!html.includes('l1-rating'));
 assert(/<section class="l1-hero"[^>]*>[\s\S]*?<\/article>\s*<\/section>\s*<section class="l1-section l1-pi"/.test(html),'Monitoring must be its own full-width section directly below POP information');
 assert(html.indexOf('id="popPiTitle"')<html.indexOf('id="popDevicesTitle"'));
 assert(get('detailDeviceGroups').innerHTML.includes('Nguồn &amp; Giám sát') || get('detailDeviceGroups').innerHTML.includes('Nguồn & Giám sát'));
-assert(get('detailPiSignals').innerHTML.indexOf('l1-pi-layout')<get('detailPiSignals').innerHTML.indexOf('l1-alert-stats'),'Alerts must live inside the same grid as the sensors');
-assert.equal((get('detailPiSignals').innerHTML.match(/<article class="l1-pi-block/g)||[]).length,4);
-console.log('PASS: photographed asset rows, no SC column, source distinction, search/pagination, 4 aligned monitoring blocks, topology zoom/toggles/selection and no invented current-POP links.');
+assert(get('detailPiSignals').innerHTML.includes('class="sp-overview-grid sp-monitor-strip"'));
+assert(!get('detailPiSignals').innerHTML.includes('sp-reading-panel'),'Peripheral readings are only rendered inside their dialog');
+assert.equal((get('detailPiSignals').innerHTML.match(/data-sp-device=/g)||[]).length,3);
+assert(get('detailPiSignals').innerHTML.includes('25 dịch vụ backend'));
+assert(!get('detailPiSignals').innerHTML.includes('1 Critical'));
+console.log('PASS: photographed asset rows, no SC column, source distinction, search/pagination, real SmartPOP capture with explicit reference source and no live/POP mapping assumptions, topology zoom/toggles/selection and no invented current-POP links.');
 openDetail('AGGP000');
 assert.deepEqual([...headerTagCounts()],[['SWITCH',1],['OLT',0],['POWER',0],['PI',0]],'Zero counts remain explicit for sparse POPs');
 assert.equal((get('detailDeviceGroups').innerHTML.match(/class="l1-device-lane"/g)||[]).length,1,'Sparse POP should not create an empty infrastructure panel');

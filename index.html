@@ -6,6 +6,7 @@
   <title>NetAuto · Portal Vận hành</title>
   <link rel="stylesheet" href="shared/netauto-shell.css">
   <link rel="stylesheet" href="shared/netauto-pop-detail.css">
+  <link rel="stylesheet" href="shared/smartpop-workspace.css">
   <link rel="stylesheet" href="shared/device-port-workspace.css">
   <link rel="stylesheet" href="shared/netauto-device-ports.css">
 </head>
@@ -92,7 +93,9 @@
               <dl class="l1-pop-fields" id="detailPopFields"></dl><p class="l1-muted l1-metadata-note" id="detailPopMetadataNote">Các trường “—” chưa có dữ liệu trong snapshot.</p>
             </article>
           </section>
-          <section class="l1-section l1-pi" aria-labelledby="popPiTitle"><header class="l1-section-header"><div><h2 id="popPiTitle">Giám sát &amp; Cảnh báo</h2><p id="detailPiSource"></p></div><label class="l1-demo-toggle"><input type="checkbox" id="detailPiDemo" checked> Mẫu tham chiếu</label></header><div id="detailPiSignals"></div></section>
+          <section class="l1-section l1-pi" aria-labelledby="popPiTitle"><header class="l1-section-header"><div><h2 id="popPiTitle">Giám sát &amp; Cảnh báo (SmartPOP)</h2><p id="detailPiSource"></p></div><label class="l1-demo-toggle"><input type="checkbox" id="detailPiDemo" checked> Payload tham chiếu</label></header><div id="detailPiSignals"></div></section>
+          <dialog id="smartpopAlarmDialog" class="sp-alarm-dialog" aria-labelledby="smartpopAlarmTitle"><header class="sp-dialog-head"><div><span class="sp-dialog-eyebrow">SMARTPOP · DỊCH VỤ BACKEND</span><h2 id="smartpopAlarmTitle">Chi tiết cảnh báo</h2></div><button type="button" class="sp-dialog-close" data-sp-alarm-close aria-label="Đóng chi tiết cảnh báo">×</button></header><div id="smartpopAlarmContent"></div></dialog>
+          <dialog id="smartpopPeripheralDialog" class="sp-peripheral-dialog" aria-labelledby="smartpopPeripheralTitle"><header class="sp-peripheral-dialog-head"><div><span class="sp-dialog-eyebrow">SMARTPOP · NGOẠI VI</span><h2 id="smartpopPeripheralTitle">Thông số ngoại vi</h2></div><button type="button" class="sp-peripheral-close" data-sp-peripheral-close aria-label="Đóng thông số ngoại vi">×</button></header><div id="smartpopPeripheralContent"></div></dialog>
           <nav class="l1-tabs" role="tablist" aria-label="Chi tiết POP"><button id="popOverviewTab" type="button" role="tab" aria-selected="true" aria-controls="popOverviewPanel" data-pop-detail-tab="overview">Tổng quan</button><button id="popMaterialsTab" type="button" role="tab" aria-selected="false" aria-controls="popMaterialsPanel" data-pop-detail-tab="materials" tabindex="-1">Quản lý vật tư</button></nav>
           <div id="popOverviewPanel" role="tabpanel" aria-labelledby="popOverviewTab">
             <section class="l1-section" aria-labelledby="popDevicesTitle"><header class="l1-section-header"><div><h2 id="popDevicesTitle">Thiết bị trong POP</h2><p>Chọn thiết bị để mở trang chi tiết.</p></div><div class="l1-device-actions"><label class="l1-search"><span aria-hidden="true">⌕</span><input id="detailDeviceSearch" type="search" placeholder="Tên thiết bị, IP, model…" aria-label="Tìm thiết bị trong POP"></label><button class="l1-topo-launch" type="button" id="detailTopoToggle" aria-haspopup="dialog" aria-expanded="false" aria-controls="popTopoDialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Topo thiết bị</span><span aria-hidden="true">↗</span></button></div></header><div class="l1-device-lanes" id="detailDeviceGroups"></div><footer class="l1-section-foot" id="detailDeviceCount"></footer></section>
@@ -216,6 +219,7 @@
             <button type="button" data-business-page="bandwidth"><span>↗</span>Bandwidth Upgrade</button>
             <button type="button" data-business-page="stack"><span>⧉</span>Switch Stack Join</button>
             <button type="button" data-business-page="power"><span>ϟ</span>Power Monitoring</button>
+            <button type="button" data-business-page="service"><span>◎</span>Kiểm tra dịch vụ</button>
           </nav>
 
           <section class="na-business-view" id="planListView" data-business-view="plans">
@@ -245,6 +249,13 @@
   <script src="shared/drop-point-uplink-response.js"></script>
   <script src="shared/netauto-pop-store.js"></script>
   <script src="shared/netauto-pop-reference.js"></script>
+  <script src="shared/smartpop-config-responses.js"></script>
+  <script src="shared/smartpop-model.js"></script>
+  <script src="shared/smartpop-capture.js"></script>
+  <script src="shared/smartpop-telemetry.js"></script>
+  <script src="shared/smartpop-overview.js"></script>
+  <script src="shared/smartpop-alarm-dialog.js"></script>
+  <script src="shared/smartpop-workspace.js"></script>
   <script src="shared/netauto-pop-detail.js"></script>
   <script src="shared/huawei-device-layouts.js"></script>
   <script src="shared/netauto-device-port-models.js"></script>

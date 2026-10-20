@@ -1,0 +1,116 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const base=path.resolve(__dirname,'../shared'),T=require(path.join(base,'smartpop-telemetry.js')),M=require(path.join(base,'smartpop-model.js'));
+const fixtures={window:{}};for(const f of ['smartpop-config-responses.js','smartpop-capture.js'])vm.runInNewContext(fs.readFileSync(path.join(base,f),'utf8'),fixtures);
+const capture=JSON.parse(JSON.stringify(fixtures.window.NETAUTO_SMARTPOP_CAPTURE)),configs=JSON.parse(JSON.stringify(fixtures.window.NETAUTO_SMARTPOP_CONFIG_RESPONSES));
+const original=JSON.stringify(capture),s=T.parse(capture),record=M.parse(configs.opms2035)[0],pin=record.devices[1],pin2=record.devices[2],cac=record.devices[0];
+assert.equal(s.accepted,20);assert.equal(s.ip,'172.18.86.217');assert.equal(s.ts,1792481938);assert.equal(s.sensorTs,1792481931);assert.equal(s.deviceTs,1792481938);assert.equal(s.alarmTs,1792481887);assert.equal(s.console,2);
+assert.deepEqual(s.counts,{normal:18,warning:6,critical:1,unknown:0});assert.equal(s.alarms.length,25);assert.equal(s.devices.length,3);
+assert.deepEqual(s.sensor.temperature,[45,36,44,44]);assert.deepEqual(s.sensor.rps_fan_pop,[61,49,49,0]);assert.equal(s.sensor.humidity[0],55);
+assert.equal(T.measurement(s,pin,pin.registers[0]).value,53.09,'Array position, NOT reg/rid=1 index');assert.equal(T.measurement(s,pin,pin.registers[6]).value,96,'Already scaled SOC');assert.equal(T.measurement(s,pin,pin.registers[2]).value,0,'Zero current is not missing');assert.equal(T.measurement(s,cac,cac.registers[7]).value,44.5,'No second application of scale 10');
+assert.equal(T.measurement(s,pin,pin.registers[12]).raw,65535);assert.equal(T.measurement(s,pin,pin.registers[12]).value,null);assert.equal(T.measurement(s,pin,pin.registers[12]).kind,'missing');
+assert.equal(T.status(s,pin),'Có dữ liệu');assert.equal(T.status(s,pin2),'Mất kết nối');assert.equal(T.measurement(s,pin2,pin2.registers[0]).value,null);
+assert.equal(T.measurement(s,cac,cac.registers[8]).kind,'suspect');assert.equal(T.measurement(s,cac,cac.registers[11]).value,120);assert.equal(T.measurement(s,cac,cac.registers[11]).kind,'suspect');assert.equal(T.measurement(s,cac,cac.registers[13]).raw,32767);assert.equal(T.measurement(s,cac,cac.registers[13]).kind,'suspect');
+assert.equal(T.serviceState(s,'07_0_OPMS_Front_Door',/FRONT_DOOR_(CLOSED|OPEN)/).value,'CLOSED');assert.equal(T.serviceState(s,'02_0_OPMS_ACC_Status',/CONTROL_MODE:\s*(AUTO|MANUAL)/).value,'AUTO');
+assert(T.formatTime(s.deviceTs).includes('14:38:58'));assert(T.formatTime(s.deviceTs).includes('20/10/2026'));assert.equal(T.formatTime(undefined),'—');
+assert.equal(T.parse({frames:[...capture.frames].reverse()}).ts,s.ts,'Out-of-order messages do not regress latest source');assert.deepEqual(T.parse({frames:[...capture.frames].reverse()}).sensor,s.sensor);
+const wire=capture.frames.map(f=>'42'+JSON.stringify(f)+'\t123\t14:39:00').join('\n')+'\n2\t1\n3\t1';assert.equal(T.parse(wire).accepted,20);
+assert.throws(()=>T.parse('2\n3'));assert.throws(()=>T.parse([['something_else',{}]]));assert.throws(()=>T.parse([['mqtt_message_response',{message:{cmd:'X',contain:{},ts:1e20}}]]));
+const shorter={...s,devices:[{...s.devices[1],regs:[1]}]};assert.equal(T.measurement(shorter,pin,pin.registers[0]).value,null);assert.equal(T.measurement({...s,devices:[]},pin,pin.registers[0]).value,null);
+const unknown=JSON.parse(JSON.stringify(capture));unknown.frames.find(f=>f[1].message.cmd==='OPMS_REPORT_ALARM')[1].message.contain.service_alarm[0].alarm_code=99;assert.equal(T.parse(unknown).counts.unknown,1);
+assert.equal(JSON.stringify(capture),original,'Source frames remain unchanged');
+// The temperature palette is an absolute visual ramp, not a health/alarm rule.
+const visualContext={window:{NETAUTO_SMARTPOP_TELEMETRY:T}};vm.runInNewContext(fs.readFileSync(path.join(base,'smartpop-overview.js'),'utf8'),visualContext);
+const temperatureValues=[20,35,36,40,44,45,55,0,255,65535,null,NaN,Infinity,'42','<img src=x onerror=bad>'];
+const temperatureHTML=visualContext.window.NETAUTO_SMARTPOP_PRESENTATION.overview({...s,sensor:{...s.sensor,temperature:temperatureValues}});
+const tiles=[...temperatureHTML.matchAll(/<div class="sp-temperature-tile"([^>]*)>([\s\S]*?)<\/div>/g)];assert.equal(tiles.length,temperatureValues.length);
+for(const [index,hue] of [[0,'148.0'],[1,'148.0'],[2,'135.4'],[3,'85.0'],[4,'34.6'],[5,'22.0'],[6,'22.0'],[7,'148.0']]){assert(tiles[index][1].includes('data-sp-temperature-tone="scaled"'));assert(tiles[index][1].includes('--sp-temperature-hue:'+hue));assert(tiles[index][2].includes('class="sp-temperature-label">T'+(index+1)));}
+for(let i=8;i<tiles.length;i++){assert(tiles[i][1].includes('data-sp-temperature-tone="unknown"'));assert(!tiles[i][1].includes('style='));assert(tiles[i][2].includes('<b>—</b>'));}assert(!temperatureHTML.includes('<img'));assert(temperatureHTML.includes('không phải ngưỡng cảnh báo'));assert.deepEqual(s.counts,{normal:18,warning:6,critical:1,unknown:0});assert.equal(JSON.stringify(capture),original);
+const visualCSS=fs.readFileSync(path.join(base,'smartpop-workspace.css'),'utf8');assert(visualCSS.includes('--sp-temperature-color:hsl(var(--sp-temperature-hue) 92% 49%)'));assert(visualCSS.includes('.sp-temperature-label{font-size:12px;font-weight:750;'));
+assert(visualCSS.includes('.sp-parameter{overflow-wrap:anywhere;text-decoration:none}'));assert(visualCSS.includes('color:hsl(var(--sp-temperature-hue) 88% 28%)'));assert(visualCSS.includes('color:hsl(var(--sp-temperature-hue) 90% 73%)'));assert(visualCSS.includes('html[data-theme=dark]'));
+const healthRule=visualCSS.match(/#popDetailPage \.sp-health-strip\{([^}]+)\}/)[1],monitorRule=visualCSS.match(/#popDetailPage \.sp-monitor-strip\{([^}]+)\}/)[1];
+for(const rule of [healthRule,monitorRule]){assert(rule.includes('grid-template-columns:var(--sp-summary-columns)'));assert(rule.includes('gap:var(--sp-summary-gap)'));}
+assert(visualCSS.includes('--sp-summary-columns:repeat(4,minmax(0,1fr));--sp-summary-gap:12px'));assert(visualCSS.includes('@media(max-width:1350px){#popDetailPage{--sp-summary-columns:repeat(2,minmax(0,1fr))}}'));assert(visualCSS.includes('@media(max-width:700px){#popDetailPage{--sp-summary-columns:minmax(0,1fr)}'));
+for(const token of ['--sp-green:#00c36a','--sp-yellow:#ffc400','--sp-red:#ff4262','--sp-cyan:#00bbee','--sp-blue:#1654ff','--sp-purple:#914dff'])assert(visualCSS.includes(token));
+function harness(){
+  const focusLog=[],events={},host={innerHTML:'',listeners:{},addEventListener(k,f){this.listeners[k]=f;},querySelector(){return {focus(){},setSelectionRange(){}};}},check={checked:true};
+  function content(){return {innerHTML:'',querySelector(selector){return {focus(){focusLog.push(selector);},setSelectionRange(){}};}};}
+  function modal(){return {open:false,deferClose:false,pending:[],listeners:{},addEventListener(k,f){this.listeners[k]=f;},showModal(){this.open=true;},close(){this.open=false;if(this.deferClose)this.pending.push(this.listeners.close);else this.listeners.close?.();},flush(){for(const f of this.pending.splice(0))f();},getBoundingClientRect(){return {left:100,right:1100,top:100,bottom:800};}};}
+  const alarmContent=content(),dialog=modal(),peripheral=modal(),detail=content();
+  const nodes={detailPiSignals:host,detailPiDemo:check,smartpopAlarmDialog:dialog,smartpopAlarmContent:alarmContent,smartpopPeripheralDialog:peripheral,smartpopPeripheralContent:detail},body={style:{overflow:'clip'}};
+  const context={window:{NETAUTO_SMARTPOP_MODEL:M,NETAUTO_SMARTPOP_TELEMETRY:T,NETAUTO_SMARTPOP_CONFIG_RESPONSES:configs,NETAUTO_SMARTPOP_CAPTURE:capture,addEventListener(k,f){const previous=events[k];events[k]=previous?()=>{previous();f();}:f;}},document:{getElementById:id=>nodes[id],body}};
+  for(const f of ['smartpop-overview.js','smartpop-alarm-dialog.js','smartpop-workspace.js'])vm.runInNewContext(fs.readFileSync(path.join(base,f),'utf8'),context);
+  return {api:context.window.NETAUTO_SMARTPOP,alarms:context.window.NETAUTO_SMARTPOP_ALARMS,html:()=>host.innerHTML+detail.innerHTML,mainHTML:()=>host.innerHTML,detailHTML:()=>detail.innerHTML,modalHTML:()=>alarmContent.innerHTML,check,dialog,peripheral,body,events,focusLog,
+    change(dataset,value){(dataset.spGroup!==undefined?peripheral:host).listeners.change({target:{dataset,value}});},
+    input(value){peripheral.listeners.input({target:{dataset:{spSearch:''},value,selectionStart:value.length}});},
+    click(dataset){const button={dataset,attrs:{},disabled:false,isConnected:true,setAttribute(k,v){this.attrs[k]=v;},focus(){focusLog.push('trigger');}};(dataset.spPage!==undefined?peripheral:host).listeners.click({target:{closest:()=>button}});return button;},
+    peripheralClick(dataset){peripheral.listeners.click({target:{closest:()=>({dataset,disabled:false})}});},
+    alarmClick(dataset){dialog.listeners.click({target:{closest:()=>({dataset,disabled:false})}});},
+    alarmSearch(value){dialog.listeners.input({target:{dataset:{spAlarmSearch:''},value,selectionStart:value.length}});}
+  };
+}
+const ui=harness();ui.api.open({code:'POP-A'});assert.equal(ui.api.getView().snapshot,true);assert.equal(ui.api.getView().sourceIP,'172.18.86.217');assert(ui.html().includes('Bản ghi đã thu · không trực tiếp'));assert(ui.html().includes('Chưa xác nhận ánh xạ với POP POP-A'));assert(!ui.mainHTML().includes('sp-reading-panel'));assert(!ui.mainHTML().includes('data-sp-register='));assert.equal(ui.api.getView().peripheralOpen,false);assert(ui.html().includes('Nghiêm trọng'));assert(ui.html().includes('>18</b>'));assert(ui.html().includes('>6</b>'));assert(ui.html().includes('>1</b>'));assert(!ui.html().includes('OSN/VISION/COSLIGHT'),'Alarm detail is not rendered on the main page');assert(!ui.html().includes('sp-alarm-panel'));assert.equal((ui.html().match(/data-sp-alarm-open=/g)||[]).length,4);assert(ui.html().includes('sp-section-icon'));assert(ui.html().includes('<svg'));assert(ui.html().includes('Dòng sạc')===false,'Overview intentionally stays compact');assert(!ui.html().includes('Thông tin kỹ thuật cảm biến'));assert(!ui.html().includes('Chi tiết Modbus'));const stripStart=ui.html().indexOf('class="sp-overview-grid sp-monitor-strip"'),peripheralStart=ui.html().indexOf('class="sp-peripherals sp-overview-card sp-peripheral-card"');assert(stripStart>=0&&peripheralStart>stripStart);assert(ui.html().indexOf('sp-facilities',stripStart)<peripheralStart);assert.equal((ui.html().match(/aria-label="Thiết bị ngoại vi đã cấu hình"/g)||[]).length,1);
+// Cards launch the matching category; no default alarm table is present.
+assert(!ui.mainHTML().includes('sp-stat-open'));assert(!ui.mainHTML().includes('sp-device-open'));assert(!ui.mainHTML().includes('↗'));assert(ui.mainHTML().includes('data-sp-state="normal"'));assert(ui.mainHTML().includes('data-sp-state="muted"'));assert(ui.mainHTML().includes('data-sp-state="info"'));
+assert.equal(ui.alarms.getView().open,false);assert.equal(ui.modalHTML(),'');
+ui.click({spAlarmOpen:'warning'});assert.equal(ui.alarms.getView().open,true);assert.equal(ui.alarms.getView().level,'warning');assert.equal(ui.alarms.getView().total,6);assert.equal(ui.body.style.overflow,'hidden');assert(ui.modalHTML().includes('OSN/VISION/COSLIGHT'));assert.equal((ui.modalHTML().match(/<tr class="sp-tone-warning"/g)||[]).length,6);
+ui.alarmClick({spAlarmLevel:'critical'});assert.equal(ui.alarms.getView().total,1);assert(ui.modalHTML().includes('Charging_Over_Current'));assert.equal((ui.modalHTML().match(/<tr class="sp-tone-critical"/g)||[]).length,1);
+ui.alarmClick({spAlarmLevel:'normal'});assert.equal(ui.alarms.getView().total,18);assert.equal((ui.modalHTML().match(/<tr class="sp-tone-normal"/g)||[]).length,10);ui.alarmClick({spAlarmPage:'1'});assert.equal(ui.alarms.getView().page,1);assert.equal((ui.modalHTML().match(/<tr class="sp-tone-normal"/g)||[]).length,8);
+ui.alarmSearch('CPU');assert.equal(ui.alarms.getView().page,0);assert.equal(ui.alarms.getView().total,1);assert(ui.modalHTML().includes('CPU:9%'));ui.alarmSearch('');ui.alarmClick({spAlarmLevel:'unknown'});assert.equal(ui.alarms.getView().total,0);assert(ui.modalHTML().includes('Không có dịch vụ trong nhóm này.'));
+let prevented=false;ui.dialog.listeners.cancel({preventDefault(){prevented=true;}});assert(prevented);assert.equal(ui.alarms.getView().open,false);assert.equal(ui.body.style.overflow,'clip');assert.equal(ui.focusLog.at(-1),'trigger');assert.equal(ui.modalHTML(),'','Closed dialog releases stale source and contents');
+ui.click({spAlarmOpen:'normal'});ui.dialog.listeners.click({target:ui.dialog,clientX:500,clientY:500});assert(ui.dialog.open,'Dialog whitespace is not a backdrop click');ui.dialog.listeners.click({target:ui.dialog,clientX:5,clientY:5});assert.equal(ui.dialog.open,false);assert.equal(ui.body.style.overflow,'clip');
+ui.click({spAlarmOpen:'critical'});ui.alarmClick({spAlarmClose:''});assert.equal(ui.dialog.open,false);
+ui.click({spAlarmOpen:'warning'});ui.events.hashchange();assert.equal(ui.dialog.open,false,'Navigation closes modal');
+ui.click({spAlarmOpen:'critical'});
+ui.click({spDevice:'0'});assert.equal(ui.dialog.open,false,'Workspace re-render resets the dialog');assert(ui.html().includes('44.5'));assert(ui.html().includes('Cần xác minh'));ui.change({spGroup:''},'main');assert(ui.html().includes('32767'));assert(ui.html().includes('>120 <span class="sp-inline-unit"'));assert(!ui.html().includes('sp-technical'));
+const valuesTable=ui.html().match(/<table class="sp-table sp-values">([\s\S]*?)<\/table>/)[1];assert.equal((valuesTable.match(/scope="col"/g)||[]).length,2);assert(!valuesTable.includes('>Đơn vị<'));assert(!valuesTable.includes('sp-unit-col'));assert(valuesTable.includes('>44.5 <span class="sp-inline-unit" title="runit: *C">°C</span>'));assert(valuesTable.includes('>120 <span class="sp-inline-unit" title="runit: %">%</span><small class="sp-quality-tag">Cần xác minh</small>'));assert(valuesTable.includes('>32767 <span class="sp-inline-unit" title="runit: mA">mA</span>'));assert(!valuesTable.includes('runit: NA">—</span>'),'Unitless states do not receive a phantom unit');
+ui.click({spDevice:'2'});assert(ui.html().includes('Mất kết nối'));assert.equal((ui.html().match(/aria-label="Chưa có giá trị đo"/g)||[]).length,6);
+// Peripheral details open only on demand and retain all browsing tools.
+assert(ui.api.getView().peripheralOpen);assert(!ui.mainHTML().includes('data-sp-register='));assert(ui.detailHTML().includes('data-sp-peripheral-device="2" data-sp-kind="battery" aria-pressed="true"'));
+const isSelected=(key,kind)=>ui.detailHTML().includes('data-sp-peripheral-device="'+key+'" data-sp-kind="'+kind+'" aria-pressed="true"');
+assert.equal((ui.detailHTML().match(/data-sp-peripheral-device=/g)||[]).length,3);
+ui.peripheralClick({spPeripheralDevice:'1'});assert(ui.peripheral.open);assert.equal(ui.api.getView().device,'1');assert(isSelected('1','battery'));assert(ui.detailHTML().includes('>53.09 <span'));
+ui.change({spGroup:''},'all');ui.input('dien ap tong');assert.equal((ui.detailHTML().match(/data-sp-register=/g)||[]).length,1);
+ui.peripheralClick({spPeripheralDevice:'0'});assert(ui.peripheral.open);assert.equal(ui.api.getView().query,'');assert.equal(ui.api.getView().group,'overview');assert.equal(ui.api.getView().page,0);assert(isSelected('0','cooling'));assert(ui.detailHTML().includes('>44.5 <span'));
+ui.peripheralClick({spPeripheralDevice:'2'});assert(isSelected('2','battery'));assert.equal((ui.detailHTML().match(/aria-label="Chưa có giá trị đo"/g)||[]).length,6);
+ui.peripheralClick({spPeripheralDevice:'invalid'});assert.equal(ui.api.getView().device,'2','Invalid device option does not replace selected data');
+ui.api.closePeripheral();assert.equal(ui.api.getView().peripheralOpen,false);assert.equal(ui.detailHTML(),'');assert.equal(ui.body.style.overflow,'clip');
+const launcher=ui.click({spDevice:'1'});assert.equal(launcher.attrs['aria-expanded'],'true');assert(ui.detailHTML().includes('>53.09 <span'));assert(ui.detailHTML().includes('Bản')===false,'Device readings preserve the existing concise header');
+ui.change({spGroup:''},'all');assert.equal((ui.detailHTML().match(/data-sp-register=/g)||[]).length,25);ui.click({spPage:'1'});assert.equal(ui.api.getView().page,1);ui.click({spPage:'1'});assert.equal((ui.detailHTML().match(/data-sp-register=/g)||[]).length,16);
+ui.input('dien ap tong');assert.equal(ui.api.getView().page,0);assert.equal((ui.detailHTML().match(/data-sp-register=/g)||[]).length,1);ui.input('does not match');assert(ui.detailHTML().includes('Không có thông số khớp.'));
+let peripheralEscape=false;ui.peripheral.listeners.cancel({preventDefault(){peripheralEscape=true;}});assert(peripheralEscape);assert.equal(ui.api.getView().peripheralOpen,false);assert.equal(launcher.attrs['aria-expanded'],'false');assert.equal(ui.body.style.overflow,'clip');assert.equal(ui.focusLog.at(-1),'trigger');
+ui.click({spDevice:'0'});assert.equal(ui.api.getView().query,'');assert.equal(ui.api.getView().group,'overview');ui.peripheral.listeners.click({target:ui.peripheral,clientX:500,clientY:500});assert(ui.peripheral.open);ui.peripheral.listeners.click({target:ui.peripheral,clientX:1,clientY:1});assert(!ui.peripheral.open);assert.equal(ui.detailHTML(),'');
+ui.click({spDevice:'0'});ui.peripheralClick({spPeripheralClose:''});assert(!ui.peripheral.open);ui.click({spDevice:'1'});ui.events.hashchange();assert(!ui.peripheral.open);assert.equal(ui.body.style.overflow,'clip');
+// A queued native close callback must not unlock a newly opened other dialog.
+ui.click({spDevice:'1'});ui.peripheral.deferClose=true;ui.click({spAlarmOpen:'critical'});assert(ui.dialog.open);assert(!ui.peripheral.open);ui.peripheral.flush();assert.equal(ui.body.style.overflow,'hidden');ui.alarms.close();assert.equal(ui.body.style.overflow,'clip');ui.peripheral.deferClose=false;
+ui.click({spDevice:'1'});
+ui.change({spCase:''},'opms835:835');assert.equal(ui.api.getView().snapshot,false);assert(ui.html().includes('Chưa có dữ liệu đo'));assert(!ui.html().includes('sp-health-strip'));assert(!ui.peripheral.open);assert.equal(ui.detailHTML(),'');assert(!ui.html().includes('>53.09 <span class="sp-inline-unit"'));
+assert.equal(ui.api.loadSnapshot('POP-A',capture,'172.18.86.217').ok,false,'Explicit bound config is required');assert.equal(ui.api.loadConfiguration('POP-A',configs.opms2035,2035).ok,true);assert.equal(ui.api.loadSnapshot('POP-A',capture,'wrongIP').ok,false);assert.equal(ui.api.getView().snapshot,false);assert.equal(ui.api.loadSnapshot('POP-A',capture,'172.18.86.217').ok,true);assert.equal(ui.api.getView().reference,false);assert.equal(ui.api.getView().snapshot,true);assert.equal(ui.api.loadSnapshot('POP-A','bad','172.18.86.217').ok,false);assert.equal(ui.api.getView().snapshot,true,'Invalid update preserves bound snapshot');
+ui.api.open({code:'POP-B'});ui.check.checked=false;ui.api.render();assert(ui.html().includes('Chưa có cấu hình'));assert(!ui.html().includes('>53.09 <span class="sp-inline-unit"'));ui.api.open({code:'POP-A'});assert.equal(ui.api.getView().reference,false);ui.click({spDevice:'1'});assert(ui.detailHTML().includes('>53.09 <span class="sp-inline-unit"'));
+ui.api.loadConfiguration('POP-C',configs.opms835,835);assert.equal(ui.api.loadSnapshot('POP-C',capture,'172.18.86.217').ok,false,'Swapped PIN1/PIN2 names cannot be silently attached');
+const injected=JSON.parse(JSON.stringify(capture));const alarm=injected.frames.find(f=>f[1].message.cmd==='OPMS_REPORT_ALARM')[1].message;alarm.contain.service_alarm[0].msg='<img src=x onerror=alert(1)>';alarm.contain.service_alarm[0].name='" onclick="evil';const info=injected.frames.filter(f=>f[1].message.cmd==='OPMS_REPORT_INFO_POP').at(-1)[1].message;info.contain.informations.gateway.hw_version='<script>alert(1)</script>';
+assert.equal(ui.api.loadSnapshot('POP-A',injected,'172.18.86.217').ok,true);assert(ui.html().includes('&lt;script&gt;'));ui.click({spAlarmOpen:'normal'});assert(ui.modalHTML().includes('&lt;img'));assert(!ui.modalHTML().includes('<img'));assert(ui.modalHTML().includes('&quot; onclick=&quot;'));ui.alarms.close();assert(!ui.html().includes('<img'));assert(!ui.html().includes('<script>'));
+const source=['smartpop-telemetry.js','smartpop-overview.js','smartpop-alarm-dialog.js','smartpop-workspace.js'].map(f=>fs.readFileSync(path.join(base,f),'utf8')).join('\n');assert(!/fetch\(|XMLHttpRequest|new WebSocket|setInterval\(|localStorage/.test(source));assert(!/data-sp-control|data-sp-command/.test(source));
+const html=fs.readFileSync(path.resolve(base,'../index.html'),'utf8');for(const f of ['smartpop-capture.js','smartpop-telemetry.js','smartpop-overview.js','smartpop-alarm-dialog.js'])assert(html.indexOf(f)>0&&html.indexOf(f)<html.indexOf('smartpop-workspace.js'));
+console.log('PASS: 20 real Socket.IO frames, latest-per-source snapshots, 18/6/1 alarms, exact device/register-order joins, pre-scaled values, zero preservation, sentinel/suspect readings and per-source Vietnam timestamps.');
+console.log('PASS: capture-first integrated UI, config-only fallback, peripheral/group switching, source discrepancies, explicit IP/POP binding, rejected mismatches, context isolation/XSS, no live/control traffic.');
+
+
+console.log('PASS: card-to-dialog category selection, 18/6/1/0 tabs, 10-row paging/search, raw message safety, Escape/close/backdrop/history, scroll restoration/focus return, no inline alarm list and context reset.');
+console.log('PASS: two-column readings table with inline °C/%/mA units, muted unit styling/source tooltip, separate quality badges and unitless status preservation.');
+
+
+console.log('PASS: compact four-group monitoring strip, peripherals after infrastructure, no inline readings panel, no raw sensor or Modbus disclosures.');
+console.log('PASS: green-to-orange temperature ramp, fixed display range/clamping, 12px bold T1–T4 labels, neutral invalid/sentinel values, zero/XSS safety and unchanged backend alarms.');
+
+
+console.log('PASS: peripheral on-demand modal, all device/group/search/page tools, close/Escape/backdrop/history/focus, shared scroll lock across queued close events, no inline readings and source/POP isolation.');
+console.log('PASS: shared equal-width 4/2/1-column grids and 12px gaps, no launch arrows, fresh scoped SmartPOP palette, unchanged card launch actions and backend classifications.');
+
+
+const compactCSS=fs.readFileSync(path.join(base,'smartpop-workspace.css'),'utf8');
+assert(compactCSS.includes('width:min(560px,calc(100vw - 32px))'));
+assert(compactCSS.includes('#smartpopPeripheralDialog .sp-values{font-size:13px;line-height:1.45}'));
+assert(compactCSS.includes('#smartpopPeripheralDialog .sp-values th,#smartpopPeripheralDialog .sp-values td{padding:7px 14px}'));
+assert(compactCSS.includes('#smartpopPeripheralDialog .sp-peripheral-option{min-height:44px}'));
+assert(compactCSS.includes('overflow-x:auto'));
+console.log('PASS: compact 560px peripheral dialog, 13px readable rows/touch targets, in-dialog device cards, correct external preselection, tab switch without closing, reset/search/isolation and missing PIN2 data.');

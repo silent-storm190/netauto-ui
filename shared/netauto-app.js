@@ -610,6 +610,7 @@
   }
 
   const caseFile = (workflow, state) => {
+    if (workflow === 'service') return 'service_checking/mockup.html';
     if (workflow === 'stack') return 'switch_stack_join/mockup.html';
     const prefixes = {success:'07_config_thanh_cong.html',failed:'06_config_khong_thanh_cong.html',precheck:'05_precheck_thanh_cong.html',allocated:'02_cap_phat_thanh_cong.html',created:'01_tao_ke_hoach_thanh_cong.html'};
     return `${DATA.workflows[workflow].base}/${prefixes[state] || prefixes.success}`;
@@ -618,6 +619,7 @@
   function openBusinessPage(key, state='success') {
     document.querySelectorAll('#businessSubnav button').forEach(button => button.classList.toggle('is-active', button.dataset.businessPage === key));
     const plans = key === 'plans';
+    document.getElementById('createPlanButton').hidden = key === 'service';
     document.getElementById('planListView').hidden = !plans;
     document.getElementById('workflowView').hidden = plans;
     document.querySelector('.na-content').scrollTo({top:0,behavior:'auto'});
@@ -629,7 +631,8 @@
     document.getElementById('workflowTitle').textContent = workflow.title;
     document.getElementById('workflowDescription').textContent = workflow.description;
     const select = document.getElementById('workflowCase');
-    select.disabled = key === 'stack';
+    select.disabled = key === 'stack' || key === 'service';
+    select.hidden = key === 'service';
     select.value = key === 'stack' ? 'success' : state;
     loadWorkflowFrame();
   }

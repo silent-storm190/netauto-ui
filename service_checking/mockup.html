@@ -1,7 +1,51 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Service Checking · Mockup</title><link rel="stylesheet" href="../shared/workflow.css"></head>
-<body data-workflow="Service Checking" data-target="CE504052HCMP35001HS68" data-start="2" data-phases="Khởi tạo|Thu thập|Kiểm tra dịch vụ|Đối chiếu|Hoàn tất"><div class="shell">
-<header class="topbar"><div class="brand"><i>N</i>NetAuto</div><span class="crumb">/ Kế hoạch nghiệp vụ / Service Checking</span><span class="spacer"></span><span class="badge">SVC_CHECK.021026.0925.0004</span></header>
-<main class="wrap"><div class="page-head"><div><div class="eyebrow">Operation workflow</div><h1>Kiểm tra dịch vụ thiết bị</h1><p>Gom kết quả kết nối, port, LACP và dịch vụ trước hoặc sau thay đổi.</p></div><button class="btn" data-demo="Đã xuất báo cáo mô phỏng">Xuất báo cáo</button></div>
-<section class="panel"><div class="panel-head"><div><h2>Tiến trình thực hiện</h2><p>Checklist được đánh giá trên cùng một snapshot</p></div><span class="badge">Đang kiểm tra</span></div><div class="progress"><div class="step"><div class="step-dot">1</div><b>Khởi tạo</b><span>Target</span></div><div class="step"><div class="step-dot">2</div><b>Thu thập</b><span>Inventory</span></div><div class="step"><div class="step-dot">3</div><b>Kiểm tra dịch vụ</b><span>Live check</span></div><div class="step"><div class="step-dot">4</div><b>Đối chiếu</b><span>Baseline</span></div><div class="step"><div class="step-dot">5</div><b>Hoàn tất</b><span>Report</span></div></div></section>
-<div class="layout"><div><section class="panel"><div class="panel-head"><div><h2>Đối tượng kiểm tra</h2><p>Thông tin từ inventory và trạng thái live</p></div><span class="badge">Online</span></div><div class="panel-body"><div class="summary-grid"><div class="summary"><span>Thiết bị</span><b>CE504052HCMP35001HS68</b></div><div class="summary"><span>Management IP</span><b>11.54.68.131</b></div><div class="summary"><span>Model</span><b>Huawei S6730-H48X6C</b></div></div><div class="device blue"><div class="device-head"><b>Phạm vi kiểm tra</b><span>Toàn bộ uplink</span></div><div class="chips"><span class="chip">Ping / SSH</span><span class="chip">LACP</span><span class="chip">Transceiver</span><span class="chip">Port errors</span><span class="chip">Customer impact</span></div></div></div></section><section class="panel"><div class="panel-head"><div><h2 id="phaseTitle"></h2><p id="phaseHint"></p></div></div><div class="panel-body"><div class="status-banner">✓ Không phát hiện ảnh hưởng dịch vụ nghiêm trọng</div><div class="results" id="resultList"></div><div class="actions"><button class="btn" id="backBtn">← Bước trước</button><button class="btn primary" id="runBtn">Tiếp tục</button></div></div></section></div>
-<div><section class="panel"><div class="panel-head"><div><h2>Sơ đồ kiểm tra</h2><p>Đường dịch vụ đang được đối chiếu</p></div></div><div class="topology"><div class="node"><b>DI701000HCMM00102HS64</b><span>Uplink gateway · 11.54.11.2</span></div><div class="connector"></div><div class="node amber"><b>CE504052HCMP35001HS68</b><span>Eth-Trunk9 · 4 links</span></div></div></section><section class="panel"><div class="panel-head"><h2>Nhật ký kiểm tra</h2><span class="badge">Live</span></div><div class="panel-body"><div class="run-log" id="runLog"></div></div></section></div></div></main></div><div class="toast" id="toast"></div><script src="../shared/workflow.js"></script></body></html>
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">
+  <title>Kiểm tra dịch vụ · NetAuto</title>
+  <link rel="stylesheet" href="../shared/netauto-shell.css"><link rel="stylesheet" href="service-checking.css">
+</head>
+<body class="svc-page">
+  <header class="svc-topbar"><a href="../index.html" class="svc-brand" aria-label="Về NetAuto"><span>N</span>NetAuto</a><span class="svc-breadcrumb">Vận hành <span>/</span> Kiểm tra dịch vụ</span><span class="svc-pill">Bản duyệt UI · Dữ liệu thật</span></header>
+  <main class="svc-wrap" id="serviceApp">
+    <div class="svc-page-heading"><div><small class="svc-eyebrow">SERVICE CHECKING</small><h1>Kiểm tra dịch vụ</h1><p>Kiểm tra thiết bị, rà soát PON / ONU và đối chiếu các hạng mục dịch vụ.</p></div><span class="svc-readonly">Chỉ đọc · Chưa kết nối API</span></div>
+    <section class="svc-panel svc-command" aria-labelledby="requestTitle">
+      <header class="svc-panel-head"><div><h2 id="requestTitle">Thiết bị kiểm tra</h2><p>Dùng response đã cung cấp hoặc nạp JSON từ API. Không gửi lệnh tới thiết bị.</p></div><label class="svc-file na-button">Nạp JSON<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Nạp response JSON"></label></header>
+      <form id="deviceForm" class="svc-request"><label class="svc-field"><span>IP / Tên thiết bị</span><input id="deviceInput" type="text" autocomplete="off" spellcheck="false" placeholder="Nhập IP hoặc hostname từ response mẫu"></label><label class="svc-field svc-sample"><span>Response mẫu · Format hiện tại</span><select id="sampleSelect" aria-label="Chọn response mẫu"><option value="gc16">OLT GC16 · HCMP626</option><option value="ha58">OLT HA58 · BDGP016</option><option value="hw24">Huawei HW24 · Đạt</option><option value="cv52">H3C CV52 · Đạt</option><option value="hw67">Huawei HW67 · Không đạt</option></select></label><button type="submit" class="na-button is-primary">Mở kết quả <span aria-hidden="true">→</span></button></form>
+      <p id="requestError" class="svc-error" role="alert" hidden></p>
+    </section>
+    <div id="resultEmpty" class="svc-empty" hidden><b>Chưa có kết quả kiểm tra</b><span>Chọn response mẫu hoặc nạp JSON của thiết bị.</span></div>
+    <section id="resultSection" aria-label="Kết quả kiểm tra">
+      <section class="svc-panel svc-device-panel">
+        <header class="svc-device-head"><div><div class="svc-device-label"><span id="deviceKind" class="svc-eyebrow"></span><span class="svc-pill" id="resultStatus"></span></div><h2 id="deviceName"></h2><p id="deviceMeta"></p></div><div class="svc-actions"><button id="exportJson" type="button" class="na-button">Xuất JSON gốc</button><button id="clearResult" type="button" class="na-button">Xóa kết quả</button></div></header>
+        <p id="resultMessage" class="svc-result-message"></p>
+        <div class="svc-result-summary">
+          <section class="svc-stat-section" aria-label="Thống kê"><h3>Thống kê</h3><div id="sourceStats" class="svc-source-stats"></div></section>
+          <section class="svc-options" aria-label="Phạm vi và tham số đã chạy"><h3>Phạm vi &amp; tham số đã chạy</h3><div id="requestOptions"></div></section>
+        </div>
+      </section>
+      <nav id="resultTabs" class="svc-tabs" role="tablist" aria-label="Hạng mục kết quả"></nav>
+      <section id="onuWorkspace" class="svc-panel" role="tabpanel" aria-label="Quản lý kết quả PON và ONU">
+        <div id="customerSignals" class="svc-signals" aria-label="Chú ý khách hàng"></div>
+        <div class="svc-data-toolbar">
+          <div class="svc-segment" aria-label="Cách xem ONU"><button type="button" data-mode="pon" aria-pressed="true">Theo PON</button><button type="button" data-mode="onu" aria-pressed="false">Toàn bộ ONU</button></div>
+          <label class="svc-search"><span aria-hidden="true">⌕</span><input id="onuSearch" type="search" autocomplete="off" placeholder="Tìm PON, ONU index, SN, MAC, HĐ, IP…" aria-label="Tìm trên toàn bộ ONU đã trả"></label>
+          <select id="attentionFilter" aria-label="Lọc dấu hiệu khách hàng"><option value="all">Tất cả dữ liệu</option><option value="any">Có chú ý KH</option><option value="ip">Thiếu / Trống IP WAN</option><option value="data">Thiếu thông tin KH</option><option value="contract">Trạng thái HĐ cần xem</option></select>
+          <select id="ponStatusFilter" aria-label="Lọc trạng thái port PON"><option value="all">Mọi trạng thái PON</option><option value="UP">PON Oper UP</option><option value="DOWN">PON Oper DOWN</option></select>
+          <details class="svc-columns"><summary>Hiển thị cột</summary><div><label><input type="checkbox" data-column="identity" checked> Thiết bị ONU · Model / SN / MAC</label><label><input type="checkbox" data-column="customer" checked> Khách hàng / Kết nối</label><label><input type="checkbox" data-column="optics" checked> Rx / Tx</label><label><input type="checkbox" data-column="operation" checked> Nhiệt độ / Kh.cách OLT-ONU</label><small>PON, ONU index và chú ý KH luôn hiển thị.</small></div></details>
+          <button id="resetFilters" type="button" class="na-button">Bỏ lọc</button>
+        </div>
+        <div class="svc-view-heading"><div><h2 id="viewTitle">Bảng port PON</h2><p id="viewCount" role="status" aria-live="polite"></p></div><div class="svc-actions"><span id="scopeChip"></span><button id="exportCsv" type="button" class="na-button">Xuất CSV kết quả lọc</button></div></div>
+        <div id="backendWarnings" class="svc-backend-warnings" hidden></div>
+        <div id="onuTableHost"></div>
+        <footer id="onuPager" class="svc-data-footer" hidden><label><span id="pageSizeLabel">ONU / trang</span><select id="pageSize" aria-label="Số ONU mỗi trang"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select></label><span id="pageInfo"></span><div><button id="prevPage" type="button" class="na-button">← Trước</button><button id="nextPage" type="button" class="na-button">Sau →</button></div></footer>
+        <p class="svc-footnote">Tìm kiếm và bộ lọc áp dụng trên toàn bộ bản ghi đã trả, không chỉ trang đang xem. Tổng đếm nguồn được giữ nguyên. Thiếu IP WAN / trạng thái HĐ không đồng nghĩa ONU Offline.</p>
+      </section>
+      <section id="checkWorkspace" class="svc-panel svc-check-workspace" role="tabpanel" hidden><div id="checkContent"></div><footer id="checkPager" class="svc-data-footer" hidden><span id="checkPageInfo"></span><div><button id="checkPrev" type="button" class="na-button">← Trước</button><button id="checkNext" type="button" class="na-button">Sau →</button></div></footer></section>
+    </section>
+    <p class="svc-handoff-note">UI review · Nguồn: 5 response thật do người dùng cung cấp. Chưa có kết nối production, không suy diễn trạng thái hoặc tạo dữ liệu để bù trường thiếu.</p>
+    <div id="svcNotice" role="status" aria-live="polite" class="svc-notice" hidden></div>
+  </main>
+  <script src="responses.js"></script><script src="service-model.js"></script><script src="service-checking.js"></script>
+</body>
+</html>

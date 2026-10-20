@@ -114,7 +114,7 @@
     get('detailTopoToggle').setAttribute('aria-expanded','false');
     // Do not carry topology or selected devices to another POP.
     renderDevices();
-    renderPi();
+    renderPi(true);
     renderMaterials();
     window.NETAUTO_POP_REFERENCES.open(pop,currentDevices);
     showTab('overview');
@@ -140,18 +140,11 @@
     get('detailDeviceCount').textContent = `${matches.length} / ${currentDevices.length} bản ghi thiết bị · ${source.source}.`;
   }
 
-  function renderPi() {
+  function renderPi(reset = false) {
     const pi = currentDevices.filter(device => device.type === 'PI');
-    get('detailPiSource').textContent = pi.length ? pi.map(device => `${device.name} · ${device.ip}`).join(' / ') : 'Không có bản ghi thiết bị PI trong snapshot của POP này.';
-    if (!get('detailPiDemo').checked) {
-      get('detailPiSignals').innerHTML = '<div class="l1-empty-state">Chưa có response telemetry của POP này. Bật “Hiển thị mẫu tham chiếu” để duyệt bố cục.</div>';
-      return;
-    }
-    const alarms = `<article class="l1-pi-block l1-alarm-block"><h3><span class="l1-alarm-icon" aria-hidden="true">△</span> Tổng quan cảnh báo</h3><div class="l1-alert-stats">${[[26,'Normal','green'],[0,'Warning','amber'],[1,'Critical','red'],[0,'Unknown','slate']].map(([value,label,tone]) => `<div class="is-${tone}"><span class="l1-alert-dot" aria-hidden="true"></span><span>${label}</span><b>${value}</b></div>`).join('')}</div><div class="l1-alert-note"><span aria-hidden="true">!</span><p><b>1 Critical trong mẫu tham chiếu</b><small>Chưa có dữ liệu chi tiết sự kiện để xác định nguyên nhân.</small></p></div></article>`;
-    const fans = `<article class="l1-pi-block l1-fans"><h3>${icon('fan')} Quạt tản nhiệt</h3>${[58,61,64].map((speed,index) => `<div class="l1-fan-row"><span class="l1-signal-icon is-green">${icon('fan')}</span><div><b>Fan ${index+1}</b><span><strong>${speed}</strong> RPS</span></div><span class="l1-fan-load">100%</span></div>`).join('')}</article>`;
-    const doors = `<article class="l1-pi-block"><h3>${icon('door')} Cửa & đèn chiếu sáng</h3><div class="l1-signal-grid">${[['door','Cửa trước','Đóng','green'],['door','Cửa bên hông','Đóng','green'],['bulb','Đèn trước','Tắt','slate'],['bulb','Đèn bên hông','Tắt','slate']].map(([glyph,label,value,tone]) => `<div class="l1-signal-tile"><span class="l1-signal-icon is-${tone}">${icon(glyph)}</span><span>${label}</span><b class="l1-${tone}">${value}</b></div>`).join('')}</div></article>`;
-    const sensors = `<article class="l1-pi-block"><h3>${icon('temperature')} Nhiệt độ & độ ẩm</h3><div class="l1-sensor-grid">${[[42,'T1 · Trong tủ','green'],[28,'T2 · Ngoài tủ','green'],[44,'T3 · Khoang quạt','green'],[37,'T4 · Cảm biến phụ','amber']].map(([value,label,tone]) => `<div class="l1-sensor"><span>${label}</span><strong class="l1-${tone}">${value}<small> °C</small></strong></div>`).join('')}</div><div class="l1-humidity"><span>Độ ẩm</span><b>45 <small>%</small></b></div></article>`;
-    get('detailPiSignals').innerHTML = `<div class="l1-pi-notice"><span class="l1-demo-badge">Dữ liệu mẫu · ảnh tham chiếu</span><span>Chỉ mô phỏng hiển thị, không phải chỉ số thực của POP ${escape(currentPop.code)}.</span></div><div class="l1-pi-layout">${alarms}${fans}${doors}${sensors}</div><div class="l1-power-states"><span>Nguồn điện lưới <b class="l1-green">ON</b></span><span>Chống sét <b class="l1-green">NORMAL</b></span><span>Máy phát <b>OFF</b></span></div>`;
+    get('detailPiSource').innerHTML = pi.length ? pi.map(device => `<span class="sp-controller-tag"><span class="sp-controller-dot" aria-hidden="true"></span>${escape(device.name)} <span class="sp-controller-separator" aria-hidden="true">·</span> <span class="sp-controller-ip">${escape(device.ip)}</span></span>`).join('') : 'Không có bản ghi thiết bị PI trong snapshot của POP này.';
+    if (reset) window.NETAUTO_SMARTPOP.open(currentPop);
+    else window.NETAUTO_SMARTPOP.render();
   }
 
   function toggleTopo() {
@@ -211,7 +204,7 @@
   }
   get('detailDeviceSearch').addEventListener('input',renderDevices);
   get('detailDeviceGroups').addEventListener('click',event => {const button=event.target.closest('[data-l1-device]');const device=button && currentDevices[Number(button.dataset.l1Device)];if(device)deviceHandler(currentPop,device);});
-  get('detailPiDemo').addEventListener('change',renderPi);
+  get('detailPiDemo').addEventListener('change',()=>renderPi());
   get('detailTopoToggle').addEventListener('click',toggleTopo);
   get('detailMaterialSearch').addEventListener('input',renderMaterials);
   get('detailMaterialDevice').addEventListener('change',renderMaterials);

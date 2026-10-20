@@ -18,7 +18,8 @@ Mở `index.html` để xem mockup tổng thể của nền tảng NetAuto.
 - Chi tiết POP là trang Layer 1; chọn thiết bị mở trang Layer 2. Inventory được
   tải riêng theo POP đang mở, hỗ trợ cả mở file HTML trực tiếp và static hosting.
 - Module Nghiệp vụ chứa các subpage Kế hoạch, OLT Initialize,
-  SwitchCE Initialize, Bandwidth Upgrade, Switch Stack Join và Power Monitoring.
+  SwitchCE Initialize, Bandwidth Upgrade, Switch Stack Join, Power Monitoring
+  và Kiểm tra dịch vụ.
 - Các subpage tái sử dụng trực tiếp những bộ `ui_review_case` mới nhất.
 
 ## File vào chính
@@ -128,12 +129,31 @@ Bộ nhập tạo index và inventory từng POP trong `shared/`. Bàn giao toà
 ```powershell
 node mockup_ui/tests/pop-layer0.test.cjs
 node mockup_ui/tests/device-ports.test.cjs
+node mockup_ui/tests/service-checking.test.cjs
 node --max-old-space-size=4096 mockup_ui/tests/pop-data.test.cjs "C:/Users/minhb/OneDrive/Desktop/get-device-by-pop-1791453967439.json"
 ```
 
 Kiểm tra dữ liệu có thể chạy không truyền file nguồn để đối chiếu index với đủ
 3.898 file inventory đang được tham chiếu. Các bài kiểm tra Interface thực thi controller thật trong
 môi trường DOM mô phỏng, không thay thế kiểm tra hiển thị bằng trình duyệt.
+
+## SmartPOP
+
+SmartPOP đã tích hợp vào Giám sát & Cảnh báo tại Layer 1. Nguồn mặc định là
+bản ghi thực tế 172.18.86.217: cảm biến/quạt/trạng thái tủ, 25 dịch vụ cảnh báo
+và số đo CAC/PIN1/PIN2. Nhãn Việt/hover mã gốc; cảnh báo chi tiết mở bằng popup.
+Ghi rõ dữ liệu đã thu, không trực tiếp và chưa tự ghép POP. Ba payload cấu hình
+OPMS 835 / 1097 / 2035 vẫn chọn xem được. Xem [SMARTPOP.md](SMARTPOP.md);
+test: `node mockup_ui/tests/smartpop.test.cjs` và
+`node mockup_ui/tests/smartpop-telemetry.test.cjs`.
+
+## Kiểm tra dịch vụ
+
+Tool Kiểm tra dịch vụ có UI local tại `service_checking/mockup.html`, dùng
+style/token NetAuto, 5 response format hiện tại và adapter `loadResponse`.
+ONU hỗ trợ Theo PON / Toàn bộ ONU, tìm kiếm/lọc toàn response, phân trang
+hai tầng, nhóm cột, ghim định danh và chú ý KH. CSV xuất toàn bộ kết quả lọc;
+JSON giữ nguyên nguồn. Chưa gọi API/thiết bị. Xem `service_checking/README.md`.
 
 ## Layer 2 · Thiết bị có port
 
