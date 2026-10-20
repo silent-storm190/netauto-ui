@@ -9,7 +9,7 @@ Mở `index.html` để xem mockup tổng thể của nền tảng NetAuto.
 - Module POP dùng toàn bộ dữ liệu thật từ `get-device-by-pop-1791453967439.json` do người dùng cung cấp:
   3.898 POP, 19.197 thiết bị, 59 tỉnh và 65 chi nhánh. Các tổng số được tính
   trực tiếp từ dữ liệu, không dùng số thống kê cũ trong screenshot.
-- Danh sách có phân trang 36 / 72 / 144 POP, tìm kiếm và thống kê trên toàn bộ
+- Danh sách cuộn liên tục, mặc định 100 POP/lần tải (có lựa chọn 36 / 72 / 100 / 144), tìm kiếm và thống kê trên toàn bộ
   kết quả lọc. POP có nhiều chi nhánh được giữ nguyên và lọc theo từng chi nhánh.
 - Màu thẻ Layer 0: nhiều tỉnh thì mỗi tỉnh một màu cố định; chỉ một tỉnh thì mọi
   POP dùng chung một màu nhẹ. Màu chung được chọn lại khi vào Layer 0 hoặc tải
@@ -118,6 +118,30 @@ Nguồn chưa có telemetry PI, liên kết LLDP hay bảng tài sản POP. Nh�
 đang mở. Công cụ chưa kết nối production.
 Snapshot chứa IP và serial thật: chỉ chia sẻ / triển khai ở nơi có quyền truy cập
 phù hợp, không mặc định công khai.
+
+## Chế độ danh sách POP
+
+Nút **Thẻ / Table** cạnh tiêu đề Danh sách POP chuyển giữa hai cách trình bày;
+ghi nhớ lựa chọn bằng preference local tùy chọn. Thứ tự cột Table: POP,
+**Miền → Vùng → Tỉnh → Chi nhánh**, Switch/OLT/Nguồn/PI và tổng thiết bị;
+chi nhánh giữ đủ các nhánh nếu nhiều nhánh. Cùng một nguồn/kết quả lọc với
+thẻ; đổi mode giữ số POP đã hiển thị, tìm kiếm, bộ lọc và số liệu tổng.
+Nhấn tên hoặc dòng để mở POP. Đã bỏ nút Đăng ký thiết bị.
+
+Mỗi tỉnh dùng một hue riêng cho viền dòng, tên, nhãn tỉnh và tổng thiết bị;
+nền nhẹ và các chỉ số thiết bị giữ tông màu riêng. Palette bảng đổi khi refresh
+trình duyệt hoặc nút làm mới, không đổi khi lọc/tải thêm/chuyển mode/theme.
+Header và cột POP sticky; khung cuộn ngang/dọc trên màn nhỏ, có focus/bàn phím,
+tông dark mode và target chạm. Ban đầu hiện 100 POP; IntersectionObserver
+tự nối thêm từng đợt khi gần cuối. Table theo dõi khung cuộn bảng, Thẻ theo
+viewport/clip của portal; chỉ tải khi trang POP đang hiển thị. Thêm bằng
+insertAdjacentHTML, không thay các dòng cũ hay reset scroll/focus. Coalesce
+requestAnimationFrame và ticket chống callback cũ sau đổi filter/mode/trang.
+Đã bỏ Trước/Sau, còn nút Xem thêm dự phòng cho bàn phím/trình duyệt không hỗ
+trợ observer; hết kết quả thì dừng. Lựa chọn 36/72/100/144 là kích thước mỗi
+đợt, mặc định 100. Đã bỏ dòng ghi chú tên file nguồn và thống kê snapshot
+dưới danh sách. Không sửa dữ liệu snapshot hay gọi thêm API.
+Kiểm thử: `node mockup_ui/tests/pop-layer0.test.cjs` (đối chiếu toàn bộ POP).
 
 ## Cập nhật snapshot
 

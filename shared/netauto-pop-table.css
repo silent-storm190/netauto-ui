@@ -1,0 +1,37 @@
+/* POP table view shares filters, counts and continuous loading with cards. */
+#popPage .na-pop-scroll-sentinel{height:1px;width:100%;pointer-events:none}
+#popPage .na-pop-continuous-footer{gap:12px;flex-wrap:wrap}
+#popPage #popLoadMore{min-height:36px;white-space:nowrap}
+#popPage .na-pop-list-head{align-items:center;flex-wrap:wrap}
+#popPage .na-pop-list-actions{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap}
+#popPage #popResultCount{font-size:calc(10px + var(--na-text-increment,0px));color:var(--na-muted)}
+#popPage .na-pop-view-switch{display:inline-flex;gap:3px;padding:4px;border:1px solid var(--na-line);border-radius:10px;background:var(--na-panel)}
+#popPage .na-pop-view-switch button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--na-muted);font:inherit;font-size:calc(12px + var(--na-text-increment,0px));font-weight:650;cursor:pointer}
+#popPage .na-pop-view-switch button svg{width:15px;height:15px}
+#popPage .na-pop-view-switch button:hover{color:var(--na-blue);background:var(--na-blue-soft)}
+#popPage .na-pop-view-switch button[aria-pressed=true]{background:var(--na-blue-soft);color:var(--na-blue);border-color:color-mix(in srgb,var(--na-blue) 20%,var(--na-line))}
+#popPage .na-pop-view-switch button:focus-visible,#popPage .na-pop-row-launch:focus-visible{outline:2px solid var(--na-blue);outline-offset:2px}
+#popPage .na-pop-table-wrap{max-height:clamp(320px,65vh,760px);overflow:auto;overscroll-behavior-inline:contain;border:1px solid var(--na-line);border-radius:12px;background:var(--na-panel);box-shadow:0 4px 16px color-mix(in srgb,var(--na-text) 3%,transparent);scroll-padding-top:44px}
+#popPage .na-pop-table-wrap:focus-visible{outline:2px solid var(--na-blue);outline-offset:3px}
+#popPage .na-pop-table{width:100%;min-width:1000px;border-collapse:separate;border-spacing:0;text-align:left;font-size:calc(12px + var(--na-text-increment,0px));line-height:1.45}
+#popPage .na-pop-table-caption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#popPage .na-pop-table thead th{position:sticky;top:0;z-index:2;padding:12px;border-bottom:1px solid var(--na-line);background:var(--na-panel-soft);color:var(--na-muted);font-size:calc(11px + var(--na-text-increment,0px));font-weight:650;white-space:nowrap}
+#popPage .na-pop-table thead th:first-child{left:0;z-index:3;min-width:164px}
+#popPage .na-pop-table tbody tr{--na-row-accent:hsl(var(--na-pop-hue) 77% 52%);--na-row-ink:light-dark(hsl(var(--na-pop-hue) 64% 32%),hsl(var(--na-pop-hue) 76% 77%));cursor:pointer}
+#popPage .na-pop-table tbody td,#popPage .na-pop-table tbody th{padding:9px 12px;border-bottom:1px solid var(--na-line);background:color-mix(in srgb,var(--na-row-accent) 2%,var(--na-panel));white-space:nowrap}
+#popPage .na-pop-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--na-row-accent) 4%,var(--na-panel))}
+#popPage .na-pop-table tbody th{position:sticky;left:0;z-index:1;background:color-mix(in srgb,var(--na-row-accent) 5%,var(--na-panel));box-shadow:inset 3px 0 var(--na-row-accent)}
+#popPage .na-pop-table tbody tr:hover td,#popPage .na-pop-table tbody tr:hover th,#popPage .na-pop-table tbody tr:focus-within td,#popPage .na-pop-table tbody tr:focus-within th{background:color-mix(in srgb,var(--na-row-accent) 9%,var(--na-panel))}
+#popPage .na-pop-table tbody tr:last-child td,#popPage .na-pop-table tbody tr:last-child th{border-bottom:0}
+#popPage .na-pop-row-launch{display:inline-flex;align-items:center;gap:8px;min-height:30px;border:0;border-radius:5px;padding:2px 0;background:transparent;color:var(--na-row-ink);font:inherit;font-weight:800;cursor:pointer;text-align:left}
+#popPage .na-pop-row-launch svg{width:23px;height:23px;padding:4px;box-sizing:content-box;border-radius:7px;background:color-mix(in srgb,var(--na-row-accent) 9%,var(--na-panel));flex-shrink:0}
+#popPage .na-pop-province-badge{display:inline-flex;padding:4px 8px;border:1px solid color-mix(in srgb,var(--na-row-accent) 26%,var(--na-line));border-radius:6px;background:color-mix(in srgb,var(--na-row-accent) 7%,var(--na-panel));color:var(--na-row-ink);font-size:calc(11px + var(--na-text-increment,0px));font-weight:750}
+#popPage .na-pop-table td.na-pop-table-branch{max-width:180px;white-space:normal;overflow-wrap:anywhere;color:var(--na-muted)}
+#popPage .na-pop-area-badge{color:var(--na-muted);font-size:calc(11px + var(--na-text-increment,0px))}
+#popPage .na-pop-number{text-align:right;font-variant-numeric:tabular-nums}
+#popPage .na-pop-table-metric{display:inline-flex;align-items:center;justify-content:center;min-width:30px;padding:3px 6px;border-radius:6px;background:color-mix(in srgb,currentColor 6%,var(--na-panel));font-weight:750}
+#popPage .na-pop-table-metric.is-zero{color:var(--na-muted);background:var(--na-panel-soft);font-weight:550}
+#popPage .na-pop-row-total{display:inline-flex;justify-content:center;min-width:34px;padding:4px 8px;border-radius:7px;background:color-mix(in srgb,var(--na-row-accent) 11%,var(--na-panel));color:var(--na-row-ink);font-weight:800}
+@media(max-width:650px){#popPage .na-pop-list-actions{width:100%;justify-content:space-between;gap:10px}#popPage .na-pop-table{min-width:920px}#popPage .na-pop-table th,#popPage .na-pop-table td{padding-inline:10px}}
+@media(pointer:coarse){#popPage .na-pop-view-switch button,#popPage .na-pop-row-launch{min-height:44px}}
+@media(forced-colors:active){#popPage .na-pop-row-launch,#popPage .na-pop-row-total,#popPage .na-pop-province-badge{color:LinkText}#popPage .na-pop-table tbody th{box-shadow:none}}

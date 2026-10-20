@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NetAuto · Portal Vận hành</title>
   <link rel="stylesheet" href="shared/netauto-shell.css">
+  <link rel="stylesheet" href="shared/netauto-pop-table.css">
   <link rel="stylesheet" href="shared/netauto-pop-detail.css">
   <link rel="stylesheet" href="shared/smartpop-workspace.css">
   <link rel="stylesheet" href="shared/device-port-workspace.css">
@@ -58,7 +59,7 @@
         <section class="na-page" id="popPage" data-page="pop">
           <div class="na-page-heading">
             <div><div class="na-breadcrumb">Vận hành <span>/</span> POP & Thiết bị</div><h1>Quản lý POP và Thiết bị</h1><p>Chọn vùng, chi nhánh hoặc tìm trực tiếp POP và thiết bị.</p></div>
-            <div class="na-heading-actions"><button class="na-button" id="refreshPop" type="button">↻ Tải lại</button><button class="na-button is-primary" id="registerDevice" type="button">＋ Đăng ký thiết bị</button></div>
+            <div class="na-heading-actions"><button class="na-button" id="refreshPop" type="button">↻ Tải lại</button></div>
           </div>
 
           <section class="na-pop-command" aria-label="Khu vực, tìm kiếm và thống kê POP">
@@ -78,11 +79,11 @@
             </section>
           </section>
 
-          <div class="na-section-head"><div><h2>Danh sách POP</h2><p>Chọn POP để xem danh sách thiết bị và thông tin inventory.</p></div><span id="popResultCount">Đang nạp dữ liệu POP…</span></div>
-          <div class="na-pop-grid" id="popGrid" aria-live="polite"></div>
-          <div class="na-pop-pagination"><label>Mỗi trang <select id="popPageSize" aria-label="Số POP mỗi trang"><option value="36">36 POP</option><option value="72">72 POP</option><option value="144">144 POP</option></select></label><span id="popPageCount" aria-live="polite"></span><div><button class="na-button" type="button" id="popPrevPage">← Trước</button><button class="na-button" type="button" id="popNextPage">Sau →</button></div></div>
+          <div class="na-section-head na-pop-list-head"><div><h2>Danh sách POP</h2><p>Chọn POP để xem danh sách thiết bị và thông tin inventory.</p></div><div class="na-pop-list-actions"><span id="popResultCount">Đang nạp dữ liệu POP…</span><div class="na-pop-view-switch" role="group" aria-label="Cách hiển thị danh sách POP"><button id="popCardsMode" type="button" aria-pressed="true" aria-controls="popGrid popTableView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Thẻ</button><button id="popTableMode" type="button" aria-pressed="false" aria-controls="popGrid popTableView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M10 4v16"/></svg>Table</button></div></div></div>
+          <div class="na-pop-grid" id="popGrid"></div><div id="popCardsSentinel" class="na-pop-scroll-sentinel" aria-hidden="true"></div>
+          <div id="popTableView" class="na-pop-table-wrap" role="region" aria-label="Danh sách POP dạng bảng, có thể cuộn" tabindex="0" hidden><table class="na-pop-table"><caption class="na-pop-table-caption">Danh sách POP theo bộ lọc hiện tại. Chọn tên POP để mở chi tiết.</caption><thead><tr><th scope="col">POP</th><th scope="col">Miền</th><th scope="col">Vùng</th><th scope="col">Tỉnh</th><th scope="col">Chi nhánh</th><th scope="col" class="na-pop-number">Switch</th><th scope="col" class="na-pop-number">OLT</th><th scope="col" class="na-pop-number">Nguồn</th><th scope="col" class="na-pop-number">PI</th><th scope="col" class="na-pop-number">Tổng thiết bị</th></tr></thead><tbody id="popTableRows"></tbody></table><div id="popTableSentinel" class="na-pop-scroll-sentinel" aria-hidden="true"></div></div>
+          <div class="na-pop-pagination na-pop-continuous-footer"><label>Mỗi lần tải <select id="popPageSize" aria-label="Số POP mỗi lần tải"><option value="36">36 POP</option><option value="72">72 POP</option><option value="100" selected>100 POP</option><option value="144">144 POP</option></select></label><span id="popPageCount" role="status" aria-live="polite" aria-atomic="true"></span><div><button class="na-button" type="button" id="popLoadMore" aria-controls="popGrid popTableRows">Xem thêm 100 POP</button></div></div>
           <div class="na-empty" id="popEmpty" hidden><b>Không tìm thấy dữ liệu phù hợp</b><span>Thử bỏ bớt điều kiện lọc hoặc tìm theo IP thiết bị.</span></div>
-          <p class="na-pop-data-note" id="popDataNote"></p>
         </section>
 
         <section class="na-page na-pop-detail" id="popDetailPage" data-page="pop-detail" hidden>

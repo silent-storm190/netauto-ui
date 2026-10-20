@@ -178,7 +178,13 @@
   let selectedArea = 'all';
   let selectedProvinces = [];
   let popScopeMode = 'many';
-  let popPageIndex = 0;
+  let popShownCount = 0;
+  let popResultRows = [];
+  let popColorMode = 'province';
+  let popLoadQueued = false;
+  let popLoadTicket = 0;
+  let popListView = 'cards';
+  try { if (localStorage.getItem('netauto.pop.listView') === 'table') popListView = 'table'; } catch { /* Optional display preference. */ }
   let popVisitActive = false;
   // Mockup scenarios only; these are not authentication or authorization rules.
   const popScopeScenarios = {three:{MB:['QNH'],MN:['AGG','BTHT1']},one:{MN:['AGG']}};
@@ -257,6 +263,32 @@
     provinceHueMap.set(province, hue);
   }
 
+  // Table colors stay stable while browsing; refresh/reload picks a new palette.
+  let tablePaletteOffset = null;
+  function renewTablePalette() {
+    const key = 'netauto.pop.tablePaletteOffset';
+    let previous = tablePaletteOffset;
+    try { const saved = localStorage.getItem(key); if (previous === null && saved != null) previous = Number(saved); } catch { /* Storage is optional. */ }
+    const choices = [0,37,73,109,149,193,229,269,307,337].filter(offset => offset !== previous);
+    tablePaletteOffset = choices[Math.floor(Math.random()*choices.length)];
+    try { localStorage.setItem(key,String(tablePaletteOffset)); } catch { /* Colors still refresh in memory. */ }
+  }
+  renewTablePalette();
+
+  function popTableRow(pop) {
+    const hue = normalizeHue((provinceHueMap.get(popProvinceKey(pop)) ?? 215) + tablePaletteOffset);
+    const c = pop.counts;
+    const number = (value,tone) => `<td class="na-pop-number"><span class="na-pop-table-metric na-pop-${tone}${value === 0?' is-zero':''}">${formatNumber(value)}</span></td>`;
+    return `<tr data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}" style="--na-pop-hue:${hue}"><th scope="row"><button type="button" class="na-pop-row-launch" aria-label="Xem thiết bị tại POP ${escapeHtml(pop.code)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg><span>${escapeHtml(pop.code)}</span></button></th><td><span class="na-pop-area-badge">${escapeHtml(({MB:'Miền Bắc',MN:'Miền Nam'})[pop.area]||pop.area||'—')}</span></td><td>${escapeHtml(pop.zone||'—')}</td><td><span class="na-pop-province-badge">${escapeHtml(pop.province||'—')}</span></td><td class="na-pop-table-branch">${escapeHtml(popBranches(pop).join(' · '))}</td>${number(c.switch,'blue')}${number(c.olt,'purple')}${number(c.power,'orange')}${number(c.pi,'green')}<td class="na-pop-number"><b class="na-pop-row-total">${formatNumber(popTotal(pop))}</b></td></tr>`;
+  }
+
+  function setPopListView(view) {
+    if (!['cards','table'].includes(view)) return;
+    popListView = view;
+    try { localStorage.setItem('netauto.pop.listView',view); } catch { /* No storage required. */ }
+    renderPops(false);
+  }
+
   function popCard(pop, colorMode) {
     const c = pop.counts;
     const meta = [pop.branch,pop.province !== pop.branch ? pop.province : '',pop.zone].filter(Boolean).join(' · ');
@@ -279,26 +311,59 @@
     document.getElementById('networkStats').innerHTML = metric(s.switches,'Switch','blue') + metric(s.olts,'OLT','purple');
     document.getElementById('powerStats').innerHTML = metric(s.power,'Nguồn','orange') + (isGlobal ? metric(s.ipms,'IPMS','purple') + metric(s.opms,'OPMS','green') + (s.piOther?metric(s.piOther,'PI khác','cyan'):'') : metric(s.pi,'PI','green'));
     document.getElementById('powerStatsGroup').setAttribute('aria-label',isGlobal?'Nguồn, IPMS, OPMS và PI khác':'Nguồn và PI');
-    document.getElementById('popDataNote').textContent = `${DATA.snapshot.source} · toàn bộ ${formatNumber(DATA.pops.length)} POP / ${formatNumber(DATA.snapshot.records)} thiết bị. Thống kê theo toàn bộ kết quả lọc, không chỉ trang đang xem.`;
+  }
+
+  function popBatchSize() { const size=Number(document.getElementById('popPageSize').value);return [36,72,100,144].includes(size)?size:100; }
+
+  function updatePopLoadState() {
+    const remaining = popResultRows.length-popShownCount;
+    document.getElementById('popPageCount').textContent = popResultRows.length ? `Đã hiển thị ${formatNumber(popShownCount)} / ${formatNumber(popResultRows.length)} POP${remaining?'':' · Đã hết danh sách'}` : '0 POP';
+    const more = document.getElementById('popLoadMore');
+    more.hidden = remaining<=0;more.disabled = popLoadQueued;
+    more.textContent = popLoadQueued ? 'Đang hiển thị thêm…' : `Xem thêm ${Math.min(popBatchSize(),remaining)} POP`;
+    document.getElementById('popCardsSentinel').hidden = remaining<=0 || popListView!=='cards';
+    document.getElementById('popTableSentinel').hidden = remaining<=0 || popListView!=='table';
+    for (const id of ['popGrid','popTableView']) document.getElementById(id).setAttribute('aria-busy',String(popLoadQueued));
+  }
+
+  function loadMorePops() {
+    if (popLoadQueued || document.getElementById('popPage').hidden || popShownCount>=popResultRows.length) return;
+    popLoadQueued = true;
+    const ticket = ++popLoadTicket;updatePopLoadState();
+    requestAnimationFrame(()=>{
+      if (ticket!==popLoadTicket) return;
+      if (!document.getElementById('popPage').hidden) {
+        const end = Math.min(popShownCount+popBatchSize(),popResultRows.length);
+        const added = popResultRows.slice(popShownCount,end);
+        const target = document.getElementById(popListView==='table'?'popTableRows':'popGrid');
+        target.insertAdjacentHTML('beforeend',added.map(pop=>popListView==='table'?popTableRow(pop):popCard(pop,popColorMode)).join(''));
+        popShownCount = end;
+      }
+      popLoadQueued = false;updatePopLoadState();
+    });
   }
 
   function renderPops(resetPage = true) {
-    if(resetPage)popPageIndex=0;
+    ++popLoadTicket;popLoadQueued=false;
     const pops = filteredPops();
-    const pageSize=Number(document.getElementById('popPageSize').value)||36;
-    const pages=Math.max(1,Math.ceil(pops.length/pageSize));
-    popPageIndex=Math.min(popPageIndex,pages-1);
-    const start=popPageIndex*pageSize;
-    const shown=pops.slice(start,start+pageSize);
+    popResultRows = pops;
+    popShownCount = Math.min(resetPage?popBatchSize():Math.max(popBatchSize(),popShownCount),pops.length);
+    const shown=pops.slice(0,popShownCount);
     const colorMode = new Set(pops.map(popProvinceKey)).size === 1 ? 'single-province' : 'province';
+    popColorMode = colorMode;
     const grid = document.getElementById('popGrid');
     grid.setAttribute('data-color-mode', colorMode);
-    grid.innerHTML = shown.map(pop => popCard(pop, colorMode)).join('');
+    grid.hidden = popListView !== 'cards';
+    grid.innerHTML = popListView === 'cards' ? shown.map(pop => popCard(pop, colorMode)).join('') : '';
+    const tableView = document.getElementById('popTableView');
+    tableView.hidden = popListView !== 'table' || !pops.length;
+    document.getElementById('popTableRows').innerHTML = popListView === 'table' ? shown.map(popTableRow).join('') : '';
+    document.getElementById('popCardsMode').setAttribute('aria-pressed',String(popListView === 'cards'));
+    document.getElementById('popTableMode').setAttribute('aria-pressed',String(popListView === 'table'));
+    if (popListView === 'table') tableView.scrollTop = 0;
     document.getElementById('popEmpty').hidden = pops.length !== 0;
     document.getElementById('popResultCount').textContent = `${formatNumber(pops.length)} POP trong dữ liệu`;
-    document.getElementById('popPageCount').textContent = pops.length?`${start+1}–${start+shown.length} / ${formatNumber(pops.length)} POP · Trang ${popPageIndex+1}/${pages}`:'0 POP';
-    document.getElementById('popPrevPage').disabled = popPageIndex===0;
-    document.getElementById('popNextPage').disabled = popPageIndex===pages-1;
+    updatePopLoadState();
     document.getElementById('popSelectionLabel').textContent = popScopeMode === 'one' ? 'Chi nhánh AGG' : selectedProvinces.length ? selectedProvinces.join(' · ') : selectedArea !== 'all' ? `${selectedArea === 'MB' ? 'Miền Bắc' : 'Miền Nam'} · Trong phạm vi quản lý` : popScopeMode === 'three' ? 'QNH · AGG · BTHT1' : 'Tất cả chi nhánh';
     updateSummary(pops);
   }
@@ -686,11 +751,19 @@
   document.getElementById('resetPopFilters').addEventListener('click', resetPopFilters);
   document.getElementById('popSearch').addEventListener('input', renderPops);
   document.getElementById('popGrid').addEventListener('click', event => { const card = event.target.closest('[data-pop]'); if (card) openPopDetail(card.dataset.pop); });
+  document.getElementById('popTableRows').addEventListener('click', event => { const row = event.target.closest('[data-pop]'); if (row) openPopDetail(row.dataset.pop); });
+  document.getElementById('popCardsMode').addEventListener('click',()=>setPopListView('cards'));
+  document.getElementById('popTableMode').addEventListener('click',()=>setPopListView('table'));
   document.getElementById('popPageSize').addEventListener('change',()=>renderPops());
-  document.getElementById('popPrevPage').addEventListener('click',()=>{popPageIndex=Math.max(0,popPageIndex-1);renderPops(false);});
-  document.getElementById('popNextPage').addEventListener('click',()=>{popPageIndex++;renderPops(false);});
-  document.getElementById('refreshPop').addEventListener('click', () => { resetPopFilters(); showToast('Đã tải lại dữ liệu POP mô phỏng.'); });
-  document.getElementById('registerDevice').addEventListener('click', () => showToast('Form Đăng ký thiết bị sẽ được bổ sung theo screenshot production.'));
+  document.getElementById('popLoadMore').addEventListener('click',loadMorePops);
+  if (typeof window.IntersectionObserver === 'function') {
+    for (const [id,view,scrollRoot] of [['popCardsSentinel','cards',null],['popTableSentinel','table',document.getElementById('popTableView')]]) {
+      new window.IntersectionObserver(entries=>{
+        if (popListView===view && entries.some(entry=>entry.isIntersecting)) loadMorePops();
+      },{root:scrollRoot,rootMargin:'0px 0px 280px 0px',threshold:0}).observe(document.getElementById(id));
+    }
+  }
+  document.getElementById('refreshPop').addEventListener('click', () => { renewTablePalette(); resetPopFilters(); showToast('Đã tải lại dữ liệu POP mô phỏng.'); });
 
   document.querySelectorAll('.na-nav-item').forEach(button => button.addEventListener('click', () => navigateModule(button.dataset.module)));
   document.querySelectorAll('#infoTabs button').forEach(button => button.addEventListener('click', () => openInfoTab(button.dataset.infoTab)));
