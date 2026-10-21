@@ -124,7 +124,7 @@
 #popDetailPage .sp-section-icon{display:grid;place-items:center;width:30px;height:30px;background:color-mix(in srgb,var(--sp-accent) 11%,var(--na-panel));color:var(--sp-accent);border-radius:8px}
 #popDetailPage .sp-section-icon svg{width:19px;height:19px}
 #popDetailPage .sp-temperatures{gap:8px}
-#popDetailPage .sp-temperatures .sp-temperature-tile{padding:10px 3px;border:1px solid color-mix(in srgb,var(--sp-accent) 16%,var(--na-line));border-radius:8px;background:color-mix(in srgb,var(--sp-accent) 7%,var(--na-panel))}
+#popDetailPage .sp-temperatures .sp-temperature-tile{padding:10px 3px;border:1px solid color-mix(in srgb,var(--na-muted) 23%,var(--na-panel));border-radius:7px;background:color-mix(in srgb,var(--na-muted) 9%,var(--na-panel))}
 #popDetailPage .sp-temperatures b{font-size:25px;color:var(--na-text)}
 #popDetailPage .sp-temperatures span{color:var(--sp-accent);font-size:11px;font-weight:600}
 #popDetailPage .sp-inline-reading{padding:9px 11px;border:1px solid color-mix(in srgb,#1689b5 20%,var(--na-line));border-radius:8px;background:color-mix(in srgb,#1689b5 6%,var(--na-panel));margin-top:11px}
@@ -272,18 +272,16 @@
 @media(max-width:1350px){#popDetailPage{--sp-summary-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){#popDetailPage{--sp-summary-columns:minmax(0,1fr)}#popDetailPage .sp-monitor-strip .sp-device-list{max-height:none}}
 
-/* Temperature ramp is visual only; backend alarm severity remains untouched. */
-#popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled]{--sp-temperature-color:hsl(var(--sp-temperature-hue) 92% 49%);background:color-mix(in srgb,var(--sp-temperature-color) 19%,var(--na-panel));border-color:color-mix(in srgb,var(--sp-temperature-color) 46%,var(--na-line))}
-#popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=unknown]{background:var(--na-panel-soft);border-color:var(--na-line)}
+/* Neutral 2×2 temperature tiles; only the readings carry the visual ramp. */
+#popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled]{--sp-temperature-color:hsl(var(--sp-temperature-hue) 92% 49%)}
 #popDetailPage .sp-temperatures .sp-temperature-tile .sp-temperature-label{font-size:12px;font-weight:750;letter-spacing:.15px;color:var(--na-text);line-height:1.3}
 
 
-/* Fresh, readable color-matched temperature typography. */
-#popDetailPage .sp-environment{--sp-accent:#ed8825}
-#popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled] .sp-temperature-label,
+/* Labels stay neutral; values/units keep their existing temperature colors. */
+#popDetailPage .sp-environment{--sp-accent:#0d9488}
+#popDetailPage .sp-temperatures .sp-temperature-tile b{font-weight:750}
 #popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled] b,
 #popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled] small{color:hsl(var(--sp-temperature-hue) 88% 28%)}
-html[data-theme=dark] #popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled] .sp-temperature-label,
 html[data-theme=dark] #popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled] b,
 html[data-theme=dark] #popDetailPage .sp-temperatures .sp-temperature-tile[data-sp-temperature-tone=scaled] small{color:hsl(var(--sp-temperature-hue) 90% 73%)}
 #popDetailPage .sp-environment .sp-inline-reading{background:color-mix(in srgb,#06b6d4 11%,var(--na-panel));border-color:color-mix(in srgb,#06b6d4 35%,var(--na-line))}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 112">
+  <!-- Abstract PCB traces and a signal waveform, shared by all device types. -->
+  <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="124" y="24" width="26" height="24" rx="3"/>
+    <rect x="131" y="31" width="12" height="10" rx="1.5"/>
+    <path d="M130 20v4m7-4v4m7-4v4m-14 24v4m7-4v4m7-4v4M120 30h4m-4 6h4m-4 6h4m26-12h4m-4 6h4m-4 6h4"/>
+    <path d="M120 30H98L82 14H56M154 36h12l14 14M137 52v14l-14 14H92M137 20V12l12-12M180 92h-24l-10-10"/>
+    <path d="M92 80H81l-5-8-5 16-5-8H43"/>
+    <circle cx="53" cy="14" r="2.5"/>
+    <circle cx="40" cy="80" r="2.5"/>
+    <circle cx="144" cy="80" r="2"/>
+  </g>
+</svg>

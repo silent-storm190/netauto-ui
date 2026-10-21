@@ -16,6 +16,7 @@ const pop={code:'VENDOR-TEST',province:'TEST'},context={Intl,document:{getElemen
   NETAUTO_POP_DETAIL_DATA:{source:'test-only',pops:{[pop.code]:devices},isLoaded:()=>true},
   NETAUTO_SMARTPOP:{open(){},render(){}},NETAUTO_POP_REFERENCES:{open(){}},
 }};
+vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../shared/netauto-motifs.js'),'utf8'),context);
 vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../shared/netauto-pop-detail.js'),'utf8'),context);
 context.window.NETAUTO_POP_DETAIL.open(pop);
 const cards=()=>get('detailDeviceGroups').innerHTML;

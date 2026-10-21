@@ -1,0 +1,40 @@
+:is(#popDetailPage,#deviceDetailPage) .na-context-tools-section{margin-top:18px;container:context-tools / inline-size}
+.na-context-tools-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px;align-items:stretch}
+.na-context-tool{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:128px;padding:14px;border:1px solid color-mix(in srgb,var(--na-blue) 10%,var(--na-line));border-radius:12px;background:linear-gradient(125deg,var(--na-panel) 55%,color-mix(in srgb,var(--na-blue) 3%,var(--na-panel)));box-shadow:0 2px 4px #0f172a05,0 5px 14px #0f172a06;color:var(--na-text);font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer;overflow-wrap:anywhere;position:relative;isolation:isolate;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.na-context-tool:before{content:"";position:absolute;z-index:0;top:0;right:0;width:112px;height:100%;background-image:radial-gradient(color-mix(in srgb,var(--na-blue) 10%,transparent) .7px,transparent .9px);background-size:16px 16px;mask-image:linear-gradient(225deg,#000,transparent 75%);pointer-events:none}
+:is(#popDetailPage,#deviceDetailPage) .na-context-tool>svg.na-decor-motif{position:absolute;z-index:0;right:8px;bottom:8px;width:104px;height:72px;max-width:34%;color:var(--na-blue);opacity:.16;pointer-events:none}
+.na-context-tool>span{position:relative;z-index:1;min-width:0}
+.na-context-tool-copy{display:flex;flex-direction:column;flex:1;gap:7px;min-width:0}
+.na-context-tool-copy strong{color:var(--na-text);font-size:13px;line-height:1.5;font-weight:700}
+.na-context-tool-copy small{color:var(--na-muted);font-size:11px;line-height:1.65;font-weight:400}
+.na-context-tool:hover{border-color:color-mix(in srgb,var(--na-blue) 35%,var(--na-line));box-shadow:0 3px 6px #0f172a08,0 8px 18px #0f172a0a}
+.na-context-tool:focus-visible{outline:2px solid var(--na-blue);outline-offset:3px}
+.na-context-tool-icon{--na-tool-icon-accent:var(--na-blue);display:grid;place-items:center;flex:0 0 40px;height:40px;border:0;border-radius:11px;background:color-mix(in srgb,var(--na-tool-icon-accent) 10%,var(--na-panel));color:var(--na-tool-icon-accent)}
+.na-context-tool[data-context-tool=bandwidth] .na-context-tool-icon{--na-tool-icon-accent:var(--na-cyan)}
+.na-context-tool[data-context-tool=olt] .na-context-tool-icon{--na-tool-icon-accent:var(--na-purple)}
+.na-context-tool[data-context-tool=battery] .na-context-tool-icon{--na-tool-icon-accent:var(--na-green)}
+.na-context-tool[data-context-tool=power] .na-context-tool-icon{--na-tool-icon-accent:var(--na-cyan)}
+.na-context-tool[data-context-tool=fti] .na-context-tool-icon{--na-tool-icon-accent:var(--na-purple)}
+.na-context-tool[data-context-tool=pi] .na-context-tool-icon{--na-tool-icon-accent:var(--na-green)}
+.na-context-tool[data-context-tool=replace] .na-context-tool-icon{--na-tool-icon-accent:var(--na-purple)}
+:is(#popDetailPage,#deviceDetailPage) .na-context-tool-icon svg{width:21px;height:21px;color:inherit}
+@media(prefers-reduced-motion:reduce){.na-context-tool{transition:none}}
+@media(forced-colors:active){.na-context-tool:before,:is(#popDetailPage,#deviceDetailPage) .na-context-tool>svg.na-decor-motif{display:none}.na-context-tool,.na-context-tool-icon{border-color:ButtonText;background:ButtonFace;color:ButtonText;box-shadow:none}.na-context-tool-copy strong,.na-context-tool-copy small{color:ButtonText}}
+@container context-tools (max-width:1099px){.na-context-tools-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container context-tools (max-width:819px){.na-context-tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container context-tools (max-width:539px){.na-context-tools-grid{grid-template-columns:minmax(0,1fr)}}
+#contextToolDialog{width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;padding:22px;border:1px solid var(--na-line);border-radius:14px;background:var(--na-panel);color:var(--na-text);box-shadow:0 20px 80px #0003}
+#contextToolDialog::backdrop{background:#14243b66;backdrop-filter:blur(3px)}
+#contextToolDialog h2{margin:0 0 18px;font-size:18px;line-height:1.5}
+#contextToolDialog dl{display:grid;gap:12px;margin:0}
+#contextToolDialog dl>div{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px}
+#contextToolDialog dt{font-size:12px;color:var(--na-muted)}
+#contextToolDialog dd{margin:0;font-size:13px;font-weight:650;overflow-wrap:anywhere}
+#contextToolDialog p{font-size:12px;line-height:1.7;color:var(--na-muted);margin:18px 0}
+#contextToolDialog footer{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.na-device-refresh-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}
+#deviceModuleRefreshStatus{margin:0 20px 12px;font-size:12px;color:var(--na-muted);line-height:1.6}
+#deviceDetailPage .l2-metadata-group dl{display:grid;gap:13px;margin:12px 0 0}
+#deviceDetailPage .l2-device-fields{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1050px){#deviceDetailPage .l2-device-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){#deviceDetailPage .l2-device-fields{grid-template-columns:minmax(0,1fr)}.na-device-refresh-actions{width:100%;justify-content:flex-start}}

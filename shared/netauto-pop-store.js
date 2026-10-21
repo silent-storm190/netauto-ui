@@ -4,8 +4,8 @@
   const pending=new Map();
   const states=new Map();
   const store={source:`${data.snapshot.source} · dữ liệu người dùng cung cấp`,pops:{},isLoaded:code=>states.get(code)==='loaded',status:code=>states.get(code)||'idle'};
-  store.ensurePop=(code,callback)=>{
-    if(store.isLoaded(code)){callback(null);return;}
+  store.ensurePop=(code,callback,options={})=>{
+    if(store.isLoaded(code)&&!options.force){callback(null);return;}
     if(pending.has(code)){pending.get(code).push(callback);return;}
     const file=data.inventoryFiles[code];
     if(!file){callback(new Error('Không có file inventory cho POP '+code));return;}
@@ -25,5 +25,6 @@
     script.onerror=()=>finish(new Error('Không tải được '+file));
     document.head.appendChild(script);
   };
+  store.reloadPop=(code,callback)=>store.ensurePop(code,callback,{force:true});
   window.NETAUTO_POP_DETAIL_DATA=store;
 })();

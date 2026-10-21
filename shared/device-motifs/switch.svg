@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 112">
+  <!-- Decorative switch silhouette, not the port inventory of a real model. -->
+  <g fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m56 36 13-10h91l14 10"/>
+    <rect x="56" y="36" width="118" height="41" rx="4" fill="white" fill-opacity=".12"/>
+    <path d="M64 43v27m102-27v27"/>
+    <path d="M70 46h8v7h-2v2h-4v-2h-2zM83 46h8v7h-2v2h-4v-2h-2zM96 46h8v7h-2v2h-4v-2h-2zM109 46h8v7h-2v2h-4v-2h-2zM122 46h8v7h-2v2h-4v-2h-2z"/>
+    <path d="M70 61h8v7h-2v2h-4v-2h-2zM83 61h8v7h-2v2h-4v-2h-2zM96 61h8v7h-2v2h-4v-2h-2zM109 61h8v7h-2v2h-4v-2h-2zM122 61h8v7h-2v2h-4v-2h-2z"/>
+    <rect x="141" y="47" width="15" height="8" rx="1"/>
+    <rect x="141" y="61" width="15" height="8" rx="1"/>
+    <path d="M76 82v8h29l12 12h33M149 22h25M43 60h8"/>
+    <circle cx="153" cy="102" r="2.5"/>
+  </g>
+</svg>

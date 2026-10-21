@@ -485,6 +485,7 @@
     if (!pop) return false;
     const key=`pop:${pop.code}`,sameView=activeScrollView?.key===key;
     rememberViewScroll();
+    window.NETAUTO_CONTEXT_TOOLS.close();
     window.NETAUTO_POP_DETAIL.open(pop,preserve);
     popVisitActive = false;
     document.querySelectorAll('.na-nav-item').forEach(button => button.classList.toggle('is-active', button.dataset.module === 'pop'));
@@ -503,6 +504,7 @@
     if (!device) return false;
     const key=`device:${popCode}:${deviceName}`;
     rememberViewScroll();
+    window.NETAUTO_CONTEXT_TOOLS.close();
     window.NETAUTO_POP_DETAIL.closePreview();
     popVisitActive = false;
     window.NETAUTO_POP_DETAIL.closeTopo();
@@ -530,6 +532,7 @@
 
   function navigateModule(module, updateRoute = true) {
     rememberViewScroll();
+    window.NETAUTO_CONTEXT_TOOLS.close();
     window.NETAUTO_POP_DETAIL.closePreview();
     window.NETAUTO_POP_DETAIL.closeTopo();
     if (module === 'pop' && !popVisitActive) renewPopVisitColor();

@@ -88,7 +88,7 @@ context.window.IntersectionObserver=class {
   observe(target){this.target=target;}
   fire(isIntersecting=true){this.callback([{target:this.target,isIntersecting}]);}
 };
-for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-response.js', 'drop-point-uplink-response.js', 'netauto-pop-store.js', 'netauto-pop-reference.js', 'smartpop-config-responses.js', 'smartpop-model.js', 'smartpop-capture.js', 'smartpop-telemetry.js', 'smartpop-overview.js', 'smartpop-alarm-dialog.js', 'smartpop-workspace.js', 'netauto-pop-detail.js', 'huawei-device-layouts.js', 'netauto-device-port-models.js', 'netauto-device-ports.js', 'netauto-device-detail.js', 'netauto-app.js']) {
+for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-response.js', 'drop-point-uplink-response.js', 'netauto-pop-store.js', 'netauto-pop-reference.js', 'smartpop-config-responses.js', 'smartpop-model.js', 'smartpop-capture.js', 'smartpop-telemetry.js', 'smartpop-overview.js', 'smartpop-alarm-dialog.js', 'smartpop-workspace.js', 'netauto-motifs.js', 'netauto-context-tools.js', 'netauto-pop-detail.js', 'huawei-device-layouts.js', 'netauto-device-port-models.js', 'netauto-device-ports.js', 'netauto-device-detail.js', 'netauto-app.js']) {
   let source=fs.readFileSync(path.join(mockup, 'shared', script), 'utf8');
   // Test-only access to the renderer, without adding a public hook to the app.
   if(script==='netauto-app.js')source=source.replace('  function renderDropPointResponse(', '  window.__testRenderDropPointResponse=renderDropPointResponse;\n  function renderDropPointResponse(');
@@ -511,6 +511,8 @@ assert(!html.includes('id="detailPopMetadataNote"'));
 assert(!html.includes('Chọn thiết bị để mở trang chi tiết.'));
 assert(!Object.hasOwn(allPops.find(pop=>pop.code==='AGGP006'),'customerCount'),'Sample metadata must never be written into the imported snapshot');
 assert.equal((get('detailPopFields').innerHTML.match(/<svg /g)||[]).length,5,'Every additional field has one small icon');
+assert.equal((get('detailPopFields').innerHTML.match(/class="l1-field-icon" aria-hidden="true"/g)||[]).length,5,'Every POP metadata field has one decorative pastel icon badge, including address');
+for(const field of ['popType','deployedAt','popFunction','customerCount','address'])assert(new RegExp('data-field="'+field+'"[^>]*><dt><span class="l1-field-icon" aria-hidden="true"><svg ').test(get('detailPopFields').innerHTML),'Each field retains its semantic label and icon inside the definition term');
 assert.equal((get('detailPopLocation').innerHTML.match(/<svg /g)||[]).length,4);
 assert.equal((get('detailPopLocation').innerHTML.match(/<dt>/g)||[]).length,4,'Location is a compact four-field strip below the POP name');
 assert(get('detailPopLocation').innerHTML.includes('<dt>Miền</dt>'));
@@ -883,10 +885,10 @@ const metadataFixture={...realGcom,type:'SWITCH',model:'HW57',vendor:'HUAWEI',na
 const metadataBefore=JSON.stringify(metadataFixture);
 devicePage.open(popForMetadata,metadataFixture);
 const metadataHtml=get('deviceDetailFields').innerHTML;
-const metadataOrder=['IP thiết bị','Model','Vendor','Serial chassis','POP','Tỉnh · Chi nhánh','Miền · Vùng','Chức năng','Firmware','Total MAC'];
-assert.deepEqual(Array.from(metadataHtml.matchAll(/<dt>([^<]+)<\/dt>/g),match=>match[1]),metadataOrder,'All ten metadata fields are grouped in a consistent UX order; name remains in the header');
+const metadataOrder=['Tên thiết bị','IP thiết bị','Vendor','Model','Serial chassis','POP','Miền','Vùng','Tỉnh','Chi nhánh','Chức năng','Firmware','Total MAC','Ngày cập nhật','Số port','Số transceiver','Module nguồn','Module quạt','Card'];
+assert.deepEqual(Array.from(metadataHtml.matchAll(/<dt>([^<]+)<\/dt>/g),match=>match[1]),metadataOrder,'Complete device information is grouped into identity, exact location order, operations and hardware');
 assert.equal(get('deviceDetailName').textContent,'TEST-METADATA');
-for(const value of ['TEST-V1','PATCH&lt;&amp;&gt;','EPLD-TEST','CHASSIS-1 · CHASSIS-2','Miền Bắc · V1','<dd>0</dd>'])assert(metadataHtml.includes(value));
+for(const value of ['TEST-V1','PATCH&lt;&amp;&gt;','EPLD-TEST','CHASSIS-1 · CHASSIS-2','<dd>Miền Bắc</dd>','<dd>V1</dd>','<dd>0</dd>'])assert(metadataHtml.includes(value));
 selectPort('XGigabitEthernet0/0/1');
 const fullPortInfo=get('devicePortInfo').innerHTML;
 for(const label of ['Speed','Vendor module','Serial module','Transceiver type','Part number','Nhiệt độ (°C)','Bước sóng (nm)','Connector','Transfer distance','Ngày sản xuất','Rx / Tx','Rx ngưỡng cao (dBm)','Rx ngưỡng thấp (dBm)','Tx ngưỡng cao (dBm)','Tx ngưỡng thấp (dBm)','voltage','channels'])assert(fullPortInfo.includes(label),`Preserve job field: ${label}`);
@@ -1251,6 +1253,11 @@ assert.notEqual(heroHue(),beforeBlockedHeroHue,'Color changes still work when op
 context.localStorage=workingHeroStorage;
 assert.equal(JSON.stringify(heroPop),heroOriginal,'Decorative styling never changes source POP/device data');
 const heroCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-detail.css'),'utf8');
+assert(heroCSS.includes('flex:0 0 28px;width:28px;height:28px;border-radius:8px;background:color-mix(in srgb,var(--l1-field-accent) 10%,var(--na-panel));color:var(--l1-field-accent)'),'Compact rounded pastel icon badges use theme-aware colors');
+assert(heroCSS.includes('.l1-field-icon svg{width:17px;height:17px;color:inherit}'),'SVG strokes inherit their colored badge tone rather than the old muted icon rule');
+for(const [field,tone] of [['deployedAt','cyan'],['popFunction','purple'],['customerCount','green'],['address','green']])assert(heroCSS.includes('[data-field='+field+'] .l1-field-icon{--l1-field-accent:var(--na-'+tone+')}'));
+assert(heroCSS.includes('.l1-pop-fields .is-address{grid-column:1/-1;display:flex;align-items:center;'),'Address label, badge and value remain vertically aligned');
+assert(heroCSS.includes('@media(forced-colors:active){#popDetailPage .l1-pop-fields .l1-field-icon{background:Canvas;color:CanvasText;outline:1px solid CanvasText}}'),'Badge outlines remain readable in high-contrast mode');
 assert(heroCSS.includes('--l1-hero-accent:hsl(var(--l1-hero-hue)'));
 assert(heroCSS.includes('radial-gradient(ellipse at 96% 0%'));
 assert(heroCSS.includes('.l1-pop-info:after')&&heroCSS.includes('pointer-events:none'));
@@ -1261,6 +1268,15 @@ assert(!heroCSS.includes('top:-270px')&&!heroCSS.includes('transform:rotate(-18d
 assert(heroCSS.includes('opacity:.2;pointer-events:none')&&heroCSS.includes('@media(forced-colors:active)'));
 assert(heroCSS.includes('html[data-theme="dark"] #popDetailPage .l1-pop-info'));
 assert(/\.l1-pop-identity h1\{[^}]*border:1px[^}]*border-radius:10px[^}]*overflow-wrap:anywhere/.test(heroCSS),'POP name is a responsive, readable tag');
+assert(/class="l1-pop-heading"><div class="l1-pop-title-row"><span class="l1-pop-mark"[\s\S]*?<\/svg><\/span><h1 id="detailPopName"><\/h1><\/div><dl class="l1-pop-location" id="detailPopLocation"[^>]*><\/dl><\/div><div class="l1-pop-summary">/.test(html),'Only icon and name share the title row; location remains below, separate from device totals');
+assert(heroCSS.includes('.l1-pop-title-row{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;column-gap:12px;min-width:0}'),'Single-row title grid centers icon and name without a leftover eyebrow gap');
+assert(heroCSS.includes('.l1-pop-title-row>.l1-pop-mark{grid-column:1;grid-row:1}')&&heroCSS.includes('.l1-pop-title-row>h1{grid-column:2;grid-row:1;justify-self:start;min-width:0}'),'Icon aligns directly with the POP-name tag in the first and only title row');
+assert(heroCSS.includes('.l1-pop-heading{display:flex;flex-direction:column;gap:10px;flex:1 1 280px;min-width:0}'),'Identity has a single shared left edge and a consistent title/location gap');
+assert(!html.includes('>CHI TIẾT POP</span>')&&!heroCSS.includes('.l1-pop-title-row>.l1-eyebrow'),'Removed POP eyebrow leaves neither markup nor layout styling');
+assert(heroCSS.includes('.l1-pop-location{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:0}'),'Location icons are vertically centered and can wrap without inherited offsets');
+const balancedHeroNameRule=heroCSS.match(/\.l1-pop-identity h1\{([^}]+)\}/)[1];
+assert(balancedHeroNameRule.includes('display:block;max-width:100%')&&balancedHeroNameRule.includes('overflow-wrap:anywhere'),'Long POP names stay inside the shrinkable title column');
+assert(balancedHeroNameRule.includes('font-weight:800')&&balancedHeroNameRule.includes('box-shadow:inset 2px 0'),'Name tag keeps its emphasis without the heavier asymmetric stripe and outer shadow');
 console.log('PASS: tagged POP name, subtle CSS-only abstract hero, different hue per entry/re-entry/history/reload, stable inventory/theme/duplicate routes, optional-storage failure and immutable sources.');
 
 // Table is a second projection of the same filtered/paginated POP result.
@@ -1440,10 +1456,20 @@ assert.equal(rowActionCells.length,tableRows().length);assert(rowActionCells.eve
 get('popTableRows').listeners.click({target:{closest:selector=>selector==='[data-pop-detail]'?{dataset:{popDetail:previewCode}}:previewEntry}});
 assert.equal(popPreview.open,false,'Details does not also launch a popup');assert.equal(context.location.hash,'#pop/'+previewCode);assert.equal(get('popDetailPage').hidden,false);
 // Layer 1 switches layouts without changing the original device list or search.
+const modeButtonBody=id=>html.match(new RegExp('<button id="'+id+'"[^>]*>([\\s\\S]*?)</button>'))[1];
+assert.equal(modeButtonBody('deviceCardsMode'),modeButtonBody('popCardsMode'),'Both layers use the exact same cards icon and label');
+assert.equal(modeButtonBody('deviceTableMode'),modeButtonBody('popTableMode'),'Both layers use the exact same table icon and label');
+assert(modeButtonBody('popTableMode').endsWith('</svg>Bảng'),'Table mode has a Vietnamese label');
+assert(html.includes('class="na-pop-view-switch l1-device-view-switch"'),'Layer 1 reuses the Layer 0 segmented control');
+assert(html.indexOf('id="detailDeviceSearch"')<html.indexOf('id="deviceCardsMode"')&&html.indexOf('id="deviceTableMode"')<html.indexOf('id="detailTopoToggle"'),'The mode switch sits after search, next to Topo');
+assert(popTableCSS.includes(':is(#popPage,#popDetailPage) .na-pop-view-switch button{'),'Both layers share one source of control styling');
 const cardDeviceIndices=[...get('detailDeviceGroups').innerHTML.matchAll(/data-l1-device="(\d+)"/g)].map(m=>Number(m[1]));
 const firstDeviceCards=get('detailDeviceGroups').innerHTML;
 get('deviceTableMode').listeners.click();assert.equal(get('deviceTableMode').attrs['aria-pressed'],'true');assert.equal(storage.get('netauto.pop.deviceListView'),'table');
 assert.equal((get('detailDeviceGroups').innerHTML.match(/class="l1-device-table"/g)||[]).length,2);
+const deviceTableColumnGroups=[...get('detailDeviceGroups').innerHTML.matchAll(/<colgroup>(.*?)<\/colgroup>/g)].map(m=>m[1]);
+assert.equal(deviceTableColumnGroups.length,2);assert.equal(deviceTableColumnGroups[0],deviceTableColumnGroups[1],'Network and power tables have identical explicit column tracks');
+assert.deepEqual([...deviceTableColumnGroups[0].matchAll(/class="l1-device-col-([^"]+)"/g)].map(m=>m[1]),['name','ip','type','function','vendor','model','firmware','mac']);
 assert.deepEqual([...get('detailDeviceGroups').innerHTML.matchAll(/data-l1-device="(\d+)"/g)].map(m=>Number(m[1])),cardDeviceIndices,'Device table preserves type ordering and original source indices');
 for(const device of previewRecords)for(const value of [device.name,device.ip,device.model])if(value&&value!=='UNKNOWN')assert(get('detailDeviceGroups').innerHTML.includes(value));
 get('detailDeviceSearch').value='OPMS';get('detailDeviceSearch').listeners.input();
@@ -1479,8 +1505,21 @@ popPreview.close=normalPreviewClose;context.window.NETAUTO_POP_DETAIL.closePrevi
 context.window.NETAUTO_POP_DETAIL.preview({code:'TEST-EMPTY-PREVIEW',devices:[]},previewTrigger);assert(previewHost.innerHTML.includes('Chưa có thiết bị trong POP này.'));context.window.NETAUTO_POP_DETAIL.closePreview();
 assert(html.includes('shared/netauto-pop-device-views.css'));assert(html.indexOf('id="popPreviewDialog"')>html.indexOf('id="popDetailPage"'));
 const deviceViewsCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-device-views.css'),'utf8');
+assert(deviceViewsCSS.includes('min-width:1080px;table-layout:fixed;'),'Device tables keep all eight columns aligned and can scroll horizontally on narrow screens');
+for(const [column,width] of [['name',28],['ip',14],['type',8],['function',10],['vendor',10],['model',8],['firmware',14],['mac',8]])assert(deviceViewsCSS.includes('.l1-device-col-'+column+'{width:'+width+'%}'));
+assert(deviceViewsCSS.includes('white-space:normal;overflow-wrap:anywhere;vertical-align:middle'),'Long values wrap without overlapping adjacent columns');
+assert(!deviceViewsCSS.includes('.l1-device-view-switch'),'No separate Layer 1 toggle styling can drift from Layer 0');
+const alignedDeviceCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-detail.css'),'utf8');
+assert(alignedDeviceCSS.includes('.l1-device-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-left:auto}'),'Layer 1 toolbar aligns right and can wrap on smaller screens');
 assert(deviceViewsCSS.includes('::backdrop')&&deviceViewsCSS.includes('overscroll-behavior:contain')&&deviceViewsCSS.includes('@media(pointer:coarse)'));
-assert(deviceViewsCSS.includes('cursor:default')&&deviceViewsCSS.includes('grid-template-columns:repeat(4'));
+assert(deviceViewsCSS.includes('cursor:default')&&heroCSS.includes('.l1-device-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;'));
+assert(!heroCSS.includes('.l1-device-grid{grid-template-columns:repeat(5')&&!heroCSS.includes('.l1-device-grid{display:grid;grid-template-columns:repeat(6'),'Device cards never use five or six columns');
+for(const width of [1099,819,539])assert(heroCSS.includes('@container device-cards (max-width:'+width+'px)'),'Cards respond to available content width, not viewport width');
+assert(heroCSS.includes('gap:9px;min-height:148px')&&heroCSS.includes('.l1-device-facts{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);'),'Compact landscape cards place the two new facts side by side');
+assert(heroCSS.includes('.l1-device-card>svg.na-decor-motif{position:absolute;z-index:0;right:0;top:0;width:148px;height:92px;max-width:50%;color:var(--l1-accent);opacity:.18;pointer-events:none}'),'Abstract PCB/signal artwork stays small, light and in the top-right corner');
+assert(heroCSS.includes('var(--l1-accent) 10%,transparent)')&&!heroCSS.includes(' .l1-device-card:after{'),'Sparse dots remain a quiet secondary layer');
+assert(html.indexOf('shared/netauto-motifs.js')<html.indexOf('shared/netauto-context-tools.js')&&html.indexOf('shared/netauto-motifs.js')<html.indexOf('shared/netauto-pop-detail.js'),'Inline SVG renderer is loaded before both card consumers');
+assert(!html.includes('id="detailDeviceCount"')&&!fs.readFileSync(path.join(mockup,'shared/netauto-pop-detail.js'),'utf8').includes("get('detailDeviceCount')"),'The device-count/source footer is removed rather than merely hidden');
 console.log('PASS: explicit Layer 0 detail actions vs read-only native preview, original grouped device cards, route/inventory isolation, close/backdrop/Escape/history/focus/scroll, Layer 1 cards/table parity/search/order/navigation/persistence and EN/DE/XSS/source safety.');
 
 // Table location choices are column visibility controls, never data filters.
@@ -1563,7 +1602,8 @@ const cornerCircuitRule=landscapeCSS.match(/^#popPage \.na-pop-card:after\{([^}]
 assert(cornerBaseRule.includes('top:0;right:0;width:180px;height:112px;'));
 assert(cornerBaseRule.includes('pointer-events:none')&&cornerBaseRule.includes('z-index:0;'));
 assert(cornerDotsRule.includes('16px 16px')&&cornerDotsRule.includes('mask-image:linear-gradient(225deg,'));
-assert(cornerCircuitRule.includes('var(--na-pop-accent) 13%')&&cornerCircuitRule.includes('mask-size:100% 100%'));
+assert(cornerDotsRule.includes('var(--na-pop-accent) 23%'),'Dot contrast is slightly stronger without changing its sparse spacing');
+assert(cornerCircuitRule.includes('var(--na-pop-accent) 21%')&&cornerCircuitRule.includes('mask-size:100% 100%'));
 const circuitVector=decodeURIComponent(cornerCircuitRule.match(/data:image\/svg\+xml,([^\"]+)/)[1]);
 assert(circuitVector.includes('<path d="M180')&&circuitVector.includes('<circle'));
 assert(!landscapeCSS.includes('radial-gradient(circle closest-side,'),'Concentric corner arcs are removed');
@@ -1776,3 +1816,130 @@ get('popCardsMode').click();cardHues().forEach(assertCoolPopHue);context.localSt
 assert.equal(storage.get('netauto.pop.locationColumns'),coolColumnsBefore,'Color migration does not reset column preferences');
 assert.equal(JSON.stringify(allPops),tableSourceBefore,'Cool palette changes never modify POP metadata, counts or statuses');
 console.log('PASS: cool-only Layer 0 card/table hues for every POP/province, collision-free offsets and wrap boundaries, safe unknown/invalid hues, legacy warm-preference replacement, refresh/reload/storage-failure paths and immutable data/filters.');
+
+// Layer 1/2 contextual tools are native launchers, not unconnected live actions.
+openDetail('AGGP006');
+const contextKeys=id=>Array.from(get(id).innerHTML.matchAll(/data-context-tool="([^"]+)"/g),m=>m[1]);
+const assertToolDescriptions=id=>{
+  const copies=Array.from(get(id).innerHTML.matchAll(/<span class="na-context-tool-copy"><strong>(.*?)<\/strong><small>(.*?)<\/small><\/span>/g));
+  assert.equal(copies.length,contextKeys(id).length,'Every eligible tool has its original title and a description');
+  for(const copy of copies)assert(copy[1].trim()&&copy[2].trim().length>=25,'Tool descriptions are meaningful sample copy, not empty placeholders');
+  assert.equal((get(id).innerHTML.match(/<svg class="na-decor-motif" data-motif-kind="TOOLS"/g)||[]).length,copies.length,'Every tool card actually contains the inline wrench/gear SVG');
+};
+assert.deepEqual(contextKeys('popContextTools'),['reboot','bandwidth','olt','switchce','battery','power']);
+assertToolDescriptions('popContextTools');
+for(const label of ['Reboot Thiết bị','Nâng cấp băng thông','Cấu hình mới OLT','Cấu hình mới switchCE','Kiểm tra Pin/Accu','Cấu hình giám sát nguồn mới'])assert(get('popContextTools').innerHTML.includes(label));
+assert(html.indexOf('id="popContextTools"')>html.indexOf('id="popMaterialsPanel"'),'POP tools sit below both detail panels');
+assert(html.indexOf('id="deviceContextTools"')>html.indexOf('id="deviceInventoryPanel"'));
+assert(html.includes('title="Quét lại các module thuộc thiết bị"')&&html.includes('id="deviceModulesRefresh"'));
+assert(html.includes('disabled>Thực thi — chưa kết nối</button>'));
+const contextDialog=get('contextToolDialog');
+const launchContext=(host,key)=>{
+  const button=element('test-tool-trigger',{contextTool:key});
+  get(host).listeners.click({target:{closest:selector=>selector==='[data-context-tool]'?button:null}});return button;
+};
+document.body.style.overflow='auto';
+const toolRoute=context.location.hash,toolTrigger=launchContext('popContextTools','reboot');
+assert.equal(contextDialog.open,true);assert.equal(context.location.hash,toolRoute);
+assert(get('contextToolContext').innerHTML.includes('AGGP006'));assert.equal(document.body.style.overflow,'hidden');
+contextDialog.listeners.click({target:contextDialog,clientX:500,clientY:500});assert.equal(contextDialog.open,true);
+contextDialog.listeners.cancel({preventDefault(){}});assert.equal(contextDialog.open,false);assert.equal(document.body.style.overflow,'auto');assert.equal(document.activeElement,toolTrigger);
+launchContext('popContextTools','olt');contextDialog.listeners.click({target:contextDialog,clientX:0,clientY:0});assert.equal(contextDialog.open,false);
+
+const toolsDeviceController=context.window.NETAUTO_DEVICE_DETAIL;
+const toolsPop=allPops.find(p=>p.code==='AGGP006');
+const toolDevice=(type,fn)=>({name:`TEST-${type}-${fn}`,ip:'192.0.2.8',type,function:fn,model:'TEST',vendor:'TEST',materials:[],ports:[],inventoryCounts:null});
+for(const [type,fn,expected] of [
+  ['OLT','ACN',['bandwidth','fti','power','pi','reboot']],
+  ['SWITCH','CE',['bandwidth','reboot','replace']],
+  ['SWITCH',' switch_CE ',['bandwidth','reboot','replace']],
+  ['SWITCH','SWMPLS',['bandwidth','reboot']],['SWITCH','DI',['bandwidth','reboot']],
+  ['POWER','POWER',[]],['PI','PI',[]],['UNKNOWN','CE',[]]
+]){
+  const record=toolDevice(type,fn),before=JSON.stringify(record);
+  toolsDeviceController.open(toolsPop,record);
+  assert.deepEqual(contextKeys('deviceContextTools'),expected,`${type}/${fn}: only eligible tools appear`);
+  assertToolDescriptions('deviceContextTools');
+  assert.equal(get('deviceContextToolsSection').hidden,!['SWITCH','OLT'].includes(type));
+  assert.equal(get('devicePortsTab').hidden,!['SWITCH','OLT'].includes(type));
+  assert.equal(JSON.stringify(record),before);
+}
+toolsDeviceController.open(toolsPop,toolDevice('SWITCH','DI'));
+launchContext('deviceContextTools','fti');assert.equal(contextDialog.open,false,'Forged OLT-only action is rejected for a switch');
+const unsafeToolDevice={...toolDevice('OLT','ACN'),name:'<img src=x>',ip:'<svg onload=bad>'};
+toolsDeviceController.open(toolsPop,unsafeToolDevice);launchContext('deviceContextTools','fti');
+assert(get('contextToolContext').innerHTML.includes('&lt;img')&&!get('contextToolContext').innerHTML.includes('<img'));
+assert(get('contextToolContext').innerHTML.includes('&lt;svg')&&!get('contextToolContext').innerHTML.includes('<svg'));
+get('contextToolClose').click();
+launchContext('deviceContextTools','reboot');get('backToPopDetail').click();assert.equal(contextDialog.open,false,'Navigation closes tool previews and releases their scroll lock');
+
+// Complete metadata: source precedence, zeros, missing fields and no fabricated time/ports.
+const factsDevice={...toolDevice('SWITCH','CE'),name:'FACTS',area:'MB',zone:'V2',province:'HN',branch:'HN11',portCount:0,total_mac:0,firmware:{version:'V1',patch:'<&>'},chassisSerials:['C1','C2'],updatedAt:'2026-10-21 09:10:00',inventoryCounts:{power:0,fan:0,transceiver:0,card:0},ports:[{name:'Ethernet0/1',module:null}]};
+const factsBefore=JSON.stringify(factsDevice);
+toolsDeviceController.open(toolsPop,factsDevice);
+const factsHtml=get('deviceDetailFields').innerHTML;
+for(const label of metadataOrder)assert(factsHtml.includes(`<dt>${label}</dt>`));
+for(const label of ['Số port','Số transceiver','Module nguồn','Module quạt','Card','Total MAC'])assert(factsHtml.includes(`<dt>${label}</dt><dd>0</dd>`),`${label} retains explicit zero`);
+assert(factsHtml.includes('2026-10-21 09:10:00')&&factsHtml.includes('C1 · C2')&&factsHtml.includes('&lt;&amp;&gt;'));
+assert.equal(JSON.stringify(factsDevice),factsBefore);
+const missingFacts=toolDevice('OLT','ACN');toolsDeviceController.open(toolsPop,missingFacts);
+for(const label of ['Số port','Số transceiver','Module nguồn','Module quạt','Card','Total MAC','Ngày cập nhật','Firmware','Serial chassis'])assert(get('deviceDetailFields').innerHTML.includes(`<dt>${label}</dt><dd>—</dd>`));
+for(const vendor of ['DASAN','FiberHome','Juniper','H3C']){
+  const record={...missingFacts,vendor,model:'PENDING-PROFILE'};
+  toolsDeviceController.open(toolsPop,record);assert(get('deviceDetailFields').innerHTML.includes('<dt>Số port</dt><dd>—</dd>'),'Unsupported models do not gain invented installed ports');
+}
+
+// Module refresh reloads only the local snapshot, preserves port state and has race guards.
+const moduleStore=context.window.NETAUTO_POP_DETAIL_DATA;
+const scanReal=moduleStore.pops.AGGP006.find(d=>d.model==='GC16');
+toolsDeviceController.open(toolsPop,scanReal);get('deviceGridView').click();
+get('devicePortSearch').value='G0/1';get('devicePortSearch').listeners.input();selectPort('G0/1');
+const appendSnapshot=document.head.appendChild,pendingModuleScripts=[];
+document.head.appendChild=script=>pendingModuleScripts.push(script);
+get('deviceModulesRefresh').click();get('deviceModulesRefresh').click();
+assert.equal(pendingModuleScripts.length,1);assert.equal(get('deviceModulesRefresh').disabled,true);assert.equal(get('deviceModulesRefresh').attrs['aria-busy'],'true');
+assert(get('deviceModuleRefreshStatus').textContent.includes('Đang tải lại'));
+const completeModuleScript=(script,error=false)=>{
+  if(error)script.onerror();else{vm.runInNewContext(fs.readFileSync(path.join(mockup,script.src),'utf8'),context,{filename:script.src});script.onload();}
+};
+completeModuleScript(pendingModuleScripts.shift());
+assert.equal(get('deviceModulesRefresh').disabled,false);assert.equal(get('deviceModulesRefresh').attrs['aria-busy'],'false');
+assert.equal(get('devicePortSearch').value,'G0/1');assert.equal(get('devicePortGridContent').hidden,false);assert.equal(get('devicePortInspector').hidden,false);assert.equal(get('deviceSelectedPortName').textContent,'G0/1');
+assert(get('deviceModuleRefreshStatus').textContent.includes('chưa quét trực tiếp'));
+get('deviceModulesRefresh').click();completeModuleScript(pendingModuleScripts.shift(),true);
+assert(get('deviceModuleRefreshStatus').textContent.includes('Dữ liệu trước đó được giữ nguyên'));assert(moduleStore.pops.AGGP006.length>0);
+get('deviceModulesRefresh').click();
+toolsDeviceController.open(toolsPop,toolDevice('OLT','ACN'));
+completeModuleScript(pendingModuleScripts.shift());
+assert.equal(get('deviceDetailName').textContent,'TEST-OLT-ACN');assert.equal(get('deviceModuleRefreshStatus').hidden,true,'Late refresh cannot update a different device');
+let coalescedRefreshes=0;
+moduleStore.reloadPop('AGGP006',()=>coalescedRefreshes++);moduleStore.reloadPop('AGGP006',()=>coalescedRefreshes++);
+assert.equal(pendingModuleScripts.length,1,'Concurrent local reloads share one snapshot read');
+completeModuleScript(pendingModuleScripts.shift());assert.equal(coalescedRefreshes,2);
+document.head.appendChild=appendSnapshot;
+const contextToolSource=fs.readFileSync(path.join(mockup,'shared/netauto-context-tools.js'),'utf8');
+assert(!/fetch\(|XMLHttpRequest|WebSocket|\.send\(|location\.href\s*=/.test(contextToolSource),'Tool cards cannot send device commands');
+const elevatedToolCSS=fs.readFileSync(path.join(mockup,'shared/netauto-context-tools.css'),'utf8');
+assert(elevatedToolCSS.includes('.na-context-tools-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;'),'Tool grid has at most four cards per row, with the same spacing as POP/device cards');
+for(const width of [1099,819,539])assert(elevatedToolCSS.includes('@container context-tools (max-width:'+width+'px)'),'Tool columns respond to actual section width');
+assert(elevatedToolCSS.includes('.na-context-tool-copy small{color:var(--na-muted);font-size:11px;line-height:1.65;font-weight:400}'),'Sample description text has readable secondary styling and wraps naturally');
+assert(elevatedToolCSS.includes('.na-context-tool>svg.na-decor-motif{position:absolute;z-index:0;right:8px;bottom:8px;width:104px;height:72px;max-width:34%;color:var(--na-blue);opacity:.16;pointer-events:none}'),'Compact wrench/gear artwork is contained in one corner, much smaller and lighter than the previous illustration');
+assert(elevatedToolCSS.includes('var(--na-blue) 10%,transparent)')&&!elevatedToolCSS.includes('mask-image:url('),'Dots stay secondary and tool art makes no mask-image file requests');
+assert(elevatedToolCSS.includes('.na-context-tool:before,:is(#popDetailPage,#deviceDetailPage) .na-context-tool>svg.na-decor-motif{display:none}'),'High-contrast mode removes both dot and direct SVG watermarks');
+const wrenchGearAsset=fs.readFileSync(path.join(mockup,'shared/device-motifs/tools.svg'),'utf8');
+assert(wrenchGearAsset.includes('viewBox="0 0 180 112"')&&!/<script\b|<image\b|\bon\w+=|href=/i.test(wrenchGearAsset),'Tool decoration is a local, inert vector asset');
+const pastelToolIconRule=elevatedToolCSS.match(/\.na-context-tool-icon\{([^}]+)\}/)[1];
+assert(pastelToolIconRule.includes('--na-tool-icon-accent:var(--na-blue)')&&pastelToolIconRule.includes('border:0;border-radius:11px;background:color-mix(in srgb,var(--na-tool-icon-accent) 10%,var(--na-panel));color:var(--na-tool-icon-accent)'),'Tool icons reuse the metadata icon system: colored strokes, flat pastel surface and no outline');
+for(const [tool,tone] of [['bandwidth','cyan'],['olt','purple'],['battery','green'],['power','cyan'],['fti','purple'],['pi','green'],['replace','purple']])assert(elevatedToolCSS.includes('[data-context-tool='+tool+'] .na-context-tool-icon{--na-tool-icon-accent:var(--na-'+tone+')}'),'Tool icon palette stays cool and maps by stable tool key, including Layer 2-only tools');
+assert(elevatedToolCSS.includes(':is(#popDetailPage,#deviceDetailPage) .na-context-tool-icon svg{width:21px;height:21px;color:inherit}'),'Both layers use identical icon sizing and inherited color above general SVG defaults');
+assert(elevatedToolCSS.includes('.na-context-tool:before{content:"";position:absolute;z-index:0;')&&elevatedToolCSS.includes('background-size:16px 16px;mask-image:linear-gradient(225deg,#000,transparent 75%);pointer-events:none'),'Subtle sparse corner dots stay decorative and cannot block tool clicks');
+assert(elevatedToolCSS.includes('.na-context-tool>span{position:relative;z-index:1;min-width:0}'),'Tool icon and label sit above the background pattern');
+assert(elevatedToolCSS.includes('.na-context-tool:focus-visible{outline:2px solid var(--na-blue);outline-offset:3px}'),'Decor does not remove the visible keyboard focus ring');
+assert(elevatedToolCSS.includes('@media(prefers-reduced-motion:reduce)')&&elevatedToolCSS.includes('@media(forced-colors:active)'),'Tool decor supports reduced motion and high contrast');
+for(const buttonMarkup of get('popContextTools').innerHTML.match(/<button\b[\s\S]*?<\/button>/g)||[])assert.equal((buttonMarkup.match(/<span\b/g)||[]).length,2,'Tool cards retain just their icon and label, with no additional arrow');
+const elevatedPopFieldRule=heroCSS.match(/#popDetailPage \.l1-pop-field\{([^}]+)\}/)[1];
+assert(elevatedPopFieldRule.includes('background:linear-gradient(145deg,var(--na-panel)')&&elevatedPopFieldRule.includes('border:1px solid color-mix(in srgb,var(--na-muted) 16%,var(--na-line))')&&elevatedPopFieldRule.includes('box-shadow:0 2px 4px #0f172a06,0 5px 12px #0f172a0a'),'Only the four metadata tiles gain a neutral raised surface');
+assert(heroCSS.includes('.l1-pop-field dd{font-size:14px;font-weight:750;line-height:1.5}')&&!heroCSS.includes('.l1-pop-field:hover'),'Metadata values are more prominent without implying a clickable control');
+assert(heroCSS.includes('@media(forced-colors:active){#popDetailPage .l1-pop-field{border-color:CanvasText;background:Canvas;box-shadow:none}}'),'Raised metadata has a high-contrast fallback');
+assert.equal(JSON.stringify(allPops),tableSourceBefore,'Tools and module reloads never mutate imported POP metadata');
+console.log('PASS: Layer 1 six-tool footer, Layer 2 OLT/CE-specific tools, safe native previews, complete source-backed metadata/zero/missing states and snapshot-only module reload with preserved port state, coalescing, failure recovery and stale-device isolation.');

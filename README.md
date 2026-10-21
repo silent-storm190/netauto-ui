@@ -121,7 +121,7 @@ phù hợp, không mặc định công khai.
 
 ## Chế độ danh sách POP
 
-Nút **Thẻ / Table** cạnh tiêu đề Danh sách POP chuyển giữa hai cách trình bày,
+Nút **Thẻ / Bảng** cạnh tiêu đề Danh sách POP chuyển giữa hai cách trình bày,
 ghi nhớ lựa chọn bằng preference local tùy chọn.
 Màu nhận diện POP ở cả hai mode chỉ dùng tông lạnh teal/cyan/xanh dương/tím xanh
 (hue 165 ≤ h < 265), không dùng đỏ/cam/nâu/vàng hoặc hồng để tránh gợi trạng thái lỗi.
@@ -134,7 +134,7 @@ giảm còn 3 cột (dưới 1100px), 2 cột (dưới 820px), 1 cột (dưới 
 Container query xử lý cả sidebar/fullscreen, có media-query fallback.
 Thẻ gọn theo chiều ngang: icon/tên/vị trí cùng phần đầu, Chi tiết ở góc phải;
 góc phải có lưới chấm thưa 16px và đường mạch/nút nối mảnh trong vùng 180×112px,
-cùng màu POP, lưới mờ dần về phía nội dung.
+cùng màu POP, chấm 23% và đường mạch 21% để rõ hơn; lưới mờ dần về phía nội dung.
 Họa tiết nằm dưới nội dung/nút, không nhận click, ẩn trong forced-colors.
 ba thông tin POP xếp ngang. Switch / OLT / Nguồn / PI có bốn ô bằng nhau,
 nhãn phía trên và số căn giữa/tabular-nums để các chỉ số luôn thẳng hàng.
@@ -187,12 +187,86 @@ cuộn nền. Mở popup focus vào nút Chi tiết; đóng xóa POP đích đ�
 Không tải thêm inventory chỉ để xem popup; dùng metadata thiết bị đã có.
 Đã bỏ nút Đăng ký thiết bị.
 
-Trong **Layer 1 → Thiết bị trong POP**, có chế độ **Thẻ / Table** riêng,
-ghi nhớ bằng preference `netauto.pop.deviceListView`. Table vẫn chia hai nhóm,
-màu theo loại, gồm tên / IP / loại / chức năng / vendor / model; cùng thứ tự
-và object nguồn với Thẻ. Đổi mode không xóa search, inventory tải muộn giữ mode
+Trong **Layer 1 → Thiết bị trong POP**, có chế độ **Thẻ / Bảng** riêng,
+ghi nhớ bằng preference `netauto.pop.deviceListView`. Nút dùng cùng icon, CSS,
+kích thước và trạng thái với Layer 0; đặt sau ô tìm kiếm, cạnh Topo thiết bị,
+cả cụm canh phải và xuống dòng trên màn hình nhỏ. Bảng vẫn chia hai nhóm,
+màu theo loại, gồm tên / IP / loại / chức năng / vendor / model / Firmware /
+Total MAC; cùng thứ tự và object nguồn với Thẻ. Hai nhóm dùng chung tám track cột cố định để canh
+thẳng; giá trị dài xuống dòng, màn hình hẹp cuộn ngang không mất thông tin.
+Đổi mode không xóa search, inventory tải muộn giữ mode
 và filter; nút tên hoặc dòng vẫn mở Layer 2 như trước. EN… → ENATEL và DE… →
 DELTA được áp dụng nhất quán cho cả hai mode và popup, không sửa snapshot.
+Thẻ thiết bị tối đa 4 cột, gap 14px, giảm 3/2/1 theo chiều rộng vùng nội dung
+ở các mốc 1100/820/540px như Layer 0. Bố cục ngang gọn: icon+tên/IP ở đầu,
+Firmware/Total MAC giữa thẻ, vendor/model và tag loại/chức năng ở chân.
+Góc phải dùng chấm thưa 16px/10% và bảng mạch + đường tín hiệu abstract,
+dùng chung mọi loại thiết bị, không còn hình cổng/chassis/pin theo loại.
+Hình gọn 148×92px, tối đa 50% chiều rộng thẻ, opacity 18%, nằm trên cùng góc
+phải thay vì kéo dài xuống phần thông số. SVG tham chiếu device-motifs/circuit.svg,
+bản nhúng qua shared/netauto-motifs.js với nét 1.3px/currentColor. Không tải mask SVG từ file
+riêng để tránh hình biến mất khi xem bằng file URL hoặc qua preview đóng gói.
+Tint theo loại, không chặn click; hỗ trợ
+high-contrast/reduced-motion. Popup xem nhanh dùng cùng thẻ nhưng không mở thiết bị.
+Firmware lấy từ thiết bị hoặc inventory.device, giữ version/chi tiết patch trong
+tooltip; Total MAC nhận totalMac/total_mac và inventory.device.total_mac, giữ số 0,
+thiếu/không hợp lệ để “—”. Tìm kiếm bao gồm hai trường mới. Không tự sinh dữ liệu.
+Bỏ hẳn dòng đếm bản ghi/tên file nguồn dưới danh sách thiết bị.
+
+Cụm nhận diện POP ở Layer 1 chỉ có icon và tag tên POP trên cùng một hàng,
+căn giữa trực tiếp theo chiều dọc; đã bỏ nhãn “CHI TIẾT POP” và khoảng trống
+của dòng đó. Dòng Miền/Vùng/Tỉnh/Chi nhánh
+nằm riêng bên dưới, thẳng mép trái với icon. Tên dài và vị trí có thể xuống dòng,
+không đẩy tràn nhóm thống kê thiết bị bên phải. Tag giữ màu theo lần vào POP.
+Bốn ô thông tin POP dùng nền sáng chuyển nhẹ, viền trung tính rõ hơn và bóng
+đổ mỏng; giá trị nhấn bằng độ đậm. Không thêm tương tác hover cho ô thông tin.
+Icon trước cả năm trường dùng nét màu trong ô pastel bo góc 28px, SVG 17px:
+Loại POP xanh dương, ngày triển khai cyan, chức năng tím, khách hàng xanh ngọc,
+địa chỉ xanh ngọc. Nhãn và giá trị vẫn trung tính, icon chỉ trang trí và hỗ trợ
+theme sáng/tối cùng high-contrast; không đổi dữ liệu hay màu trạng thái POP.
+
+### Công cụ ở cuối trang POP / thiết bị
+
+Layer 1 có sáu thẻ: Reboot Thiết bị, Nâng cấp băng thông, Cấu hình mới OLT,
+Cấu hình mới switchCE, Kiểm tra Pin/Accu, Cấu hình giám sát nguồn mới.
+Section nằm dưới cả Tổng quan và Quản lý vật tư, không làm thay đổi tab hiện tại.
+Thẻ công cụ có nền chuyển xanh lạnh rất nhẹ, chấm thưa 16px/10% ở góc phải; icon
+dùng chung hệ nét màu/nền pastel 10% như metadata, không viền, bo góc 11px.
+Icon công cụ lớn 40px/SVG 21px; Reboot/switchCE xanh dương, băng thông/nguồn
+cyan, OLT/FTI/thay switchCE tím, Pin/PI xanh ngọc, đồng nhất Layer 1/2.
+Không có mũi tên/ký hiệu phụ. Viền focus bàn phím vẫn giữ,
+họa tiết không bắt click; có fallback high-contrast và reduced-motion.
+Grid công cụ tối đa 4 thẻ/hàng, gap 14px, giảm 3/2/1 theo chiều rộng vùng nội
+dung tại 1100/820/540px như thẻ POP. Mỗi thẻ có tên và mô tả ngắn (nội dung mẫu
+phục vụ duyệt UI, chưa phải hợp đồng chức năng backend). Họa tiết chìm cờ-lê +
+bánh răng SVG nhúng trực tiếp từ NETAUTO_MOTIFS, gọn 104×72px/tối đa 34%
+chiều rộng thẻ, nét 1.3px/opacity 16%, cách mép phải/dưới 8px. Không thêm mũi
+tên, không phụ thuộc ảnh mask tải từ file SVG riêng. Bố cục/dữ liệu giữ nguyên.
+Layer 2 chỉ hiện Công cụ cho SWITCH/OLT: cả hai có Nâng cấp băng thông và Reboot device;
+OLT thêm FTI trên PON, giám sát Nguồn và giám sát PI; switch có function CE/switchCE
+thêm Thay thế switchCE. Không suy ra vai trò CE từ tên/model hoặc gán cho DI/SWMPLS.
+Các thẻ mở native dialog theo đúng POP/thiết bị/IP, đóng bằng Đóng/Esc/backdrop,
+giữ focus và scroll lock chung với các popup hiện có. Đây là launcher UI chưa kết nối
+backend: nút Thực thi bị vô hiệu hóa; không gửi lệnh, reboot hay cấu hình.
+
+Layer 2 có bốn nhóm thông tin: Nhận diện (tên, IP, vendor, model, serial chassis),
+Vị trí (POP, Miền → Vùng → Tỉnh → Chi nhánh), Vận hành (chức năng, firmware,
+Total MAC, ngày cập nhật), Phần cứng (số port/transceiver, nguồn/quạt/card).
+Giữ giá trị nguồn/kể cả 0; trường thiếu là “—”, không lấy thời gian hiện tại làm ngày cập nhật.
+Số port ưu tiên count nguồn; nếu thiếu chỉ đếm tên port quan sát được, làm sạch và khử trùng;
+không lấy profile giả lập làm số port đã lắp. Firmware/Total MAC chưa có trong snapshot
+vẫn để thiếu, không tự sinh dữ liệu. Layout/profile port không đổi, chờ dữ liệu bổ sung
+cho những dòng Dasan/FiberHome/Juniper/H3C còn thiếu.
+
+Nút **Làm mới dữ liệu** ở góc phải Quản lý Port có tooltip **Quét lại các module thuộc thiết bị**.
+Nút Đặt lại cũ vẫn riêng biệt. Hiện nút mới dùng `reloadPop` để tải lại chunk snapshot
+của POP (không quét trực tiếp), giữ bộ lọc, mode port, port đang chọn và tìm kiếm inventory.
+Có trạng thái tải/lỗi, chống click lặp, coalesce các yêu cầu đồng thời, giữ cache khi lỗi
+và bỏ qua callback khi người dùng đã chuyển thiết bị. Không bổ sung endpoint hay API scan giả.
+
+Môi trường tủ: bốn ô T1–T4 giữ bố cục 2×2 với nền xám nhạt và viền mảnh đồng nhất;
+nhãn 12px đậm màu chữ chính, số đọc đậm hơn, chỉ giá trị/đơn vị đổi màu theo ramp nhiệt độ
+hiện có. Header dùng teal; không thay ngưỡng, số đo, mức cảnh báo backend hoặc phần độ ẩm.
 
 Mỗi tỉnh dùng một hue lạnh riêng cho viền dòng, tên, nhãn tỉnh và màu loang các chỉ số;
 nền nhẹ và số giữ màu chữ trung tính. Palette bảng đổi trong dải lạnh khi refresh

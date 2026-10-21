@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 112">
+  <!-- Decorative wrench and gear; not an action icon or a status indicator. -->
+  <g fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 96 99 49a21 21 0 0 0 25-27l-13 13-11-3-3-11 13-13a21 21 0 0 0-27 25L36 80a11 11 0 0 0 16 16Z" fill="white" fill-opacity=".1"/>
+    <circle cx="45" cy="87" r="3"/>
+    <g transform="translate(144 73)">
+      <path d="M-6-26H6l2 7 5 2 7-3 8 8-3 7 2 5 7 2v12l-7 2-2 5 3 7-8 8-7-3-5 2-2 7H-6l-2-7-5-2-7 3-8-8 3-7-2-5-7-2V2l7-2 2-5-3-7 8-8 7 3 5-2Z"/>
+      <circle cy="8" r="11"/>
+      <circle cy="8" r="4"/>
+    </g>
+    <path d="M40 27h22M51 16v22M78 105h32"/>
+  </g>
+</svg>

@@ -27,6 +27,15 @@ for(const [index,hue] of [[0,'148.0'],[1,'148.0'],[2,'135.4'],[3,'85.0'],[4,'34.
 for(let i=8;i<tiles.length;i++){assert(tiles[i][1].includes('data-sp-temperature-tone="unknown"'));assert(!tiles[i][1].includes('style='));assert(tiles[i][2].includes('<b>—</b>'));}assert(!temperatureHTML.includes('<img'));assert(temperatureHTML.includes('không phải ngưỡng cảnh báo'));assert.deepEqual(s.counts,{normal:18,warning:6,critical:1,unknown:0});assert.equal(JSON.stringify(capture),original);
 const visualCSS=fs.readFileSync(path.join(base,'smartpop-workspace.css'),'utf8');assert(visualCSS.includes('--sp-temperature-color:hsl(var(--sp-temperature-hue) 92% 49%)'));assert(visualCSS.includes('.sp-temperature-label{font-size:12px;font-weight:750;'));
 assert(visualCSS.includes('.sp-parameter{overflow-wrap:anywhere;text-decoration:none}'));assert(visualCSS.includes('color:hsl(var(--sp-temperature-hue) 88% 28%)'));assert(visualCSS.includes('color:hsl(var(--sp-temperature-hue) 90% 73%)'));assert(visualCSS.includes('html[data-theme=dark]'));
+const neutralTemperatureTile=visualCSS.match(/#popDetailPage \.sp-temperatures \.sp-temperature-tile\{([^}]+)\}/)[1];
+assert(neutralTemperatureTile.includes('var(--na-muted) 9%')&&neutralTemperatureTile.includes('border:1px solid')&&!neutralTemperatureTile.includes('--sp-temperature-color'));
+const scaledTemperatureTile=visualCSS.match(/\.sp-temperature-tile\[data-sp-temperature-tone=scaled\]\{([^}]+)\}/)[1];
+assert(!/background|border-color/.test(scaledTemperatureTile),'Temperature changes ink only, never the neutral tile fill/border');
+assert(!visualCSS.includes('[data-sp-temperature-tone=scaled] .sp-temperature-label,'),'T1–T4 labels remain neutral in both themes');
+assert(visualCSS.includes('.sp-temperature-tile b{font-weight:750}'));
+assert(visualCSS.includes('.sp-temperatures{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}'));
+const humidityMarkup=markup=>markup.match(/<div class="sp-inline-reading">([\s\S]*?)<\/div>/)[0];
+assert.equal(humidityMarkup(temperatureHTML),humidityMarkup(visualContext.window.NETAUTO_SMARTPOP_PRESENTATION.overview(s)),'Temperature redesign leaves the humidity markup/value unchanged');
 const healthRule=visualCSS.match(/#popDetailPage \.sp-health-strip\{([^}]+)\}/)[1],monitorRule=visualCSS.match(/#popDetailPage \.sp-monitor-strip\{([^}]+)\}/)[1];
 for(const rule of [healthRule,monitorRule]){assert(rule.includes('grid-template-columns:var(--sp-summary-columns)'));assert(rule.includes('gap:var(--sp-summary-gap)'));}
 assert(visualCSS.includes('--sp-summary-columns:repeat(4,minmax(0,1fr));--sp-summary-gap:12px'));assert(visualCSS.includes('@media(max-width:1350px){#popDetailPage{--sp-summary-columns:repeat(2,minmax(0,1fr))}}'));assert(visualCSS.includes('@media(max-width:700px){#popDetailPage{--sp-summary-columns:minmax(0,1fr)}'));

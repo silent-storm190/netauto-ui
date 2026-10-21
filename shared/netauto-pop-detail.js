@@ -102,7 +102,7 @@
     get('detailPopFields').innerHTML = fields.map(([key,label,glyph]) => {
       const {demo,value} = metadata[key];
       const shown = key === 'customerCount' && Number.isFinite(Number(value)) ? format(Number(value)) : value;
-      return `<div class="${key === 'address' ? 'is-address' : 'l1-pop-field'}" data-field="${key}" data-demo="${demo}"${demo ? ' title="Dữ liệu giả lập để minh hoạ Interface"' : ''}><dt>${icon(glyph)}<span>${label}</span></dt><dd>${escape(shown)}</dd></div>`;
+      return `<div class="${key === 'address' ? 'is-address' : 'l1-pop-field'}" data-field="${key}" data-demo="${demo}"${demo ? ' title="Dữ liệu giả lập để minh hoạ Interface"' : ''}><dt><span class="l1-field-icon" aria-hidden="true">${icon(glyph)}</span><span>${label}</span></dt><dd>${escape(shown)}</dd></div>`;
     }).join('');
   }
 
@@ -114,6 +114,7 @@
   }
 
   function open(pop, preserve = false) {
+    window.NETAUTO_CONTEXT_TOOLS?.close();
     closePreview();
     closeTopo();
     if (preserve && currentPop?.code === pop.code) {
@@ -122,6 +123,7 @@
     }
     renewPopAppearance(pop.code);
     currentPop = pop;
+    window.NETAUTO_CONTEXT_TOOLS?.render('popContextTools',pop);
     currentDevices = source.pops[pop.code] || pop.devices;
     get('detailPopName').textContent = pop.code;
     get('detailBreadcrumb').textContent = pop.code;
@@ -152,11 +154,29 @@
     return device.vendor;
   }
 
+  function deviceFacts(device) {
+    const inventory=device.inventory?.device || {};
+    const rawFirmware=device.firmware ?? inventory.firmware;
+    const text=value=>value==null||String(value).trim()===''||value==='UNKNOWN'?'—':String(value);
+    const objectFirmware=rawFirmware&&typeof rawFirmware==='object';
+    const version=text(objectFirmware?rawFirmware.version:rawFirmware);
+    const extra=objectFirmware?Object.entries(rawFirmware).filter(([key,value])=>key!=='version'&&value!=null&&String(value).trim()!=='').map(([key,value])=>`${key==='patch'?'Patch':key==='epld'?'EPLD':key}: ${typeof value==='object'?JSON.stringify(value):value}`).join(' · '):'';
+    const firmware=version==='—'&&extra?extra:version;
+    const firmwareDetails=[version==='—'?'':version,extra].filter(Boolean).join(' · ') || '—';
+    const rawMac=device.totalMac ?? device.total_mac ?? inventory.total_mac;
+    const numericMac=(typeof rawMac==='number'||typeof rawMac==='string'&&rawMac.trim())&&Number.isFinite(Number(rawMac));
+    return {firmware,firmwareDetails,totalMac:numericMac?format(Number(rawMac)):'—',rawMac:numericMac?String(rawMac):''};
+  }
+
   function deviceList(devicesSource, query = '', mode = 'cards', readOnly = false) {
-    const matches = devicesSource.filter(device => [device.name,device.ip,device.model,deviceVendor(device),device.function,device.type].join(' ').toLowerCase().includes(query));
+    const matches = devicesSource.filter(device => {const facts=deviceFacts(device);return [device.name,device.ip,device.model,deviceVendor(device),device.function,device.type,facts.firmware,facts.firmwareDetails,facts.totalMac,facts.rawMac].join(' ').toLowerCase().includes(query);});
     const groupFor = device => groups.find(group=>group.type === device.type) || {label:'Khác',tone:'slate',icon:'server'};
-    const card = device => {const group=groupFor(device),tag=readOnly?'article':'button',attrs=readOnly?'':` type="button" data-l1-device="${devicesSource.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"`;return `<${tag} class="l1-device-card is-${group.tone}"${attrs}><span class="l1-device-card-top"><span class="l1-device-icon">${icon(group.icon)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span><span class="l1-device-card-foot"><span>${escape(deviceVendor(device))} · ${escape(device.model)}</span></span></${tag}>`;};
-    const table = devices => `<div class="l1-device-table-scroll" role="region" aria-label="Danh sách thiết bị dạng bảng" tabindex="0"><table class="l1-device-table"><thead><tr><th scope="col">Thiết bị</th><th scope="col">IP</th><th scope="col">Loại</th><th scope="col">Chức năng</th><th scope="col">Vendor</th><th scope="col">Model</th></tr></thead><tbody>${devices.map(device=>{const group=groupFor(device);return `<tr class="is-${group.tone}"${readOnly?'':` data-l1-device="${devicesSource.indexOf(device)}"`}><th scope="row">${readOnly?`<strong>${escape(device.name)}</strong>`:`<button type="button" class="l1-device-table-launch" aria-label="Mở trang thiết bị ${escape(device.name)}">${icon(group.icon)}<span>${escape(device.name)}</span></button>`}</th><td class="l1-device-table-ip">${escape(device.ip)}</td><td><span class="l1-function">${group.label}</span></td><td>${escape(device.function)}</td><td>${escape(deviceVendor(device))}</td><td>${escape(device.model)}</td></tr>`;}).join('')}</tbody></table></div>`;
+    const card = device => {
+      const group=groupFor(device),facts=deviceFacts(device),tag=readOnly?'article':'button';
+      const attrs=readOnly?'':` type="button" data-l1-device="${devicesSource.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"`;
+      return `<${tag} class="l1-device-card is-${group.tone}" data-device-kind="${group.type || 'OTHER'}"${attrs}>${window.NETAUTO_MOTIFS.render('CIRCUIT')}<span class="l1-device-card-top"><span class="l1-device-icon" aria-hidden="true">${icon(group.icon)}</span><span class="l1-device-identity"><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span></span></span><span class="l1-device-facts"><span><span>Firmware</span><b title="${escape(facts.firmwareDetails)}">${escape(facts.firmware)}</b></span><span><span>Total MAC</span><b>${escape(facts.totalMac)}</b></span></span><span class="l1-device-card-foot"><span>${escape(deviceVendor(device))} · ${escape(device.model)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span></${tag}>`;
+    };
+    const table = devices => `<div class="l1-device-table-scroll" role="region" aria-label="Danh sách thiết bị dạng bảng" tabindex="0"><table class="l1-device-table"><colgroup><col class="l1-device-col-name"><col class="l1-device-col-ip"><col class="l1-device-col-type"><col class="l1-device-col-function"><col class="l1-device-col-vendor"><col class="l1-device-col-model"><col class="l1-device-col-firmware"><col class="l1-device-col-mac"></colgroup><thead><tr><th scope="col">Thiết bị</th><th scope="col">IP</th><th scope="col">Loại</th><th scope="col">Chức năng</th><th scope="col">Vendor</th><th scope="col">Model</th><th scope="col">Firmware</th><th scope="col" class="l1-device-table-number">Total MAC</th></tr></thead><tbody>${devices.map(device=>{const group=groupFor(device),facts=deviceFacts(device);return `<tr class="is-${group.tone}"${readOnly?'':` data-l1-device="${devicesSource.indexOf(device)}"`}><th scope="row">${readOnly?`<strong>${escape(device.name)}</strong>`:`<button type="button" class="l1-device-table-launch" aria-label="Mở trang thiết bị ${escape(device.name)}">${icon(group.icon)}<span>${escape(device.name)}</span></button>`}</th><td class="l1-device-table-ip">${escape(device.ip)}</td><td><span class="l1-function">${group.label}</span></td><td>${escape(device.function)}</td><td>${escape(deviceVendor(device))}</td><td>${escape(device.model)}</td><td class="l1-device-table-firmware" title="${escape(facts.firmwareDetails)}">${escape(facts.firmware)}</td><td class="l1-device-table-number">${escape(facts.totalMac)}</td></tr>`;}).join('')}</tbody></table></div>`;
     const lanes = [{label:'Thiết bị mạng',types:['SWITCH','OLT'],network:true},{label:'Nguồn & Giám sát',types:['POWER','PI'],network:false}];
     const html = lanes.map(lane => {
       // Sort only the display copy; keep source indices for inventory and navigation.
@@ -176,7 +196,6 @@
   function renderDevices() {
     const result=deviceList(currentDevices,get('detailDeviceSearch').value.trim().toLowerCase(),deviceListMode);
     get('detailDeviceGroups').innerHTML=result.html;
-    get('detailDeviceCount').textContent=`${result.count} / ${currentDevices.length} bản ghi thiết bị · ${source.source}.`;
     get('deviceCardsMode').setAttribute('aria-pressed',String(deviceListMode==='cards'));
     get('deviceTableMode').setAttribute('aria-pressed',String(deviceListMode==='table'));
   }

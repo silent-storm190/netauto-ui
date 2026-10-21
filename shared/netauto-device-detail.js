@@ -9,6 +9,7 @@
   let device = null;
   let backHandler = () => {};
   let activeTab='ports';
+  let moduleRefreshTicket=0,deviceIdentity='';
   function firmwareValue(value){
     if(!value||typeof value!=='object')return escape(value);
     const version=escape(value.version);
@@ -17,23 +18,34 @@
   }
   function renderMetadata(){
     const inventory=device.inventory?.device || {};
-    const pair=(first,second)=>`${escape(first)} · ${escape(second)}`;
     const area=device.area ?? inventory.area ?? pop.area;
     const serials=device.chassisSerials ?? inventory.serial;
     const serial=(Array.isArray(serials)?serials.join(' · '):serials)||device.materials?.find(row=>row.category==='device')?.serial;
+    const counts=device.inventoryCounts??device.inventory?.count??{};
+    const observedPorts=Array.isArray(device.ports)&&device.ports.length?new Set(device.ports.map(port=>window.NETAUTO_PORT_MODELS.clean(port.name)).filter(Boolean)).size:null;
+    const portCount=device.portCount??device.port_count??device.totalPorts??inventory.port_count??counts.port??observedPorts;
+    const updated=device.updatedAt??device.updated_at??device.lastUpdated??inventory.updatedAt??inventory.updated_at??device.inventoryTime;
+    const profile=window.NETAUTO_PORT_MODELS.build(device).profile;
     const fields=[
       ['Nhận diện',[
-        ['IP thiết bị',escape(device.ip)],['Model',escape(device.model)],['Vendor',escape(device.vendor)],['Serial chassis',escape(serial)]
+        ['Tên thiết bị',escape(device.name)],['IP thiết bị',escape(device.ip)],['Vendor',escape(profile.vendor||device.vendor)],['Model',escape(device.model)],['Serial chassis',escape(serial)]
       ]],
       ['Vị trí',[
         ['POP',escape(device.POP ?? inventory.POP ?? pop.code)],
-        ['Tỉnh · Chi nhánh',pair(device.province ?? inventory.province ?? pop.province,device.branch ?? inventory.branch ?? pop.branch)],
-        ['Miền · Vùng',pair(({MB:'Miền Bắc',MN:'Miền Nam'})[area] ?? area,device.zone ?? inventory.zone ?? pop.zone)]
+        ['Miền',escape(({MB:'Miền Bắc',MN:'Miền Nam'})[area]??area)],
+        ['Vùng',escape(device.zone??inventory.zone??pop.zone)],
+        ['Tỉnh',escape(device.province??inventory.province??pop.province)],
+        ['Chi nhánh',escape(device.branch??inventory.branch??pop.branch)]
       ]],
       ['Vận hành',[
         ['Chức năng',escape(device.function ?? inventory.function)],
         ['Firmware',firmwareValue(device.firmware ?? inventory.firmware)],
-        ['Total MAC',format(device.totalMac ?? device.total_mac ?? inventory.total_mac)]
+        ['Total MAC',format(device.totalMac ?? device.total_mac ?? inventory.total_mac)],
+        ['Ngày cập nhật',escape(updated)]
+      ]],
+      ['Phần cứng',[
+        ['Số port',format(portCount)],['Số transceiver',format(counts.transceiver)],
+        ['Module nguồn',format(counts.power)],['Module quạt',format(counts.fan)],['Card',format(counts.card)]
       ]]
     ];
     get('deviceDetailFields').innerHTML=fields.map(([title,rows])=>`<section class="l2-metadata-group"><h3>${title}</h3><dl>${rows.map(([label,value])=>`<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl></section>`).join('');
@@ -57,6 +69,13 @@
     get('deviceDetailMaterialCount').textContent = `Hiển thị ${filtered.length} / ${device.materialRowsTotal ?? rows.length} bản ghi vật tư. Các chỉ số tổng giữ nguyên theo nguồn.`;
   }
   function open(currentPop,currentDevice,preserve=false) {
+    const identity=JSON.stringify([currentPop.code,currentDevice.name,currentDevice.ip]);
+    if(identity!==deviceIdentity||!preserve){
+      ++moduleRefreshTicket;deviceIdentity=identity;
+      get('deviceModulesRefresh').disabled=false;get('deviceModulesRefresh').setAttribute('aria-busy','false');
+      get('deviceModuleRefreshStatus').hidden=true;get('deviceModuleRefreshStatus').textContent='';
+      window.NETAUTO_CONTEXT_TOOLS?.close();
+    }
     pop = currentPop; device = currentDevice;
     get('deviceDetailPage').dataset.kind = device.type;
     get('deviceDetailName').textContent = device.name;
@@ -69,6 +88,8 @@
     get('deviceDetailSource').textContent = window.NETAUTO_POP_DETAIL_DATA.source;
     get('deviceDetailStats').innerHTML = Object.entries(labels).map(([key,label])=>`<article><span>${label}</span><b>${format(device.inventoryCounts?.[key])}</b></article>`).join('');
     const hasPorts=['SWITCH','OLT'].includes(device.type);
+    get('deviceContextToolsSection').hidden=!hasPorts;
+    window.NETAUTO_CONTEXT_TOOLS?.render('deviceContextTools',pop,device);
     get('devicePortSummary').hidden=!hasPorts;
     if(hasPorts)window.NETAUTO_DEVICE_PORTS.open(device,preserve,window.NETAUTO_POP_DETAIL_DATA.status(pop.code));
     showTab(preserve?activeTab:'ports');
@@ -79,6 +100,18 @@
   get('devicePortsTab').addEventListener('click',()=>showTab('ports'));
   get('deviceInventoryTab').addEventListener('click',()=>showTab('inventory'));
   get('backToPopDetail').addEventListener('click',()=>backHandler(pop.code));
+  get('deviceModulesRefresh').addEventListener('click',()=>{
+    if(!['SWITCH','OLT'].includes(device?.type)||get('deviceModulesRefresh').disabled)return;
+    const ticket=++moduleRefreshTicket,identity=deviceIdentity,code=pop.code;
+    const button=get('deviceModulesRefresh'),status=get('deviceModuleRefreshStatus');
+    button.disabled=true;button.setAttribute('aria-busy','true');status.hidden=false;status.textContent='Đang tải lại dữ liệu module…';
+    window.NETAUTO_POP_DETAIL_DATA.reloadPop(code,error=>{
+      if(ticket!==moduleRefreshTicket||identity!==deviceIdentity)return;
+      refreshInventory(code);
+      button.disabled=false;button.setAttribute('aria-busy','false');
+      status.hidden=false;status.textContent=error?'Không tải lại được snapshot module. Dữ liệu trước đó được giữ nguyên.':'Đã tải lại snapshot module từ bộ dữ liệu hiện có; chưa quét trực tiếp thiết bị.';
+    });
+  });
   function refreshInventory(code){if(pop?.code!==code)return;const record=window.NETAUTO_POP_DETAIL_DATA.pops[code]?.find(entry=>entry.name===device.name&&entry.ip===device.ip);if(record)open(pop,record,true);else {renderMaterials();if(['SWITCH','OLT'].includes(device.type))window.NETAUTO_DEVICE_PORTS.open(device,true,window.NETAUTO_POP_DETAIL_DATA.status(code));}}
   window.NETAUTO_DEVICE_PORTS.setRefreshHandler(()=>{const code=pop.code;window.NETAUTO_POP_DETAIL_DATA.ensurePop(code,()=>refreshInventory(code));if(['SWITCH','OLT'].includes(device.type))window.NETAUTO_DEVICE_PORTS.open(device,true,window.NETAUTO_POP_DETAIL_DATA.status(code));});
   window.NETAUTO_DEVICE_DETAIL = {open,refreshInventory,setBackHandler(handler){backHandler=handler;}};

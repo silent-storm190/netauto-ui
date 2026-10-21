@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 112">
+  <!-- Monitoring controller PCB, telemetry waveform and sensor connections. -->
+  <g fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="79" y="19" width="82" height="70" rx="6" fill="white" fill-opacity=".12"/>
+    <rect x="102" y="36" width="31" height="29" rx="3"/>
+    <path d="M108 30v6m9-6v6m9-6v6m-18 29v6m9-6v6m9-6v6M96 42h6m-6 9h6m-6 9h6m31-18h6m-6 9h6m-6 9h6"/>
+    <path d="M106 52h6l3-8 5 14 3-6h6M87 77h13m37 0h15M85 25h4m60 0h4"/>
+    <path d="M79 39H62V24h-9m26 42H62v23h-9m108-38h10v23m-50 15v12h29"/>
+    <circle cx="49" cy="24" r="4"/>
+    <circle cx="49" cy="89" r="4"/>
+    <circle cx="171" cy="78" r="4"/>
+    <circle cx="154" cy="101" r="4"/>
+  </g>
+</svg>
