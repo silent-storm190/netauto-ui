@@ -283,9 +283,10 @@
     return DATA.pops.filter(pop => (popScopeMode === 'many' || popBranches(pop).some(branch=>allowed.includes(branch))) && (selectedArea === 'all' || pop.area === selectedArea) && (!selectedProvinces.length || selectedProvinces.some(code => popBranches(pop).includes(code) || pop.province === code)) && (!query || searchablePopText(pop).includes(query)));
   }
 
-  // Mixed results use stable province colors. Single-province results share
-  // one accent for this Layer 0 visit, unchanged by search or pagination.
-  const popProvinceHues = [8,25,45,155,250,185,320,32,285,215,175,295];
+  // Decorative Layer 0 accents are cool only, never warning/error colors.
+  // Mixed results use stable province colors; one province shares a visit color.
+  const popCoolHueStart=165,popCoolHueSpan=100;
+  const popProvinceHues = [168,176,184,192,200,208,216,224,232,240,248,256,264];
   const popProvinceKey = pop => String(pop.province || pop.branch || '').trim().toUpperCase();
   const provinceHueMap = new Map();
   let singleProvinceHue = null;
@@ -300,13 +301,19 @@
     singleProvinceHue = choices[Math.floor(Math.random() * choices.length)];
     try { localStorage.setItem(storageKey, String(singleProvinceHue)); } catch { /* Optional preference only. */ }
   }
-  const normalizeHue = hue => Number(((hue + 360) % 360).toFixed(3));
+  function normalizeHue(hue) {
+    const value=Number(hue),start=popCoolHueStart*1000,span=popCoolHueSpan*1000;
+    const ticks=Math.round((Number.isFinite(value)?value:215)*1000);
+    // Wrap integer millidegrees inside teal → cyan → blue → blue-violet.
+    // Both collision resolution and refresh offsets must stay in this range.
+    return (start+((ticks-start)%span+span)%span)/1000;
+  }
   for (const province of [...new Set(DATA.pops.map(popProvinceKey))].sort()) {
     let hash = 0;
     for (const character of province) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
     let hue = popProvinceHues[hash % popProvinceHues.length];
     // Avoid assigning the exact same hue to two provinces in the snapshot.
-    while ([...provinceHueMap.values()].includes(hue)) hue = normalizeHue(hue + 137.508);
+    while ([...provinceHueMap.values()].includes(hue)) hue = normalizeHue(hue + 37.508);
     provinceHueMap.set(province, hue);
   }
 
@@ -316,7 +323,7 @@
     const key = 'netauto.pop.tablePaletteOffset';
     let previous = tablePaletteOffset;
     try { const saved = localStorage.getItem(key); if (previous === null && saved != null) previous = Number(saved); } catch { /* Storage is optional. */ }
-    const choices = [0,37,73,109,149,193,229,269,307,337].filter(offset => offset !== previous);
+    const choices = [0,11,23,37,49,61,73,83,91].filter(offset => offset !== previous);
     tablePaletteOffset = choices[Math.floor(Math.random()*choices.length)];
     try { localStorage.setItem(key,String(tablePaletteOffset)); } catch { /* Colors still refresh in memory. */ }
   }
@@ -367,7 +374,7 @@
   function popCard(pop, colorMode) {
     const c = pop.counts;
     const meta = [pop.branch,pop.province !== pop.branch ? pop.province : '',pop.zone].filter(Boolean).join(' · ');
-    const hue = colorMode === 'single-province' ? (singleProvinceHue ?? popProvinceHues[0]) : provinceHueMap.get(popProvinceKey(pop));
+    const hue = colorMode === 'single-province' ? (singleProvinceHue ?? popProvinceHues[0]) : (provinceHueMap.get(popProvinceKey(pop)) ?? 215);
     return `<article class="na-pop-card" style="--na-pop-hue:${hue}" data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}">
       <button type="button" class="na-pop-preview" data-pop-preview="${escapeHtml(pop.code)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="popPreviewDialog" aria-label="Xem nhanh thiết bị trong POP ${escapeHtml(pop.code)}"><span class="na-pop-head"><span class="na-pop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg></span><span class="na-pop-title-block"><strong class="na-pop-card-name">${escapeHtml(pop.code)}</strong><span class="na-pop-meta">${escapeHtml(meta)}</span></span></span>
       <span class="na-pop-properties">${popSummaryFields(pop).map(field=>`<span ${popFieldAttrs(field)}><small>${field.label}</small><b>${escapeHtml(field.display)}</b></span>`).join('')}</span>
@@ -802,7 +809,7 @@
   }
 
   const commandItems = () => [
-    {icon:'⬡',title:'Quản lý POP và Thiết bị',meta:'Mở trang POP',action:()=>navigateModule('pop')},
+    {icon:'⬡',title:'Quản lý POP & Thiết bị',meta:'Mở trang POP',action:()=>navigateModule('pop')},
     {icon:'⌖',title:'Thông tin Tập điểm & Khách hàng',meta:'Kiểm tra tập điểm và tra cứu thuê bao',action:()=>navigateModule('customer')},
     {icon:'⌖',title:'Kiểm tra tập điểm',meta:'Mở tool check-drop-point',action:()=>{navigateModule('customer');openInfoTab('drop-point')}},
     {icon:'♙',title:'Tra cứu khách hàng',meta:'Hợp đồng, serial, MAC, IP WAN hoặc ONU index',action:()=>{navigateModule('customer');openInfoTab('customer')}},

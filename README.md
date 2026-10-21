@@ -5,7 +5,7 @@ Mở `index.html` để xem mockup tổng thể của nền tảng NetAuto.
 ## Phạm vi hiện tại
 
 - App shell bám screenshot production: global rail, global toolbar và Portal Vận hành.
-- Hai module chính: `Quản lý POP và Thiết bị` và `Quản lý Nghiệp vụ`.
+- Hai module chính: `Quản lý POP & Thiết bị` và `Quản lý Nghiệp vụ`.
 - Module POP dùng toàn bộ dữ liệu thật từ `get-device-by-pop-1791453967439.json` do người dùng cung cấp:
   3.898 POP, 19.197 thiết bị, 59 tỉnh và 65 chi nhánh. Các tổng số được tính
   trực tiếp từ dữ liệu, không dùng số thống kê cũ trong screenshot.
@@ -123,6 +123,12 @@ phù hợp, không mặc định công khai.
 
 Nút **Thẻ / Table** cạnh tiêu đề Danh sách POP chuyển giữa hai cách trình bày,
 ghi nhớ lựa chọn bằng preference local tùy chọn.
+Màu nhận diện POP ở cả hai mode chỉ dùng tông lạnh teal/cyan/xanh dương/tím xanh
+(hue 165 ≤ h < 265), không dùng đỏ/cam/nâu/vàng hoặc hồng để tránh gợi trạng thái lỗi.
+Màu viền/tên/tag, watercolor, lưới chấm/đường mạch và nền hàng đều theo dải này.
+Chọn màu theo tỉnh, xử lý hue trùng và đổi palette khi refresh đều giới hạn trong
+dải lạnh; preference màu nóng cũ không được dùng lại. Đây chỉ là màu trang trí,
+không đổi trạng thái dữ liệu hay màu cảnh báo thực, không đổi palette Layer 1/2.
 Thẻ tối đa 4 cột trên desktop, gap 14px; theo chiều rộng nội dung khả dụng
 giảm còn 3 cột (dưới 1100px), 2 cột (dưới 820px), 1 cột (dưới 540px).
 Container query xử lý cả sidebar/fullscreen, có media-query fallback.
@@ -188,8 +194,8 @@ và object nguồn với Thẻ. Đổi mode không xóa search, inventory tải 
 và filter; nút tên hoặc dòng vẫn mở Layer 2 như trước. EN… → ENATEL và DE… →
 DELTA được áp dụng nhất quán cho cả hai mode và popup, không sửa snapshot.
 
-Mỗi tỉnh dùng một hue riêng cho viền dòng, tên, nhãn tỉnh và tổng thiết bị;
-nền nhẹ và các chỉ số thiết bị giữ tông màu riêng. Palette bảng đổi khi refresh
+Mỗi tỉnh dùng một hue lạnh riêng cho viền dòng, tên, nhãn tỉnh và màu loang các chỉ số;
+nền nhẹ và số giữ màu chữ trung tính. Palette bảng đổi trong dải lạnh khi refresh
 trình duyệt hoặc nút làm mới, không đổi khi lọc/tải thêm/chuyển mode/theme.
 Header và cột POP sticky; khung cuộn ngang/dọc trên màn nhỏ, có focus/bàn phím,
 tông dark mode và target chạm. Ban đầu hiện 100 POP; IntersectionObserver

@@ -94,6 +94,7 @@ for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-resp
   if(script==='netauto-app.js')source=source.replace('  function renderDropPointResponse(', '  window.__testRenderDropPointResponse=renderDropPointResponse;\n  function renderDropPointResponse(');
   if(script==='netauto-app.js')source=source.replace('  function popTableRow(', '  window.__testPopTableRow=popTableRow;\n  function popTableRow(');
   if(script==='netauto-app.js')source=source.replace('  function popCard(', '  window.__testPopCard=popCard;\n  function popCard(');
+  if(script==='netauto-app.js')source=source.replace('  function normalizeHue(', '  window.__testNormalizePopHue=normalizeHue;\n  function normalizeHue(');
   vm.runInNewContext(source, context, {filename: script});
 }
 const count = () => Number(get('popResultCount').textContent.split(' ')[0].replaceAll('.',''));
@@ -128,7 +129,12 @@ for (const [id, labels] of [['networkStats', ['Switch', 'OLT']], ['powerStats', 
 assert(/<section class="na-summary-row"[^>]*>\s*<label class="na-search-card">/.test(html), 'Search must be the first item in the statistics row');
 assert(!get('popGrid').innerHTML.includes('na-pop-tags'));
 assert(!get('popGrid').innerHTML.includes('AGG · AGG'));
-const cardHues = () => new Map([...get('popGrid').innerHTML.matchAll(/style="--na-pop-hue:([\d.]+)"[^>]*data-pop="([^"]+)"/g)].map(match => [match[2], Number(match[1])]));
+const assertCoolPopHue=hue=>assert(Number.isFinite(hue)&&hue>=165&&hue<265,`Layer 0 POP accent must be cool, got ${hue}`);
+const cardHues = () => {
+  const hues=new Map([...get('popGrid').innerHTML.matchAll(/style="--na-pop-hue:([\d.]+)"[^>]*data-pop="([^"]+)"/g)].map(match => [match[2], Number(match[1])]));
+  for(const hue of hues.values())assertCoolPopHue(hue);
+  return hues;
+};
 const initialHues = cardHues();
 const provinceHues = new Map();
 for (const pop of context.window.NETAUTO_DATA.pops.filter(pop=>initialHues.has(pop.code))) {
@@ -1269,7 +1275,9 @@ assert.equal(get('popGrid').hidden,true);assert.equal(get('popGrid').innerHTML,'
 assert.equal(get('popTableView').hidden,false);assert.equal(storage.get('netauto.pop.listView'),'table');
 assert.equal(get('popPageCount').textContent,beforeTablePage,'Changing view retains current page');
 assert.equal(get('deviceTotal').textContent,beforeTableSummary,'View does not affect summary statistics');
-const tableRows=()=>[...get('popTableRows').innerHTML.matchAll(/<tr data-pop="([^"]+)" data-pop-province="([^"]*)" style="--na-pop-hue:([\d.]+)">([\s\S]*?)<\/tr>/g)].map(m=>({code:m[1],province:m[2],hue:Number(m[3]),body:m[4]}));
+const tableRows=()=>[...get('popTableRows').innerHTML.matchAll(/<tr data-pop="([^"]+)" data-pop-province="([^"]*)" style="--na-pop-hue:([\d.]+)">([\s\S]*?)<\/tr>/g)].map(m=>{
+  const row={code:m[1],province:m[2],hue:Number(m[3]),body:m[4]};assertCoolPopHue(row.hue);return row;
+});
 assert.deepEqual(tableRows().map(r=>r.code),cardPageCodes,'Both modes show exactly the same page and order');
 get('popCardsMode').listeners.click();assert.equal(get('popGrid').hidden,false);assert.equal(get('popTableView').hidden,true);assert.equal(get('popTableRows').innerHTML,'');
 assert.deepEqual([...get('popGrid').innerHTML.matchAll(/data-pop="([^"]+)"/g)].map(m=>m[1]),cardPageCodes);
@@ -1728,3 +1736,43 @@ context.requestAnimationFrame=instantScrollFrame;
 get('popTableMode').click();search('AGGP006');get('popCardsMode').click();get('popTableMode').click();
 assert.equal(scrollTable.scrollTop,0);assert.equal(scrollTable.scrollLeft,0,'New filtered results discard offsets from the old result set');assertColumnChoice();
 console.log('PASS: first-use Vùng/Tỉnh defaults, unchanged custom columns across all layers, independent card/table viewport memory, nested scroll offsets, app/browser Back/Forward, retained batches, late inventory, duplicate routes and stale-frame/user-scroll safety.');
+
+// Decorative POP colors stay cool, including collisions, rotations and old preferences.
+const normalizeCoolHue=context.window.__testNormalizePopHue;
+for(const hue of [-1080,-1,0,8,25,45,109,164.999,165,215,264.999,265,320,359,360,900,NaN,Infinity,undefined,'bad']){
+  assertCoolPopHue(normalizeCoolHue(hue));
+}
+assert.equal(normalizeCoolHue(264.999),264.999);assert.equal(normalizeCoolHue(265),165);
+assert.equal(normalizeCoolHue(NaN),215,'Invalid hue uses a safe cool fallback');
+const coolCardProvinces=new Map(),coolTableProvinces=new Map();
+for(const pop of allPops){
+  for(const [markup,map] of [[context.window.__testPopCard(pop,'province'),coolCardProvinces],[context.window.__testPopTableRow(pop),coolTableProvinces]]){
+    const hue=Number(markup.match(/--na-pop-hue:([\d.]+)/)[1]);assertCoolPopHue(hue);
+    if(map.has(pop.province))assert.equal(hue,map.get(pop.province));else map.set(pop.province,hue);
+  }
+}
+for(const map of [coolCardProvinces,coolTableProvinces])assert.equal(new Set(map.values()).size,map.size,'All provinces retain distinct exact hues inside the cool range');
+const coolOffsets=[0,11,23,37,49,61,73,83,91];
+for(const offset of coolOffsets){
+  const shifted=[...coolCardProvinces.values()].map(hue=>normalizeCoolHue(hue+offset));
+  shifted.forEach(assertCoolPopHue);assert.equal(new Set(shifted).size,coolCardProvinces.size,'Palette rotation is collision-free inside the cool interval');
+}
+for(let hue=0;hue<360;hue++)for(const offset of coolOffsets)assertCoolPopHue(normalizeCoolHue(hue+offset));
+const unindexedCoolPop={...allPops[0],province:'UNINDEXED',branch:'UNINDEXED'};
+for(const markup of [context.window.__testPopCard(unindexedCoolPop,'province'),context.window.__testPopTableRow(unindexedCoolPop)])assertCoolPopHue(Number(markup.match(/--na-pop-hue:([\d.]+)/)[1]));
+const coolColumnsBefore=storage.get('netauto.pop.locationColumns');
+storage.set('netauto.pop.singleProvinceHue','25');storage.set('netauto.pop.tablePaletteOffset','337');storage.set('netauto.pop.listView','cards');
+get('popSearch').value='AGGP006';context.location.hash='#pop';context.window.listeners={};
+vm.runInNewContext(fs.readFileSync(path.join(mockup,'shared/netauto-app.js'),'utf8'),context,{filename:'netauto-app.js (legacy warm palette migration)'});
+assertCoolPopHue(Number(storage.get('netauto.pop.singleProvinceHue')));assert.equal(cardHues().size,1);
+assert(coolOffsets.includes(Number(storage.get('netauto.pop.tablePaletteOffset'))));
+get('popTableMode').click();assert.equal(tableRows().length,1);
+const beforeCoolRefresh=tableRows()[0].hue;get('refreshPop').click();
+assert.notEqual(tableRows().find(row=>row.code==='AGGP006').hue,beforeCoolRefresh,'Refresh still changes colors within the cool range');
+const coolStorage=context.localStorage;
+context.localStorage={getItem(){throw new Error('Storage denied');},setItem(){throw new Error('Storage denied');}};
+get('refreshPop').click();assert(tableRows().length>0);tableRows().forEach(row=>assertCoolPopHue(row.hue));
+get('popCardsMode').click();cardHues().forEach(assertCoolPopHue);context.localStorage=coolStorage;
+assert.equal(storage.get('netauto.pop.locationColumns'),coolColumnsBefore,'Color migration does not reset column preferences');
+assert.equal(JSON.stringify(allPops),tableSourceBefore,'Cool palette changes never modify POP metadata, counts or statuses');
+console.log('PASS: cool-only Layer 0 card/table hues for every POP/province, collision-free offsets and wrap boundaries, safe unknown/invalid hues, legacy warm-preference replacement, refresh/reload/storage-failure paths and immutable data/filters.');
