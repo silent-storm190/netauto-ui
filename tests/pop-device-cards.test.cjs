@@ -56,6 +56,9 @@ search('SWITCH-LONG-NAME');assert(markup().includes('>V1&lt;&amp;&gt;</td>'));as
 let selected;controller.setDeviceHandler((p,d)=>{assert.strictEqual(p,pop);selected=d;});
 get('detailDeviceGroups').listeners.click({target:{closest:()=>({dataset:{l1Device:'0'}})}});assert.strictEqual(selected,devices[0]);
 controller.preview(pop,{setAttribute(){},focus(){}});
+assert.equal(get('popPreviewDevices').dataset.view,'table','Popup defaults to table independently of the other layer preferences');
+assert.equal(storage.has('netauto.pop.previewView'),false,'Default opening does not persist a user choice');
+get('popPreviewCardsMode').listeners.click();
 const preview=get('popPreviewDevices').innerHTML;
 assert.deepEqual(Array.from(preview.matchAll(/data-device-kind="([^"]+)"/g),m=>m[1]),cardKinds,'Readonly previews share the same per-type silhouettes as interactive cards');
 assert.deepEqual(Array.from(preview.matchAll(/data-motif-kind="([^"]+)"/g),m=>m[1]),cardKinds.map(()=>'CIRCUIT'),'Readonly preview contains the same compact PCB/signal artwork');
@@ -66,6 +69,16 @@ assert(!preview.includes('<button')&&!preview.includes('data-l1-device='),'Reado
 assert(!preview.includes('<svg>')&&!preview.includes('[object Object]'),'Firmware is rendered as escaped source text, never markup or a raw object');
 assert(!markup().includes('source-must-not-show-as-footer')&&!nodes.has('detailDeviceCount'),'Removed footer is neither created nor updated');
 assert.equal(JSON.stringify(devices),original,'Presentation does not mutate the source inventory');
+// Popup-only preference survives reopen/reload; invalid or unavailable storage is safe.
+controller.closePreview();controller.preview({...pop,code:'ANOTHER-POP'},{setAttribute(){},focus(){}});
+assert.equal(get('popPreviewDevices').dataset.view,'cards','User choice applies across POPs');controller.closePreview();
+const reloadPreview=()=>{vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../shared/netauto-pop-detail.js'),'utf8'),context);return context.window.NETAUTO_POP_DETAIL;};
+let popupController=reloadPreview();popupController.preview(pop);assert.equal(get('popPreviewDevices').dataset.view,'cards','Saved popup preference survives reload');popupController.closePreview();
+get('popPreviewTableMode').listeners.click();assert.equal(storage.get('netauto.pop.previewView'),'cards','Closed popup controls cannot overwrite the saved choice');
+storage.set('netauto.pop.previewView','invalid');popupController=reloadPreview();popupController.preview(pop);assert.equal(get('popPreviewDevices').dataset.view,'table','Invalid preference falls back to table');popupController.closePreview();
+const originalStorage=context.localStorage;context.localStorage={getItem(){throw Error('blocked');},setItem(){throw Error('blocked');}};
+popupController=reloadPreview();popupController.preview(pop);assert.equal(get('popPreviewDevices').dataset.view,'table','Unreadable storage falls back to table');
+get('popPreviewCardsMode').listeners.click();popupController.closePreview();popupController.preview(pop);assert.equal(get('popPreviewDevices').dataset.view,'cards','Blocked storage still retains the explicit choice within the session');popupController.closePreview();context.localStorage=originalStorage;
 const motifCSS=fs.readFileSync(path.resolve(__dirname,'../shared/netauto-pop-detail.css'),'utf8'),motifSources=[];
 for(const [kind,file] of [['CIRCUIT','circuit'],['TOOLS','tools']]){
   const motif=fs.readFileSync(path.resolve(__dirname,'../shared/device-motifs/'+file+'.svg'),'utf8');

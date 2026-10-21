@@ -180,7 +180,15 @@ Mỗi hàng có nút **Chi tiết** ở cuối; mỗi thẻ có nút này ở ph
 Chỉ nút Chi tiết mới mở trang POP. Nhấn phần còn lại của hàng/thẻ (hoặc nút
 tên POP bằng bàn phím) mở native popup xem thiết bị, không đổi route/trang.
 Popup dùng chung renderer nhóm Thiết bị mạng / Nguồn & Giám sát với Layer 1,
-nhưng các thiết bị là article tĩnh, không có nút, link hay hành động mở Layer 2.
+với cả Thẻ / Bảng nhưng không có hành động mở Layer 2 trên thiết bị. Popup mặc
+định Bảng, độc lập với mode Layer 0/Layer 1. User chọn mode trong popup thì lưu
+riêng bằng `netauto.pop.previewView` cho các lần mở sau (kể cả tải lại trang).
+Preference không hợp lệ/không đọc được dùng Bảng; nếu không ghi được storage,
+vẫn giữ lựa chọn trong phiên. Nút chuyển mode dùng chung icon/style với hai layer.
+Inventory tải muộn giữ mode đang chọn.
+Bảng popup giữ đủ 8 cột và icon loại thiết bị như Layer 1; thu gọn chữ 11px,
+padding hàng 7×9px, khoảng cách nhóm và min-width 960px riêng cho popup.
+Màn hình nhỏ cuộn ngang; bảng Layer 1 và mode Thẻ giữ nguyên kích thước.
 Header popup có nút Chi tiết ngay cạnh tag tên POP, dùng chung style nền xanh
 nhạt/viền mảnh với nút trên thẻ ngoài; mở đúng Layer 1 của POP đang xem. Đã bỏ nhãn
 “Chỉ xem” và nút ×; đóng bằng Esc / backdrop, trả focus về nút mở và khôi phục

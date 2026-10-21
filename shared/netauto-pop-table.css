@@ -11,12 +11,12 @@
 #popPage .na-pop-list-head{align-items:center;flex-wrap:wrap}
 #popPage .na-pop-list-actions{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap}
 #popPage #popResultCount{font-size:calc(10px + var(--na-text-increment,0px));color:var(--na-muted)}
-:is(#popPage,#popDetailPage) .na-pop-view-switch{display:inline-flex;gap:3px;padding:4px;border:1px solid var(--na-line);border-radius:10px;background:var(--na-panel)}
-:is(#popPage,#popDetailPage) .na-pop-view-switch button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--na-muted);font:inherit;font-size:calc(12px + var(--na-text-increment,0px));font-weight:650;cursor:pointer}
-:is(#popPage,#popDetailPage) .na-pop-view-switch button svg{width:15px;height:15px}
-:is(#popPage,#popDetailPage) .na-pop-view-switch button:hover{color:var(--na-blue);background:var(--na-blue-soft)}
-:is(#popPage,#popDetailPage) .na-pop-view-switch button[aria-pressed=true]{background:var(--na-blue-soft);color:var(--na-blue);border-color:color-mix(in srgb,var(--na-blue) 20%,var(--na-line))}
-:is(#popPage,#popDetailPage) .na-pop-view-switch button:focus-visible,#popPage .na-pop-row-launch:focus-visible{outline:2px solid var(--na-blue);outline-offset:2px}
+:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch{display:inline-flex;gap:3px;padding:4px;border:1px solid var(--na-line);border-radius:10px;background:var(--na-panel)}
+:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--na-muted);font:inherit;font-size:calc(12px + var(--na-text-increment,0px));font-weight:650;cursor:pointer}
+:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch button svg{width:15px;height:15px}
+:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch button:hover{color:var(--na-blue);background:var(--na-blue-soft)}
+:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch button[aria-pressed=true]{background:var(--na-blue-soft);color:var(--na-blue);border-color:color-mix(in srgb,var(--na-blue) 20%,var(--na-line))}
+:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch button:focus-visible,#popPage .na-pop-row-launch:focus-visible{outline:2px solid var(--na-blue);outline-offset:2px}
 #popPage .na-pop-table-wrap{--na-area-weight:10;--na-zone-weight:7;--na-province-weight:8;--na-branch-weight:12;--na-table-weight:calc(110 + var(--na-area-weight) + var(--na-zone-weight) + var(--na-province-weight) + var(--na-branch-weight));max-height:clamp(320px,65vh,760px);overflow:auto;overscroll-behavior-inline:contain;border:1px solid var(--na-line);border-radius:12px;background:var(--na-panel);box-shadow:0 4px 16px color-mix(in srgb,var(--na-text) 3%,transparent);scroll-padding-top:44px}
 #popPage .na-pop-table-wrap:focus-visible{outline:2px solid var(--na-blue);outline-offset:3px}
 #popPage .na-pop-table{width:100%;min-width:1000px;table-layout:fixed;border-collapse:separate;border-spacing:0;text-align:left;font-size:calc(12px + var(--na-text-increment,0px));line-height:1.45}
@@ -53,7 +53,7 @@
 #popPage .na-pop-table :is(.na-pop-table-metric,.na-pop-table-value,.na-pop-row-total):before{content:"";position:absolute;z-index:-1;top:50%;left:-4px;right:-4px;height:24px;pointer-events:none;background:radial-gradient(ellipse 1.4px 1.1px at 91% 19%,color-mix(in srgb,var(--na-table-wash-tone) 6%,transparent) 70%,transparent),radial-gradient(ellipse 1px 1.4px at 10% 82%,color-mix(in srgb,var(--na-table-wash-tone) 4%,transparent) 70%,transparent),radial-gradient(ellipse at 38% 48%,color-mix(in srgb,var(--na-table-wash-tone) 8%,transparent) 0 18%,color-mix(in srgb,var(--na-table-wash-tone) 4%,transparent) 42%,transparent 74%),radial-gradient(ellipse at 68% 55%,color-mix(in srgb,var(--na-table-wash-tone) 6%,transparent) 0 16%,color-mix(in srgb,var(--na-table-wash-tone) 3%,transparent) 40%,transparent 72%),radial-gradient(ellipse at 46% 68%,color-mix(in srgb,var(--na-table-wash-tone) 3%,transparent) 0 14%,transparent 68%);transform:translateY(-50%) rotate(-3deg)}
 @media(forced-colors:active){#popPage .na-pop-table :is(.na-pop-table-metric,.na-pop-table-value,.na-pop-row-total):before{display:none}}
 @media(max-width:650px){#popPage .na-pop-list-actions{width:100%;justify-content:space-between;gap:10px}#popPage .na-pop-table{min-width:920px}#popPage .na-pop-table th,#popPage .na-pop-table td{padding-inline:10px}}
-@media(pointer:coarse){:is(#popPage,#popDetailPage) .na-pop-view-switch button,#popPage .na-pop-row-launch{min-height:44px}}
+@media(pointer:coarse){:is(#popPage,#popDetailPage,#popPreviewDialog) .na-pop-view-switch button,#popPage .na-pop-row-launch{min-height:44px}}
 @media(forced-colors:active){#popPage .na-pop-row-launch,#popPage .na-pop-row-total,#popPage .na-pop-province-badge{color:LinkText}#popPage .na-pop-table tbody th{box-shadow:none}}
 
 /* Preview and full details are sibling controls, never nested buttons. */

@@ -38,7 +38,8 @@
   let previousBodyOverflow = '';
   let deviceListMode='cards';
   try{if(localStorage.getItem('netauto.pop.deviceListView')==='table')deviceListMode='table';}catch{/* Optional preference. */}
-  let previewPop=null,previewTrigger=null,previewPreviousOverflow='';
+  let previewPop=null,previewTrigger=null,previewPreviousOverflow='',previewMode='table';
+  try{const saved=localStorage.getItem('netauto.pop.previewView');if(['cards','table'].includes(saved))previewMode=saved;}catch{/* Optional popup preference. */}
   const previewDialog=get('popPreviewDialog');
   const heroHues = [210,255,165,28,325,188,280,42];
   const lastHeroHueByPop = new Map();
@@ -176,7 +177,7 @@
       const attrs=readOnly?'':` type="button" data-l1-device="${devicesSource.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"`;
       return `<${tag} class="l1-device-card is-${group.tone}" data-device-kind="${group.type || 'OTHER'}"${attrs}>${window.NETAUTO_MOTIFS.render('CIRCUIT')}<span class="l1-device-card-top"><span class="l1-device-icon" aria-hidden="true">${icon(group.icon)}</span><span class="l1-device-identity"><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span></span></span><span class="l1-device-facts"><span><span>Firmware</span><b title="${escape(facts.firmwareDetails)}">${escape(facts.firmware)}</b></span><span><span>Total MAC</span><b>${escape(facts.totalMac)}</b></span></span><span class="l1-device-card-foot"><span>${escape(deviceVendor(device))} · ${escape(device.model)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span></${tag}>`;
     };
-    const table = devices => `<div class="l1-device-table-scroll" role="region" aria-label="Danh sách thiết bị dạng bảng" tabindex="0"><table class="l1-device-table"><colgroup><col class="l1-device-col-name"><col class="l1-device-col-ip"><col class="l1-device-col-type"><col class="l1-device-col-function"><col class="l1-device-col-vendor"><col class="l1-device-col-model"><col class="l1-device-col-firmware"><col class="l1-device-col-mac"></colgroup><thead><tr><th scope="col">Thiết bị</th><th scope="col">IP</th><th scope="col">Loại</th><th scope="col">Chức năng</th><th scope="col">Vendor</th><th scope="col">Model</th><th scope="col">Firmware</th><th scope="col" class="l1-device-table-number">Total MAC</th></tr></thead><tbody>${devices.map(device=>{const group=groupFor(device),facts=deviceFacts(device);return `<tr class="is-${group.tone}"${readOnly?'':` data-l1-device="${devicesSource.indexOf(device)}"`}><th scope="row">${readOnly?`<strong>${escape(device.name)}</strong>`:`<button type="button" class="l1-device-table-launch" aria-label="Mở trang thiết bị ${escape(device.name)}">${icon(group.icon)}<span>${escape(device.name)}</span></button>`}</th><td class="l1-device-table-ip">${escape(device.ip)}</td><td><span class="l1-function">${group.label}</span></td><td>${escape(device.function)}</td><td>${escape(deviceVendor(device))}</td><td>${escape(device.model)}</td><td class="l1-device-table-firmware" title="${escape(facts.firmwareDetails)}">${escape(facts.firmware)}</td><td class="l1-device-table-number">${escape(facts.totalMac)}</td></tr>`;}).join('')}</tbody></table></div>`;
+    const table = devices => `<div class="l1-device-table-scroll" role="region" aria-label="Danh sách thiết bị dạng bảng" tabindex="0"><table class="l1-device-table"><colgroup><col class="l1-device-col-name"><col class="l1-device-col-ip"><col class="l1-device-col-type"><col class="l1-device-col-function"><col class="l1-device-col-vendor"><col class="l1-device-col-model"><col class="l1-device-col-firmware"><col class="l1-device-col-mac"></colgroup><thead><tr><th scope="col">Thiết bị</th><th scope="col">IP</th><th scope="col">Loại</th><th scope="col">Chức năng</th><th scope="col">Vendor</th><th scope="col">Model</th><th scope="col">Firmware</th><th scope="col" class="l1-device-table-number">Total MAC</th></tr></thead><tbody>${devices.map(device=>{const group=groupFor(device),facts=deviceFacts(device);return `<tr class="is-${group.tone}"${readOnly?'':` data-l1-device="${devicesSource.indexOf(device)}"`}><th scope="row">${readOnly?`<strong class="l1-device-table-name">${icon(group.icon)}<span>${escape(device.name)}</span></strong>`:`<button type="button" class="l1-device-table-launch" aria-label="Mở trang thiết bị ${escape(device.name)}">${icon(group.icon)}<span>${escape(device.name)}</span></button>`}</th><td class="l1-device-table-ip">${escape(device.ip)}</td><td><span class="l1-function">${group.label}</span></td><td>${escape(device.function)}</td><td>${escape(deviceVendor(device))}</td><td>${escape(device.model)}</td><td class="l1-device-table-firmware" title="${escape(facts.firmwareDetails)}">${escape(facts.firmware)}</td><td class="l1-device-table-number">${escape(facts.totalMac)}</td></tr>`;}).join('')}</tbody></table></div>`;
     const lanes = [{label:'Thiết bị mạng',types:['SWITCH','OLT'],network:true},{label:'Nguồn & Giám sát',types:['POWER','PI'],network:false}];
     const html = lanes.map(lane => {
       // Sort only the display copy; keep source indices for inventory and navigation.
@@ -215,16 +216,31 @@
   }
 
   function closePreview(){if(previewDialog.open)previewDialog.close();}
+  function renderPreview(){
+    if(!previewPop)return;
+    const devices=source.pops[previewPop.code]||previewPop.devices||[];
+    get('popPreviewCount').textContent=`${devices.length} thiết bị`;
+    get('popPreviewDevices').dataset.view=previewMode;
+    get('popPreviewDevices').innerHTML=deviceList(devices,'',previewMode,true).html;
+    get('popPreviewCardsMode').setAttribute('aria-pressed',String(previewMode==='cards'));
+    get('popPreviewTableMode').setAttribute('aria-pressed',String(previewMode==='table'));
+  }
+  function setPreviewMode(mode){
+    if(!previewDialog.open||!previewPop||previewMode===mode)return;
+    previewMode=mode;
+    try{localStorage.setItem('netauto.pop.previewView',mode);}catch{/* Keep the choice for this session when storage is unavailable. */}
+    renderPreview();
+    get('popPreviewDevices').scrollTop=0;
+  }
   function preview(pop,trigger){
     if(!pop)return false;
-    const devices=source.pops[pop.code]||pop.devices||[];
     previewPop=pop;
     if(previewTrigger!==trigger)previewTrigger?.setAttribute?.('aria-expanded','false');
     previewTrigger=trigger;trigger?.setAttribute?.('aria-expanded','true');
     get('popPreviewName').textContent=pop.code;
     get('popPreviewDetails').dataset.popDetail=pop.code;
-    get('popPreviewCount').textContent=`${devices.length} thiết bị`;
-    get('popPreviewDevices').innerHTML=deviceList(devices,'','cards',true).html;
+    renderPreview();
+    get('popPreviewDevices').scrollTop=0;
     if(!previewDialog.open){
       if(window.NETAUTO_SMARTPOP_MODAL_SCROLL)window.NETAUTO_SMARTPOP_MODAL_SCROLL.lock(previewDialog);
       else{previewPreviousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}
@@ -308,10 +324,12 @@
   get('detailDeviceSearch').addEventListener('input',renderDevices);
   get('deviceCardsMode').addEventListener('click',()=>setDeviceListMode('cards'));
   get('deviceTableMode').addEventListener('click',()=>setDeviceListMode('table'));
+  get('popPreviewCardsMode').addEventListener('click',()=>setPreviewMode('cards'));
+  get('popPreviewTableMode').addEventListener('click',()=>setPreviewMode('table'));
   get('detailDeviceGroups').addEventListener('click',event => {const button=event.target.closest('[data-l1-device]');const device=button && currentDevices[Number(button.dataset.l1Device)];if(device)deviceHandler(currentPop,device);});
   get('detailTopoToggle').addEventListener('click',toggleTopo);
   get('detailMaterialSearch').addEventListener('input',renderMaterials);
   get('detailMaterialDevice').addEventListener('change',renderMaterials);
   get('detailMaterialCategory').addEventListener('change',renderMaterials);
-  window.NETAUTO_POP_DETAIL = {open,closeTopo,preview,closePreview,metadata:popMetadata,refreshInventory(code){if(previewPop?.code===code){const devices=source.pops[code]||previewPop.devices||[];get('popPreviewDevices').innerHTML=deviceList(devices,'','cards',true).html;get('popPreviewCount').textContent=`${devices.length} thiết bị`;}if(currentPop?.code!==code)return;currentDevices=source.pops[code] || currentPop.devices;renderHeaderStats();renderDevices();renderMaterials();},setBackHandler(handler){backHandler = handler;},setDeviceHandler(handler){deviceHandler=handler;}};
+  window.NETAUTO_POP_DETAIL = {open,closeTopo,preview,closePreview,metadata:popMetadata,refreshInventory(code){if(previewPop?.code===code)renderPreview();if(currentPop?.code!==code)return;currentDevices=source.pops[code] || currentPop.devices;renderHeaderStats();renderDevices();renderMaterials();},setBackHandler(handler){backHandler = handler;},setDeviceHandler(handler){deviceHandler=handler;}};
 })();

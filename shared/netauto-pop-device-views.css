@@ -22,10 +22,20 @@
 #popDetailPage .l1-device-table-launch span{min-width:0}
 #popDetailPage .l1-device-table-launch:focus-visible{outline:2px solid var(--l1-accent);outline-offset:3px}
 :is(#popDetailPage,#popPreviewDialog) .l1-device-table-ip{font-variant-numeric:tabular-nums;color:var(--na-muted)}
+/* Compact preview only: retain the same eight aligned columns and source facts. */
+#popPreviewDialog .l1-device-table{min-width:960px;font-size:11px;line-height:1.45}
+#popPreviewDialog .l1-device-table thead th{padding:7px 9px;font-size:10px}
+#popPreviewDialog .l1-device-table tbody td,#popPreviewDialog .l1-device-table tbody th{padding:7px 9px}
+#popPreviewDialog .l1-device-table-firmware{font-size:10px}
+#popPreviewDialog .l1-device-table-name{display:flex;align-items:center;gap:6px;color:var(--l1-accent);font-weight:700}
+#popPreviewDialog .l1-device-table-name svg{width:14px;height:14px;flex:0 0 14px}
+#popPreviewDialog .l1-device-table-name span{min-width:0}
+#popPreviewDialog .l1-device-table .l1-function{font-size:9px;padding:2px 5px}
 #popPreviewDialog{padding:0;width:min(1180px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 40px);border:1px solid var(--na-line);border-radius:16px;background:var(--na-panel);color:var(--na-text);box-shadow:0 20px 80px rgba(0,0,0,.2)}
 #popPreviewDialog[open]{display:flex;flex-direction:column}
 #popPreviewDialog::backdrop{background:rgba(15,25,40,.4);backdrop-filter:blur(3px)}
-#popPreviewDialog .pop-preview-head{display:flex;align-items:flex-start;padding:18px 20px;border-bottom:1px solid var(--na-line);background:var(--na-panel-soft);flex-shrink:0}
+#popPreviewDialog .pop-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px 20px;border-bottom:1px solid var(--na-line);background:var(--na-panel-soft);flex-shrink:0}
+#popPreviewDialog .na-pop-view-switch{flex-shrink:0;margin-left:auto}
 #popPreviewDialog .pop-preview-heading{display:flex;flex-direction:column;gap:7px;min-width:0}
 #popPreviewDialog .pop-preview-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
 #popPreviewDialog h2{margin:0;min-width:0;font-size:17px;line-height:1.5}
@@ -34,6 +44,9 @@
 #popPreviewCount{font-size:11px;color:var(--na-muted)}
 #popPreviewDetails{flex-shrink:0}
 #popPreviewDevices{padding:20px;overflow:auto;overscroll-behavior:contain;min-height:0}
+#popPreviewDevices[data-view=table]{padding:14px 16px}
+#popPreviewDevices[data-view=table] .l1-device-lane+ .l1-device-lane{margin-top:12px;padding-top:12px}
+#popPreviewDevices[data-view=table] .l1-device-lane>header{gap:10px;margin-bottom:8px}
 #popPreviewDialog .l1-device-card{cursor:default}
 #popPreviewDialog .l1-device-card:hover{border-color:color-mix(in srgb,var(--l1-accent) 22%,var(--na-line));box-shadow:none}
 @media(max-width:650px){#popPreviewDialog{width:calc(100vw - 20px);max-height:calc(100dvh - 24px)}#popPreviewDialog .pop-preview-head,#popPreviewDevices{padding:14px}}
