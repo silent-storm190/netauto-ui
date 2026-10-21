@@ -36,6 +36,10 @@
   let backHandler = () => {};
   let deviceHandler = () => {};
   let previousBodyOverflow = '';
+  let deviceListMode='cards';
+  try{if(localStorage.getItem('netauto.pop.deviceListView')==='table')deviceListMode='table';}catch{/* Optional preference. */}
+  let previewPop=null,previewTrigger=null,previewPreviousOverflow='';
+  const previewDialog=get('popPreviewDialog');
   const heroHues = [210,255,165,28,325,188,280,42];
   const lastHeroHueByPop = new Map();
   let lastHeroHue = null;
@@ -91,19 +95,26 @@
       ['Miền',({MB:'Miền Bắc',MN:'Miền Nam'})[pop.area],'globe'],['Vùng',pop.zone,'layers'],['Tỉnh',pop.province,'pin'],['Chi nhánh',pop.branch,'branch'],
     ];
     get('detailPopLocation').innerHTML = location.map(([label,value,glyph]) => `<div title="${escape(label)}"><dt>${label}</dt><span class="l1-location-icon" aria-hidden="true">${icon(glyph)}</span><dd>${escape(value)}</dd></div>`).join('');
-    const examples = mockPopMetadata();
+    const metadata = popMetadata(pop);
     const fields = [
       ['popType','Loại POP','building'],['deployedAt','Ngày triển khai','calendar'],['popFunction','Chức năng','activity'],['customerCount','Tổng khách hàng','users'],['address','Địa chỉ','pin'],
     ];
     get('detailPopFields').innerHTML = fields.map(([key,label,glyph]) => {
-      const demo = pop[key] == null || String(pop[key]).trim() === '' || pop[key] === 'UNKNOWN';
-      const value = demo ? examples[key] : pop[key];
+      const {demo,value} = metadata[key];
       const shown = key === 'customerCount' && Number.isFinite(Number(value)) ? format(Number(value)) : value;
       return `<div class="${key === 'address' ? 'is-address' : 'l1-pop-field'}" data-field="${key}" data-demo="${demo}"${demo ? ' title="Dữ liệu giả lập để minh hoạ Interface"' : ''}><dt>${icon(glyph)}<span>${label}</span></dt><dd>${escape(shown)}</dd></div>`;
     }).join('');
   }
 
+  function popMetadata(pop) {
+    return Object.fromEntries(Object.entries(mockPopMetadata()).map(([key,fallback])=>{
+      const raw=pop?.[key],demo=raw==null||String(raw).trim()===''||raw==='UNKNOWN';
+      return [key,{value:demo?fallback:raw,demo}];
+    }));
+  }
+
   function open(pop, preserve = false) {
+    closePreview();
     closeTopo();
     if (preserve && currentPop?.code === pop.code) {
       if (get('popDetailPage').hidden) renewPopAppearance(pop.code);
@@ -141,24 +152,40 @@
     return device.vendor;
   }
 
-  function renderDevices() {
-    const query = get('detailDeviceSearch').value.trim().toLowerCase();
-    const matches = currentDevices.filter(device => [device.name,device.ip,device.model,deviceVendor(device),device.function,device.type].join(' ').toLowerCase().includes(query));
+  function deviceList(devicesSource, query = '', mode = 'cards', readOnly = false) {
+    const matches = devicesSource.filter(device => [device.name,device.ip,device.model,deviceVendor(device),device.function,device.type].join(' ').toLowerCase().includes(query));
     const groupFor = device => groups.find(group=>group.type === device.type) || {label:'Khác',tone:'slate',icon:'server'};
-    const card = device => {const group=groupFor(device);return `<button type="button" class="l1-device-card is-${group.tone}" data-l1-device="${currentDevices.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"><span class="l1-device-card-top"><span class="l1-device-icon">${icon(group.icon)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span><span class="l1-device-card-foot"><span>${escape(deviceVendor(device))} · ${escape(device.model)}</span></span></button>`;};
+    const card = device => {const group=groupFor(device),tag=readOnly?'article':'button',attrs=readOnly?'':` type="button" data-l1-device="${devicesSource.indexOf(device)}" aria-label="Mở trang thiết bị ${escape(device.name)}"`;return `<${tag} class="l1-device-card is-${group.tone}"${attrs}><span class="l1-device-card-top"><span class="l1-device-icon">${icon(group.icon)}</span><span class="l1-function">${group.label} · ${escape(device.function)}</span></span><strong title="${escape(device.name)}">${escape(device.name)}</strong><span class="l1-device-ip">${escape(device.ip)}</span><span class="l1-device-card-foot"><span>${escape(deviceVendor(device))} · ${escape(device.model)}</span></span></${tag}>`;};
+    const table = devices => `<div class="l1-device-table-scroll" role="region" aria-label="Danh sách thiết bị dạng bảng" tabindex="0"><table class="l1-device-table"><thead><tr><th scope="col">Thiết bị</th><th scope="col">IP</th><th scope="col">Loại</th><th scope="col">Chức năng</th><th scope="col">Vendor</th><th scope="col">Model</th></tr></thead><tbody>${devices.map(device=>{const group=groupFor(device);return `<tr class="is-${group.tone}"${readOnly?'':` data-l1-device="${devicesSource.indexOf(device)}"`}><th scope="row">${readOnly?`<strong>${escape(device.name)}</strong>`:`<button type="button" class="l1-device-table-launch" aria-label="Mở trang thiết bị ${escape(device.name)}">${icon(group.icon)}<span>${escape(device.name)}</span></button>`}</th><td class="l1-device-table-ip">${escape(device.ip)}</td><td><span class="l1-function">${group.label}</span></td><td>${escape(device.function)}</td><td>${escape(deviceVendor(device))}</td><td>${escape(device.model)}</td></tr>`;}).join('')}</tbody></table></div>`;
     const lanes = [{label:'Thiết bị mạng',types:['SWITCH','OLT'],network:true},{label:'Nguồn & Giám sát',types:['POWER','PI'],network:false}];
-    get('detailDeviceGroups').innerHTML = lanes.map(lane => {
+    const html = lanes.map(lane => {
       // Sort only the display copy; keep source indices for inventory and navigation.
       const devices = matches.filter(device=>lane.types.includes(device.type) || (lane.network && !groups.some(group=>group.type===device.type))).sort((a,b)=>(deviceOrder.get(a.type) ?? groups.length)-(deviceOrder.get(b.type) ?? groups.length));
       if (!devices.length) return '';
       const counters = groups.filter(group=>lane.types.includes(group.type)).map(group=>{
-        const total=currentDevices.filter(device=>device.type===group.type).length;
+        const total=devicesSource.filter(device=>device.type===group.type).length;
         const shown=devices.filter(device=>device.type===group.type).length;
         return shown ? `<span class="l1-lane-count is-${group.tone}"><i aria-hidden="true"></i>${group.label}<b>${query && shown!==total ? `${shown}/${total}` : shown}</b></span>` : '';
       }).join('');
-      return `<section class="l1-device-lane"><header><h3>${lane.label}</h3><div>${counters}</div></header><div class="l1-device-grid">${devices.map(card).join('')}</div></section>`;
-    }).join('') || '<div class="l1-empty-state">Không có thiết bị khớp từ khóa.</div>';
-    get('detailDeviceCount').textContent = `${matches.length} / ${currentDevices.length} bản ghi thiết bị · ${source.source}.`;
+      const content=mode==='table'?table(devices):`<div class="l1-device-grid">${devices.map(card).join('')}</div>`;
+      return `<section class="l1-device-lane"><header><h3>${lane.label}</h3><div>${counters}</div></header>${content}</section>`;
+    }).join('') || `<div class="l1-empty-state">${devicesSource.length?'Không có thiết bị khớp từ khóa.':'Chưa có thiết bị trong POP này.'}</div>`;
+    return {html,count:matches.length};
+  }
+
+  function renderDevices() {
+    const result=deviceList(currentDevices,get('detailDeviceSearch').value.trim().toLowerCase(),deviceListMode);
+    get('detailDeviceGroups').innerHTML=result.html;
+    get('detailDeviceCount').textContent=`${result.count} / ${currentDevices.length} bản ghi thiết bị · ${source.source}.`;
+    get('deviceCardsMode').setAttribute('aria-pressed',String(deviceListMode==='cards'));
+    get('deviceTableMode').setAttribute('aria-pressed',String(deviceListMode==='table'));
+  }
+
+  function setDeviceListMode(mode) {
+    if(!['cards','table'].includes(mode))return;
+    deviceListMode=mode;
+    try{localStorage.setItem('netauto.pop.deviceListView',mode);}catch{/* Optional preference. */}
+    renderDevices();
   }
 
   function renderPi(reset = false) {
@@ -167,6 +194,42 @@
     if (reset) window.NETAUTO_SMARTPOP.open(currentPop);
     else window.NETAUTO_SMARTPOP.render();
   }
+
+  function closePreview(){if(previewDialog.open)previewDialog.close();}
+  function preview(pop,trigger){
+    if(!pop)return false;
+    const devices=source.pops[pop.code]||pop.devices||[];
+    previewPop=pop;
+    if(previewTrigger!==trigger)previewTrigger?.setAttribute?.('aria-expanded','false');
+    previewTrigger=trigger;trigger?.setAttribute?.('aria-expanded','true');
+    get('popPreviewName').textContent=pop.code;
+    get('popPreviewDetails').dataset.popDetail=pop.code;
+    get('popPreviewCount').textContent=`${devices.length} thiết bị`;
+    get('popPreviewDevices').innerHTML=deviceList(devices,'','cards',true).html;
+    if(!previewDialog.open){
+      if(window.NETAUTO_SMARTPOP_MODAL_SCROLL)window.NETAUTO_SMARTPOP_MODAL_SCROLL.lock(previewDialog);
+      else{previewPreviousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';}
+      previewDialog.showModal();
+    }
+    get('popPreviewDetails').focus({preventScroll:true});return true;
+  }
+  previewDialog.addEventListener('close',()=>{
+    if(previewDialog.open)return;
+    if(window.NETAUTO_SMARTPOP_MODAL_SCROLL)window.NETAUTO_SMARTPOP_MODAL_SCROLL.unlock(previewDialog);
+    else document.body.style.overflow=previewPreviousOverflow;
+    const back=previewTrigger;previewTrigger=null;previewPop=null;
+    get('popPreviewDevices').innerHTML='';
+    delete get('popPreviewDetails').dataset.popDetail;
+    back?.setAttribute?.('aria-expanded','false');
+    if(back?.isConnected!==false)back?.focus?.({preventScroll:true});else get('popSearch')?.focus?.({preventScroll:true});
+  });
+  previewDialog.addEventListener('cancel',event=>{event.preventDefault();closePreview();});
+  previewDialog.addEventListener('click',event=>{
+    if(event.target!==previewDialog)return;
+    const rect=previewDialog.getBoundingClientRect();
+    if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)closePreview();
+  });
+  window.addEventListener?.('popstate',closePreview);window.addEventListener?.('hashchange',closePreview);
 
   function toggleTopo() {
     if (get('popTopoDialog').open) {closeTopo();return;}
@@ -224,10 +287,12 @@
     });
   }
   get('detailDeviceSearch').addEventListener('input',renderDevices);
+  get('deviceCardsMode').addEventListener('click',()=>setDeviceListMode('cards'));
+  get('deviceTableMode').addEventListener('click',()=>setDeviceListMode('table'));
   get('detailDeviceGroups').addEventListener('click',event => {const button=event.target.closest('[data-l1-device]');const device=button && currentDevices[Number(button.dataset.l1Device)];if(device)deviceHandler(currentPop,device);});
   get('detailTopoToggle').addEventListener('click',toggleTopo);
   get('detailMaterialSearch').addEventListener('input',renderMaterials);
   get('detailMaterialDevice').addEventListener('change',renderMaterials);
   get('detailMaterialCategory').addEventListener('change',renderMaterials);
-  window.NETAUTO_POP_DETAIL = {open,closeTopo,refreshInventory(code){if(currentPop?.code!==code)return;currentDevices=source.pops[code] || currentPop.devices;renderHeaderStats();renderDevices();renderMaterials();},setBackHandler(handler){backHandler = handler;},setDeviceHandler(handler){deviceHandler=handler;}};
+  window.NETAUTO_POP_DETAIL = {open,closeTopo,preview,closePreview,metadata:popMetadata,refreshInventory(code){if(previewPop?.code===code){const devices=source.pops[code]||previewPop.devices||[];get('popPreviewDevices').innerHTML=deviceList(devices,'','cards',true).html;get('popPreviewCount').textContent=`${devices.length} thiết bị`;}if(currentPop?.code!==code)return;currentDevices=source.pops[code] || currentPop.devices;renderHeaderStats();renderDevices();renderMaterials();},setBackHandler(handler){backHandler = handler;},setDeviceHandler(handler){deviceHandler=handler;}};
 })();

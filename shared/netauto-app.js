@@ -2,6 +2,50 @@
   const DATA = window.NETAUTO_DATA;
   const contentViewport=document.getElementById('portalContent');
   const floatingBack=document.getElementById('detailFloatingBack');
+  // Navigation owns both scroll roots (portal desktop / window on narrow screens).
+  // Keep snapshots in memory, separate from persisted display/column preferences.
+  const viewScrollMemory=new Map();
+  let activeScrollView=null,viewScrollTicket=0;
+  if('scrollRestoration' in history)history.scrollRestoration='manual';
+  function viewScrollRegions(pageId) {
+    return pageId==='popPage'?[document.getElementById('popTableView')]:
+      [...document.getElementById(pageId).querySelectorAll('.l1-device-table-scroll,.l1-table-wrap,.l2-table-wrap')];
+  }
+  function readViewScroll(pageId) {
+    const position=node=>({top:Number(node.scrollTop)||0,left:Number(node.scrollLeft)||0});
+    return {content:position(contentViewport),window:{top:Number(window.scrollY ?? document.documentElement.scrollTop)||0,left:Number(window.scrollX ?? document.documentElement.scrollLeft)||0},regions:viewScrollRegions(pageId).map(position)};
+  }
+  function rememberViewScroll() {
+    ++viewScrollTicket;
+    if(activeScrollView)viewScrollMemory.set(activeScrollView.key,readViewScroll(activeScrollView.pageId));
+  }
+  function restoreViewScroll(snapshot) {
+    const ticket=++viewScrollTicket,view=activeScrollView;
+    const position=snapshot||{content:{top:0,left:0},window:{top:0,left:0},regions:[]};
+    const apply=()=>{
+      if(ticket!==viewScrollTicket||activeScrollView!==view)return;
+      const write=(node,value)=>{
+        const target=value||{top:0,left:0};
+        if(node.scrollTo)node.scrollTo({...target,behavior:'instant'});
+        else{node.scrollTop=target.top;node.scrollLeft=target.left;}
+      };
+      write(contentViewport,position.content);
+      viewScrollRegions(view.pageId).forEach((node,index)=>write(node,position.regions[index]));
+      window.scrollTo?.({...position.window,behavior:'instant'});
+      syncFloatingBack();
+    };
+    apply();
+    const applied=JSON.stringify(readViewScroll(view.pageId));
+    // Restore again after the new layout settles, never after a newer navigation.
+    requestAnimationFrame(()=>{
+      // Do not undo a wheel/touch/keyboard scroll made since the immediate restore.
+      if(ticket===viewScrollTicket&&activeScrollView===view&&JSON.stringify(readViewScroll(view.pageId))===applied)apply();
+    });
+  }
+  function activateScrollView(key,pageId,restore=true,fallback=null) {
+    activeScrollView={key,pageId};
+    restoreViewScroll((restore&&viewScrollMemory.get(key))||fallback);
+  }
   function syncFloatingBack() {
     const target=!document.getElementById('deviceDetailPage').hidden?'backToPopDetail':!document.getElementById('popDetailPage').hidden?'backToPopList':null;
     if(!target){floatingBack.hidden=true;delete floatingBack.dataset.backTarget;return;}
@@ -185,6 +229,9 @@
   let popLoadTicket = 0;
   let popListView = 'cards';
   try { if (localStorage.getItem('netauto.pop.listView') === 'table') popListView = 'table'; } catch { /* Optional display preference. */ }
+  const popLocationKeys=['area','zone','province','branch'];
+  let popLocationColumns=new Set(['zone','province']);
+  try{const saved=JSON.parse(localStorage.getItem('netauto.pop.locationColumns'));if(Array.isArray(saved)&&saved.every(key=>popLocationKeys.includes(key)))popLocationColumns=new Set(saved);}catch{/* Optional column preference. */}
   let popVisitActive = false;
   // Mockup scenarios only; these are not authentication or authorization rules.
   const popScopeScenarios = {three:{MB:['QNH'],MN:['AGG','BTHT1']},one:{MN:['AGG']}};
@@ -275,30 +322,58 @@
   }
   renewTablePalette();
 
+  function popSummaryFields(pop) {
+    const metadata=window.NETAUTO_POP_DETAIL.metadata(pop);
+    return [['popType','Loại POP'],['popFunction','Chức năng'],['customerCount','Tổng khách hàng']].map(([key,label])=>{
+      const field=metadata[key];
+      const display=key==='customerCount'&&Number.isFinite(Number(field.value))?formatNumber(Number(field.value)):field.value;
+      return {key,label,display,demo:field.demo};
+    });
+  }
+  const popFieldAttrs=field=>`data-pop-field="${field.key}" data-demo="${field.demo}"${field.demo?' title="Dữ liệu giả lập để minh hoạ Interface"':''}`;
+
+  function syncPopLocationColumns() {
+    const table=document.getElementById('popTableView');
+    document.getElementById('popLocationColumns').hidden=popListView!=='table';
+    for(const key of popLocationKeys){
+      table.setAttribute('data-hide-'+key,String(!popLocationColumns.has(key)));
+      document.getElementById('popColumn-'+key).checked=popLocationColumns.has(key);
+    }
+    table.setAttribute('data-location-count',String(popLocationColumns.size));
+  }
+
   function popTableRow(pop) {
     const hue = normalizeHue((provinceHueMap.get(popProvinceKey(pop)) ?? 215) + tablePaletteOffset);
     const c = pop.counts;
     const number = (value,tone) => `<td class="na-pop-number"><span class="na-pop-table-metric na-pop-${tone}${value === 0?' is-zero':''}">${formatNumber(value)}</span></td>`;
-    return `<tr data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}" style="--na-pop-hue:${hue}"><th scope="row"><button type="button" class="na-pop-row-launch" aria-label="Xem thiết bị tại POP ${escapeHtml(pop.code)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg><span>${escapeHtml(pop.code)}</span></button></th><td><span class="na-pop-area-badge">${escapeHtml(({MB:'Miền Bắc',MN:'Miền Nam'})[pop.area]||pop.area||'—')}</span></td><td>${escapeHtml(pop.zone||'—')}</td><td><span class="na-pop-province-badge">${escapeHtml(pop.province||'—')}</span></td><td class="na-pop-table-branch">${escapeHtml(popBranches(pop).join(' · '))}</td>${number(c.switch,'blue')}${number(c.olt,'purple')}${number(c.power,'orange')}${number(c.pi,'green')}<td class="na-pop-number"><b class="na-pop-row-total">${formatNumber(popTotal(pop))}</b></td></tr>`;
+    const summary = popSummaryFields(pop).map(field=>{
+      const value=escapeHtml(field.display);
+      return `<td class="na-pop-info-cell" ${popFieldAttrs(field)}>${field.key==='customerCount'?`<span class="na-pop-table-value${Number(field.display)===0?' is-zero':''}">${value}</span>`:value}</td>`;
+    }).join('');
+    return `<tr data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}" style="--na-pop-hue:${hue}"><th scope="row"><button type="button" class="na-pop-row-launch" data-pop-preview="${escapeHtml(pop.code)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="popPreviewDialog" aria-label="Xem thiết bị tại POP ${escapeHtml(pop.code)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg><span>${escapeHtml(pop.code)}</span></button></th><td data-pop-column="area"><span class="na-pop-area-badge">${escapeHtml(({MB:'Miền Bắc',MN:'Miền Nam'})[pop.area]||pop.area||'—')}</span></td><td data-pop-column="zone">${escapeHtml(pop.zone||'—')}</td><td data-pop-column="province"><span class="na-pop-province-badge">${escapeHtml(pop.province||'—')}</span></td><td data-pop-column="branch" class="na-pop-table-branch">${escapeHtml(popBranches(pop).join(' · '))}</td>${summary}${number(c.switch,'blue')}${number(c.olt,'purple')}${number(c.power,'orange')}${number(c.pi,'green')}<td class="na-pop-number"><b class="na-pop-row-total${popTotal(pop)===0?' is-zero':''}">${formatNumber(popTotal(pop))}</b></td><td class="na-pop-row-actions"><button type="button" class="na-pop-detail-action" data-pop-detail="${escapeHtml(pop.code)}" aria-label="Mở chi tiết POP ${escapeHtml(pop.code)}">Chi tiết</button></td></tr>`;
   }
 
   function setPopListView(view) {
-    if (!['cards','table'].includes(view)) return;
+    if (!['cards','table'].includes(view)||view===popListView) return;
+    const visible=!document.getElementById('popPage').hidden;
+    const previous=visible?readViewScroll('popPage'):null;
+    if(visible)rememberViewScroll();
     popListView = view;
     try { localStorage.setItem('netauto.pop.listView',view); } catch { /* No storage required. */ }
     renderPops(false);
+    if(visible)activateScrollView(`pop-list:${view}`,'popPage',true,{...previous,regions:[]});
   }
 
   function popCard(pop, colorMode) {
     const c = pop.counts;
     const meta = [pop.branch,pop.province !== pop.branch ? pop.province : '',pop.zone].filter(Boolean).join(' · ');
     const hue = colorMode === 'single-province' ? (singleProvinceHue ?? popProvinceHues[0]) : provinceHueMap.get(popProvinceKey(pop));
-    return `<button class="na-pop-card" style="--na-pop-hue:${hue}" type="button" data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}" aria-label="Xem thiết bị tại POP ${escapeHtml(pop.code)}">
-      <span class="na-pop-head"><span class="na-pop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg></span><strong>${escapeHtml(pop.code)}</strong></span>
-      <span class="na-pop-meta">${escapeHtml(meta)}</span>
+    return `<article class="na-pop-card" style="--na-pop-hue:${hue}" data-pop="${escapeHtml(pop.code)}" data-pop-province="${escapeHtml(pop.province)}">
+      <button type="button" class="na-pop-preview" data-pop-preview="${escapeHtml(pop.code)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="popPreviewDialog" aria-label="Xem nhanh thiết bị trong POP ${escapeHtml(pop.code)}"><span class="na-pop-head"><span class="na-pop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.01M8 17.5h.01M12 6.5h4M12 17.5h4"/></svg></span><span class="na-pop-title-block"><strong class="na-pop-card-name">${escapeHtml(pop.code)}</strong><span class="na-pop-meta">${escapeHtml(meta)}</span></span></span>
+      <span class="na-pop-properties">${popSummaryFields(pop).map(field=>`<span ${popFieldAttrs(field)}><small>${field.label}</small><b>${escapeHtml(field.display)}</b></span>`).join('')}</span>
       <span class="na-pop-metrics"><span><span>Switch</span><b class="na-pop-blue">${c.switch}</b></span><span><span>OLT</span><b class="na-pop-purple">${c.olt}</b></span><span><span>Nguồn</span><b class="na-pop-orange">${c.power}</b></span><span><span>PI</span><b class="na-pop-green">${c.pi}</b></span></span>
       <span class="na-pop-foot"><b>${popTotal(pop)}</b> thiết bị<span>${pop.area}</span></span>
-    </button>`;
+    </button><button type="button" class="na-pop-detail-action" data-pop-detail="${escapeHtml(pop.code)}" aria-label="Mở chi tiết POP ${escapeHtml(pop.code)}">Chi tiết</button></article>`;
   }
 
   function updateSummary(pops) {
@@ -345,6 +420,10 @@
 
   function renderPops(resetPage = true) {
     ++popLoadTicket;popLoadQueued=false;
+    if(resetPage){
+      ++viewScrollTicket;
+      viewScrollMemory.delete('pop-list:cards');viewScrollMemory.delete('pop-list:table');
+    }
     const pops = filteredPops();
     popResultRows = pops;
     popShownCount = Math.min(resetPage?popBatchSize():Math.max(popBatchSize(),popShownCount),pops.length);
@@ -360,7 +439,8 @@
     document.getElementById('popTableRows').innerHTML = popListView === 'table' ? shown.map(popTableRow).join('') : '';
     document.getElementById('popCardsMode').setAttribute('aria-pressed',String(popListView === 'cards'));
     document.getElementById('popTableMode').setAttribute('aria-pressed',String(popListView === 'table'));
-    if (popListView === 'table') tableView.scrollTop = 0;
+    syncPopLocationColumns();
+    if (resetPage) {tableView.scrollTop=0;tableView.scrollLeft=0;}
     document.getElementById('popEmpty').hidden = pops.length !== 0;
     document.getElementById('popResultCount').textContent = `${formatNumber(pops.length)} POP trong dữ liệu`;
     updatePopLoadState();
@@ -396,14 +476,15 @@
   function openPopDetail(popCode, updateRoute = true, preserve = false) {
     const pop = DATA.pops.find(entry => entry.code === popCode);
     if (!pop) return false;
+    const key=`pop:${pop.code}`,sameView=activeScrollView?.key===key;
+    rememberViewScroll();
     window.NETAUTO_POP_DETAIL.open(pop,preserve);
     popVisitActive = false;
     document.querySelectorAll('.na-nav-item').forEach(button => button.classList.toggle('is-active', button.dataset.module === 'pop'));
     document.querySelectorAll('.na-page').forEach(page => page.hidden = page.dataset.page !== 'pop-detail');
     if (updateRoute && location.hash !== `#pop/${pop.code}`) history.pushState(null, '', `#pop/${pop.code}`);
     loadPopInventory(pop.code);
-    document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
-    syncFloatingBack();
+    activateScrollView(key,'popDetailPage',preserve||sameView);
     return true;
   }
 
@@ -413,6 +494,9 @@
     const records = window.NETAUTO_POP_DETAIL_DATA.pops[popCode] || pop.devices;
     const device = records.find(entry=>entry.name===deviceName);
     if (!device) return false;
+    const key=`device:${popCode}:${deviceName}`;
+    rememberViewScroll();
+    window.NETAUTO_POP_DETAIL.closePreview();
     popVisitActive = false;
     window.NETAUTO_POP_DETAIL.closeTopo();
     window.NETAUTO_DEVICE_DETAIL.open(pop,device);
@@ -421,8 +505,7 @@
     const route=`#pop/${popCode}/device/${encodeURIComponent(deviceName)}`;
     if (updateRoute && location.hash!==route) history.pushState(null,'',route);
     loadPopInventory(pop.code);
-    document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
-    syncFloatingBack();
+    activateScrollView(key,'deviceDetailPage',!updateRoute||activeScrollView?.key===key);
     return true;
   }
 
@@ -430,12 +513,17 @@
     const store=window.NETAUTO_POP_DETAIL_DATA;
     store.ensurePop(code,error=>{
       if(error){if(location.hash.startsWith(`#pop/${code}`))showToast('Không tải được inventory. Mở lại POP để thử lại.');}
+      const view=activeScrollView;
+      const position=view&&(view.key===`pop:${code}`||view.key.startsWith(`device:${code}:`))?readViewScroll(view.pageId):null;
       window.NETAUTO_POP_DETAIL.refreshInventory(code);
       window.NETAUTO_DEVICE_DETAIL.refreshInventory(code);
+      if(position&&activeScrollView===view)restoreViewScroll(position);
     });
   }
 
   function navigateModule(module, updateRoute = true) {
+    rememberViewScroll();
+    window.NETAUTO_POP_DETAIL.closePreview();
     window.NETAUTO_POP_DETAIL.closeTopo();
     if (module === 'pop' && !popVisitActive) renewPopVisitColor();
     popVisitActive = module === 'pop';
@@ -443,8 +531,7 @@
     document.querySelectorAll('.na-nav-item').forEach(button => button.classList.toggle('is-active', button.dataset.module === module));
     document.querySelectorAll('.na-page').forEach(page => page.hidden = page.dataset.page !== module);
     if (updateRoute) history.replaceState(null, '', `#${module}`);
-    document.querySelector('.na-content').scrollTo({top:0,behavior:'smooth'});
-    syncFloatingBack();
+    activateScrollView(module==='pop'?`pop-list:${popListView}`:module,module==='pop'?'popPage':module==='customer'?'customerPage':'businessPage');
   }
 
   window.NETAUTO_POP_DETAIL.setBackHandler(() => navigateModule('pop'));
@@ -750,10 +837,29 @@
   document.querySelectorAll('[data-pop-scope]').forEach(button => button.addEventListener('click', () => { popScopeMode = button.dataset.popScope; resetPopFilters(); }));
   document.getElementById('resetPopFilters').addEventListener('click', resetPopFilters);
   document.getElementById('popSearch').addEventListener('input', renderPops);
-  document.getElementById('popGrid').addEventListener('click', event => { const card = event.target.closest('[data-pop]'); if (card) openPopDetail(card.dataset.pop); });
-  document.getElementById('popTableRows').addEventListener('click', event => { const row = event.target.closest('[data-pop]'); if (row) openPopDetail(row.dataset.pop); });
+  function handlePopLaunch(event) {
+    const detail=event.target.closest('[data-pop-detail]');
+    if(detail){openPopDetail(detail.dataset.popDetail);return;}
+    const entry=event.target.closest('[data-pop]');
+    if(!entry)return;
+    const pop=DATA.pops.find(item=>item.code===entry.dataset.pop);
+    const trigger=event.target.closest('[data-pop-preview]')||entry.querySelector?.('[data-pop-preview]')||entry;
+    if(pop)window.NETAUTO_POP_DETAIL.preview(pop,trigger);
+  }
+  document.getElementById('popGrid').addEventListener('click',handlePopLaunch);
+  document.getElementById('popTableRows').addEventListener('click',handlePopLaunch);
   document.getElementById('popCardsMode').addEventListener('click',()=>setPopListView('cards'));
   document.getElementById('popTableMode').addEventListener('click',()=>setPopListView('table'));
+  document.getElementById('popLocationColumns').addEventListener('change',event=>{
+    const key=event.target.dataset.popColumn;
+    if(!popLocationKeys.includes(key))return;
+    if(event.target.checked)popLocationColumns.add(key);else popLocationColumns.delete(key);
+    try{localStorage.setItem('netauto.pop.locationColumns',JSON.stringify([...popLocationColumns]));}catch{/* Optional preference. */}
+    syncPopLocationColumns();
+  });
+  document.getElementById('popPreviewDetails').addEventListener('click',()=>{
+    if(document.getElementById('popPreviewDialog').open)openPopDetail(document.getElementById('popPreviewDetails').dataset.popDetail);
+  });
   document.getElementById('popPageSize').addEventListener('change',()=>renderPops());
   document.getElementById('popLoadMore').addEventListener('click',loadMorePops);
   if (typeof window.IntersectionObserver === 'function') {

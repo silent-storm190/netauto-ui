@@ -121,12 +121,72 @@ phù hợp, không mặc định công khai.
 
 ## Chế độ danh sách POP
 
-Nút **Thẻ / Table** cạnh tiêu đề Danh sách POP chuyển giữa hai cách trình bày;
-ghi nhớ lựa chọn bằng preference local tùy chọn. Thứ tự cột Table: POP,
+Nút **Thẻ / Table** cạnh tiêu đề Danh sách POP chuyển giữa hai cách trình bày,
+ghi nhớ lựa chọn bằng preference local tùy chọn.
+Thẻ tối đa 4 cột trên desktop, gap 14px; theo chiều rộng nội dung khả dụng
+giảm còn 3 cột (dưới 1100px), 2 cột (dưới 820px), 1 cột (dưới 540px).
+Container query xử lý cả sidebar/fullscreen, có media-query fallback.
+Thẻ gọn theo chiều ngang: icon/tên/vị trí cùng phần đầu, Chi tiết ở góc phải;
+góc phải có lưới chấm thưa 16px và đường mạch/nút nối mảnh trong vùng 180×112px,
+cùng màu POP, lưới mờ dần về phía nội dung.
+Họa tiết nằm dưới nội dung/nút, không nhận click, ẩn trong forced-colors.
+ba thông tin POP xếp ngang. Switch / OLT / Nguồn / PI có bốn ô bằng nhau,
+nhãn phía trên và số căn giữa/tabular-nums để các chỉ số luôn thẳng hàng.
+Bốn ô không nền/viền/vạch dọc; sau mỗi số và Tổng khách hàng dùng chung một
+mảng watercolor wash: ba vùng màu loang chồng nhẹ, mép tan mềm và hai đốm phụ rất nhỏ.
+Tất cả cùng mẫu, góc −3°, chiều cao 30px và cùng tông màu POP, không chia màu loại thiết bị.
+Nhãn xám, số màu chữ chính (xanh đen ở Light, sáng ở Dark) không bị xoay;
+họa tiết không nhận click, ẩn trong forced-colors, không suy ra cảnh báo từ số lượng.
+Loại POP giữ tag nền nhạt; Tổng khách hàng dùng cùng mảng màu loang và màu chữ chính như các số thiết bị;
+Chức năng giữ dạng chữ. Mảng loang dùng CSS gradient, góc lưới/mạch giữ nguyên vector nội bộ, không tải ảnh ngoài.
+Thứ tự cột Table: POP,
 **Miền → Vùng → Tỉnh → Chi nhánh**, Switch/OLT/Nguồn/PI và tổng thiết bị;
 chi nhánh giữ đủ các nhánh nếu nhiều nhánh. Cùng một nguồn/kết quả lọc với
 thẻ; đổi mode giữ số POP đã hiển thị, tìm kiếm, bộ lọc và số liệu tổng.
-Nhấn tên hoặc dòng để mở POP. Đã bỏ nút Đăng ký thiết bị.
+Table canh trái nội dung chữ, canh giữa tiêu đề và dữ liệu các cột số/thao tác.
+Độ rộng cột theo tỉ lệ cố định, tự phân bổ lại khi ẩn/hiện cột vị trí; chữ dài xuống dòng.
+Sáu cột số (Tổng khách hàng, Switch/OLT/Nguồn/PI, Tổng thiết bị) dùng watercolor wash
+cùng mẫu với thẻ nhưng gọn/nhạt hơn (24px, cao nhất 8% mỗi lớp màu), không viền hay nền hộp.
+Một hàng dùng chung màu loang theo POP/tỉnh và chữ chính; mọi số 0 dùng loang/chữ xám.
+Tổng thiết bị chỉ tăng độ đậm chữ. Nền hàng pha màu tỉnh 1–2%, hover/focus 5%.
+Cột Thao tác vẫn sticky nhưng không có vạch dọc.
+Cạnh nút đổi mode có bộ chọn cột vị trí, chỉ hiện trong Table; mặc định bật
+Vùng + Tỉnh, tắt Miền + Chi nhánh. Lựa chọn lưu tùy chọn trong
+`netauto.pop.locationColumns`, kể cả chọn 0 cột. Đây là ẩn/hiện header và ô
+tương ứng bằng CSS, không lọc dữ liệu, không dựng lại dòng hay reset scroll;
+các dòng nối thêm tuân theo cùng lựa chọn. Giá trị lưu sai quay về mặc định.
+Mặc định Vùng/Tỉnh chỉ áp dụng khi chưa có lựa chọn hợp lệ; đi vào Layer 1/2 rồi
+quay lại không đổi bộ lọc hoặc cột đã chọn (kể cả chủ động tắt hết cột vị trí).
+Vị trí cuộn lưu riêng trong bộ nhớ cho Thẻ/Bảng và từng trang POP/thiết bị:
+Back bằng nút trong app hoặc lịch sử trình duyệt khôi phục vị trí portal/window,
+cuộn dọc/ngang của bảng và số POP đã tải. Chuyển mode giữ vị trí riêng của mode đó;
+lần đầu đổi mode giữ vị trí viewport hiện tại, không neo vào footer cuối danh sách.
+Đổi bộ lọc/từ khóa/số POP mỗi lần tải xóa vị trí cũ của hai mode để không khôi phục
+một vị trí thuộc bộ kết quả khác. Không lưu vị trí cuộn hoặc dữ liệu POP vào storage.
+
+Cả Thẻ và Table có **Loại POP / Chức năng / Tổng khách hàng**. Dùng chung
+`NETAUTO_POP_DETAIL.metadata(pop)` với Layer 1, giữ giá trị thật (kể cả 0);
+chỉ dự phòng Outdoor / POP AON+PON / 727 khi nguồn thiếu. Có data-demo/tooltip
+cho giá trị mẫu, không ghi các giá trị trình bày vào snapshot hay cộng vào
+thống kê tổng thiết bị.
+
+Mỗi hàng có nút **Chi tiết** ở cuối; mỗi thẻ có nút này ở phía trên bên phải.
+Chỉ nút Chi tiết mới mở trang POP. Nhấn phần còn lại của hàng/thẻ (hoặc nút
+tên POP bằng bàn phím) mở native popup xem thiết bị, không đổi route/trang.
+Popup dùng chung renderer nhóm Thiết bị mạng / Nguồn & Giám sát với Layer 1,
+nhưng các thiết bị là article tĩnh, không có nút, link hay hành động mở Layer 2.
+Header popup có nút Chi tiết mở đúng Layer 1 của POP đang xem. Đã bỏ nhãn
+“Chỉ xem” và nút ×; đóng bằng Esc / backdrop, trả focus về nút mở và khôi phục
+cuộn nền. Mở popup focus vào nút Chi tiết; đóng xóa POP đích để tránh route cũ.
+Không tải thêm inventory chỉ để xem popup; dùng metadata thiết bị đã có.
+Đã bỏ nút Đăng ký thiết bị.
+
+Trong **Layer 1 → Thiết bị trong POP**, có chế độ **Thẻ / Table** riêng,
+ghi nhớ bằng preference `netauto.pop.deviceListView`. Table vẫn chia hai nhóm,
+màu theo loại, gồm tên / IP / loại / chức năng / vendor / model; cùng thứ tự
+và object nguồn với Thẻ. Đổi mode không xóa search, inventory tải muộn giữ mode
+và filter; nút tên hoặc dòng vẫn mở Layer 2 như trước. EN… → ENATEL và DE… →
+DELTA được áp dụng nhất quán cho cả hai mode và popup, không sửa snapshot.
 
 Mỗi tỉnh dùng một hue riêng cho viền dòng, tên, nhãn tỉnh và tổng thiết bị;
 nền nhẹ và các chỉ số thiết bị giữ tông màu riêng. Palette bảng đổi khi refresh

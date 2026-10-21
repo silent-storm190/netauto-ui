@@ -12,7 +12,7 @@ const nodes = new Map();
 function element(id = '', dataset = {}) {
   const classes = new Set();
   return {
-    id, dataset, value: '', innerHTML: '', textContent: '', hidden: false, disabled: false,
+    id, dataset, value: '', innerHTML: '', textContent: '', hidden: false, disabled: false, scrollTop:0, scrollLeft:0,
     attrs: {}, listeners: {}, style: {}, tagName: 'DIV',
     classList: {
       add: name => classes.add(name), remove: name => classes.delete(name),
@@ -23,7 +23,7 @@ function element(id = '', dataset = {}) {
     insertAdjacentHTML(position, markup) { assert.equal(position,'beforeend');this.appendCalls=(this.appendCalls||0)+1;this.innerHTML+=markup; },
     addEventListener(type, callback) { this.listeners[type] = callback; },
     click() { this.listeners.click?.({target:this,currentTarget:this}); },
-    focus() { document.activeElement = this; }, scrollIntoView() {}, scrollTo() {}, querySelectorAll() { return []; },
+    focus() { document.activeElement = this; }, scrollIntoView() {}, scrollTo(position) { this.lastScroll=position;if(position.top!==undefined)this.scrollTop=position.top;if(position.left!==undefined)this.scrollLeft=position.left; }, querySelectorAll() { return []; },
     showModal() { this.open=true; this.attrs.open=''; },
     close() { this.open=false; delete this.attrs.open; this.listeners.close?.(); },
     getBoundingClientRect() { return {left:100,top:100,right:1100,bottom:750}; },
@@ -63,7 +63,7 @@ const document = {
     if (selector === '.na-page') return pages;
     return [];
   },
-  querySelector() { return element(); },
+  querySelector(selector) { return selector==='.na-content'?get('portalContent'):element(); },
   addEventListener() {},
   createElement(tag) { return {tagName:tag.toUpperCase(),remove(){},click() { document.lastDownload = this.download; }}; },
   head:{appendChild(script){vm.runInNewContext(fs.readFileSync(path.join(mockup,script.src),'utf8'),context,{filename:script.src});script.onload();}},
@@ -93,6 +93,7 @@ for (const script of ['netauto-data.js','netauto-pop-index.js', 'drop-point-resp
   // Test-only access to the renderer, without adding a public hook to the app.
   if(script==='netauto-app.js')source=source.replace('  function renderDropPointResponse(', '  window.__testRenderDropPointResponse=renderDropPointResponse;\n  function renderDropPointResponse(');
   if(script==='netauto-app.js')source=source.replace('  function popTableRow(', '  window.__testPopTableRow=popTableRow;\n  function popTableRow(');
+  if(script==='netauto-app.js')source=source.replace('  function popCard(', '  window.__testPopCard=popCard;\n  function popCard(');
   vm.runInNewContext(source, context, {filename: script});
 }
 const count = () => Number(get('popResultCount').textContent.split(' ')[0].replaceAll('.',''));
@@ -133,7 +134,7 @@ const provinceHues = new Map();
 for (const pop of context.window.NETAUTO_DATA.pops.filter(pop=>initialHues.has(pop.code))) {
   if (provinceHues.has(pop.province)) assert.equal(initialHues.get(pop.code), provinceHues.get(pop.province), 'Same province must share a color');
   provinceHues.set(pop.province, initialHues.get(pop.code));
-  const card = get('popGrid').innerHTML.match(new RegExp(`data-pop="${pop.code}"[\\s\\S]*?(?=</button>)`))[0];
+  const card = get('popGrid').innerHTML.match(new RegExp(`data-pop="${pop.code}"[\\s\\S]*?(?=</article>)`))[0];
   for (const [label, key] of [['Switch', 'switch'], ['OLT', 'olt'], ['Nguồn', 'power'], ['PI', 'pi']]) {
     assert(new RegExp(`<span>${label}</span><b[^>]*>${pop.counts[key]}</b>`).test(card), `${pop.code}: ${label} must match source`);
   }
@@ -218,7 +219,7 @@ search('HCMP'); assert.equal(count(), 0);
 get('refreshPop').listeners.click(); assert.equal(count(), 47);
 search('AGGP006'); assert.equal(count(), 1);
 assert.equal(cardHues().get('AGGP006'), visitHue, 'Search within one province retains the shared visit color');
-get('popGrid').listeners.click({target: {closest: () => ({dataset: {pop: 'AGGP006'}})}});
+get('popGrid').listeners.click({target: {closest: selector => selector==='[data-pop-detail]'?({dataset: {popDetail: 'AGGP006'}}):null}});
 assert.equal(get('detailPopName').textContent, 'AGGP006');
 assert(get('detailDeviceGroups').innerHTML.includes('CE701001AGGP00601HW63'));
 assert.equal(get('popDetailPage').hidden, false);
@@ -473,11 +474,16 @@ const layer0Css = css.slice(css.indexOf('/* Approved POP Layer 0 only.'));
 assert(layer0Css.includes('#popPage #popSearch:focus-visible{outline:none;box-shadow:none}'));
 assert(layer0Css.includes('.na-pop-metrics>span{display:flex;align-items:center;justify-content:flex-start;gap:7px'));
 assert(layer0Css.includes('.na-stat-card>span{font-size:13px;font-weight:650'));
-assert(css.includes('.na-pop-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))'));
+const popGridCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-table.css'),'utf8');
+assert(popGridCSS.includes('#popPage .na-pop-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}'));
+for(const width of [1099,819,539])assert(popGridCSS.includes(`@container pop-cards (max-width:${width}px)`));
+assert(popGridCSS.includes('repeat(3,minmax(0,1fr))')&&popGridCSS.includes('repeat(2,minmax(0,1fr))')&&popGridCSS.includes('grid-template-columns:minmax(0,1fr)'));
+assert(popGridCSS.includes('@supports not (container-type:inline-size)'));
+assert(html.indexOf('shared/netauto-pop-table.css')>html.indexOf('shared/netauto-shell.css'),'Scoped responsive four-card layout overrides the legacy grid without affecting other layers');
 console.log('PASS: Layer 0 colors, source counts, 3 scopes, filters/search/reset, full-page detail and return, Light/Dark, unchanged plans and real ONU response.');
 
 // Layer 1: exercise interactions against the actual controller and dataset.
-const openDetail = code => get('popGrid').listeners.click({target: {closest: () => ({dataset: {pop: code}})}});
+const openDetail = code => get('popGrid').listeners.click({target: {closest: selector => selector==='[data-pop-detail]'?({dataset: {popDetail: code}}):null}});
 const dataset = context.window.NETAUTO_POP_DETAIL_DATA;
 const headerTagCounts=()=>new Map([...get('detailDeviceTypeStats').innerHTML.matchAll(/data-kind="([^"]+)"[^>]*>[\s\S]*?<b>([^<]+)<\/b>/g)].map(match=>[match[1],Number(match[2].replaceAll('.',''))]));
 openDetail('AGGP006');
@@ -1277,12 +1283,12 @@ while(true){
     const p=tableByCode.get(row.code);assert(p);assert.equal(row.province,p.province);
     const metrics=[...row.body.matchAll(/class="na-pop-table-metric na-pop-(blue|purple|orange|green)(?: is-zero)?">([\d.]+)<\/span>/g)].map(m=>Number(m[2].replaceAll('.','')));
     assert.deepEqual(metrics,[p.counts.switch,p.counts.olt,p.counts.power,p.counts.pi]);
-    const total=Number(row.body.match(/class="na-pop-row-total">([\d.]+)<\/b>/)[1].replaceAll('.',''));
+    const total=Number(row.body.match(/class="na-pop-row-total(?: is-zero)?">([\d.]+)<\/b>/)[1].replaceAll('.',''));
     assert.equal(total,Object.values(p.counts).reduce((sum,n)=>sum+n,0));
     assert(row.body.includes('>'+p.zone+'</td>'));
     assert(row.body.includes('>'+p.branches.join(' · ')+'</td>'));
     assert(row.body.includes(p.area==='MB'?'Miền Bắc':'Miền Nam'));
-    const locationCells=[...row.body.matchAll(/<td(?: class="na-pop-table-branch")?>([\s\S]*?)<\/td>/g)].slice(0,4).map(m=>m[1].replace(/<[^>]*>/g,''));
+    const locationCells=[...row.body.matchAll(/<td data-pop-column="[^"]+"[^>]*>([\s\S]*?)<\/td>/g)].map(m=>m[1].replace(/<[^>]*>/g,''));
     assert.deepEqual(locationCells,[p.area==='MB'?'Miền Bắc':'Miền Nam',p.zone,p.province,p.branches.join(' · ')],'Location order is Miền, Vùng, Tỉnh, Chi nhánh');
     if(tableProvinceHues.has(row.province))assert.equal(row.hue,tableProvinceHues.get(row.province),'One stable hue per province, across all pages');
     else tableProvinceHues.set(row.province,row.hue);
@@ -1300,7 +1306,7 @@ assert(get('popPageCount').textContent.includes('1 / 1 POP · Đã hết danh s�
 get('popCardsMode').listeners.click();assert.equal(get('popSearch').value,'AGGP006');assert.equal(count(),1);
 get('popTableMode').listeners.click();assert.equal(tableRows()[0].code,'AGGP006');
 const tableThemeHue=tableRows()[0].hue;get('themeButton').listeners.click();assert.equal(tableRows()[0].hue,tableThemeHue);
-get('popTableRows').listeners.click({target:{closest:()=>({dataset:{pop:'AGGP006'}})}});
+get('popTableRows').listeners.click({target:{closest:selector=>selector==='[data-pop-detail]'?({dataset:{popDetail:'AGGP006'}}):null}});
 assert.equal(get('detailPopName').textContent,'AGGP006');assert.equal(get('popDetailPage').hidden,false);
 get('backToPopList').listeners.click();assert.equal(get('popTableView').hidden,false);assert.equal(get('popSearch').value,'AGGP006');
 assert.equal(tableRows()[0].hue,tableThemeHue,'Returning to results preserves the table palette');
@@ -1345,7 +1351,7 @@ console.log('PASS: card/table parity for all POPs/counts/metadata, native access
 
 // Automatic continuation uses the correct scroll root; appends never reset focus/scroll.
 assert(!html.includes('id="registerDevice"'));assert(!html.includes('id="popPrevPage"')&&!html.includes('id="popNextPage"'));
-assert(html.includes('<th scope="col">Miền</th><th scope="col">Vùng</th><th scope="col">Tỉnh</th><th scope="col">Chi nhánh</th>'));
+assert(html.includes('<th scope="col" data-pop-column="area">Miền</th><th scope="col" data-pop-column="zone">Vùng</th><th scope="col" data-pop-column="province">Tỉnh</th><th scope="col" data-pop-column="branch">Chi nhánh</th>'));
 assert(html.includes('Mỗi lần tải')&&html.includes('id="popLoadMore"'));
 const [autoCards,autoTable]=popScrollObservers.slice(-2);
 assert.equal(autoCards.target,get('popCardsSentinel'));assert.equal(autoCards.options.root,null);
@@ -1355,6 +1361,7 @@ const nativeFrame=context.requestAnimationFrame,queuedFrames=[];
 context.requestAnimationFrame=callback=>{queuedFrames.push(callback);return queuedFrames.length;};
 const flushPopFrames=()=>{for(const callback of queuedFrames.splice(0))callback();};
 mode('many');reset();get('popPageSize').value='100';get('popPageSize').listeners.change();get('popCardsMode').listeners.click();
+flushPopFrames(); // Finish layout restoration before testing observer-only frame counts.
 const cardsPrefix=get('popGrid').innerHTML,cardAppendBefore=get('popGrid').appendCalls||0;
 autoCards.fire(false);assert.equal(queuedFrames.length,0);
 autoTable.fire();assert.equal(queuedFrames.length,0,'Hidden mode observer cannot load rows');
@@ -1365,6 +1372,7 @@ flushPopFrames();assert.equal(cardHues().size,200);assert(get('popGrid').innerHT
 assert.equal(get('popGrid').appendCalls,cardAppendBefore+1);assert.equal(document.activeElement,focusBeforeAppend);
 assert.equal(get('popGrid').attrs['aria-busy'],'false');assert.equal(get('popLoadMore').disabled,false);
 get('popTableMode').listeners.click();assert.equal(tableRows().length,200,'Switching views retains accumulated POPs');
+flushPopFrames();
 get('popTableView').scrollTop=450;get('popTableView').scrollLeft=72;
 const tablePrefix=get('popTableRows').innerHTML,tableAppendBefore=get('popTableRows').appendCalls||0;
 autoTable.fire();flushPopFrames();assert.equal(tableRows().length,300);
@@ -1386,3 +1394,337 @@ assert.equal(popScrollObservers.length,observerCountBeforeFallback);
 assert.equal(cardHues().size,100);get('popLoadMore').listeners.click();assert.equal(cardHues().size,200,'Native load-more button works without IntersectionObserver');
 assert.equal(JSON.stringify(allPops),tableSourceBefore);
 console.log('PASS: automatic 100-POP append in cards/table, distinct observer roots, duplicate-event coalescing, no focus/scroll reset, end detection, stale search/view/navigation isolation, exact location-column order and removed registration button.');
+
+// Ordinary Layer 0 activation is read-only preview; only explicit details navigates.
+const popPreview=get('popPreviewDialog'),previewHost=get('popPreviewDevices');
+const previewCode='AGGP006',previewSource=allPops.find(p=>p.code===previewCode);
+const previewRecords=dataset.pops[previewCode]||previewSource.devices;
+const previewSourceBefore=JSON.stringify(previewRecords),previewPath=context.location.hash;
+const previewScriptCount=scripts.length,previewOverflow=document.body.style.overflow;
+const previewTrigger={dataset:{popPreview:previewCode},attrs:{},isConnected:true,setAttribute(k,v){this.attrs[k]=v;},focus(){document.activeElement=this;}};
+const previewEntry={dataset:{pop:previewCode},querySelector:()=>previewTrigger};
+const previewEvent={target:{closest:selector=>selector==='[data-pop]'?previewEntry:selector==='[data-pop-preview]'?previewTrigger:null}};
+const beforePreviewCards=get('popGrid').innerHTML;
+get('popGrid').listeners.click(previewEvent);
+assert.equal(popPreview.open,true);assert.equal(context.location.hash,previewPath,'Preview does not change the route');
+assert.equal(get('popPage').hidden,false);assert.equal(scripts.length,previewScriptCount,'Preview uses existing device metadata without loading inventory');
+assert.equal(get('popPreviewName').textContent,previewCode);assert.equal(get('popPreviewCount').textContent,`${previewRecords.length} thiết bị`);
+assert.equal((previewHost.innerHTML.match(/<article class="l1-device-card /g)||[]).length,previewRecords.length);
+assert(!previewHost.innerHTML.includes('<button')&&!previewHost.innerHTML.includes('data-l1-device=')&&!previewHost.innerHTML.includes('tabindex='),'Read-only device cards have no device actions or focus targets');
+assert.equal((previewHost.innerHTML.match(/class="l1-device-lane"/g)||[]).length,2);
+assert.equal(previewTrigger.attrs['aria-expanded'],'true');assert.equal(document.activeElement,get('popPreviewDetails'));
+assert.equal(document.body.style.overflow,'hidden');assert.equal(get('popGrid').innerHTML,beforePreviewCards);
+popPreview.listeners.click({target:popPreview,clientX:500,clientY:500});assert.equal(popPreview.open,true,'Clicking modal whitespace is not a backdrop close');
+popPreview.listeners.click({target:popPreview,clientX:10,clientY:10});assert.equal(popPreview.open,false);
+assert.equal(previewHost.innerHTML,'');assert.equal(previewTrigger.attrs['aria-expanded'],'false');assert.equal(document.activeElement,previewTrigger);assert.equal(document.body.style.overflow,previewOverflow);
+get('popTableMode').listeners.click();get('popTableRows').listeners.click(previewEvent);assert.equal(popPreview.open,true,'Table row also opens preview');
+let previewCancelled=false;popPreview.listeners.cancel({preventDefault(){previewCancelled=true;}});assert(previewCancelled);assert.equal(popPreview.open,false);
+get('popTableRows').listeners.click(previewEvent);popPreview.listeners.click({target:popPreview,clientX:10,clientY:10});assert.equal(popPreview.open,false);
+get('popGrid').listeners.click(previewEvent);context.window.listeners.hashchange();assert.equal(popPreview.open,false,'History/navigation releases preview');
+const invalidPreviewEvent={target:{closest:selector=>selector==='[data-pop]'?{dataset:{pop:'NO-SUCH-POP'}}:null}};
+get('popTableRows').listeners.click(invalidPreviewEvent);assert.equal(popPreview.open,false);
+const cardDetailButtons=(get('popCardsMode').listeners.click(),get('popGrid').innerHTML.match(/data-pop-detail=/g)||[]).length;
+assert.equal(cardDetailButtons,cardHues().size,'Every POP card has one explicit detail action');
+let cardButtonDepth=0;for(const m of get('popGrid').innerHTML.matchAll(/<\/?button\b[^>]*>/g)){cardButtonDepth+=m[0].startsWith('</')?-1:1;assert(cardButtonDepth>=0&&cardButtonDepth<=1,'Preview/detail are sibling controls, never nested buttons');}assert.equal(cardButtonDepth,0);
+get('popTableMode').listeners.click();assert.equal((get('popTableRows').innerHTML.match(/data-pop-detail=/g)||[]).length,tableRows().length);
+const rowActionCells=get('popTableRows').innerHTML.match(/<td class="na-pop-row-actions">[\s\S]*?<\/td>/g)||[];
+assert.equal(rowActionCells.length,tableRows().length);assert(rowActionCells.every(cell=>cell.includes('>Chi tiết</button>')));
+get('popTableRows').listeners.click({target:{closest:selector=>selector==='[data-pop-detail]'?{dataset:{popDetail:previewCode}}:previewEntry}});
+assert.equal(popPreview.open,false,'Details does not also launch a popup');assert.equal(context.location.hash,'#pop/'+previewCode);assert.equal(get('popDetailPage').hidden,false);
+// Layer 1 switches layouts without changing the original device list or search.
+const cardDeviceIndices=[...get('detailDeviceGroups').innerHTML.matchAll(/data-l1-device="(\d+)"/g)].map(m=>Number(m[1]));
+const firstDeviceCards=get('detailDeviceGroups').innerHTML;
+get('deviceTableMode').listeners.click();assert.equal(get('deviceTableMode').attrs['aria-pressed'],'true');assert.equal(storage.get('netauto.pop.deviceListView'),'table');
+assert.equal((get('detailDeviceGroups').innerHTML.match(/class="l1-device-table"/g)||[]).length,2);
+assert.deepEqual([...get('detailDeviceGroups').innerHTML.matchAll(/data-l1-device="(\d+)"/g)].map(m=>Number(m[1])),cardDeviceIndices,'Device table preserves type ordering and original source indices');
+for(const device of previewRecords)for(const value of [device.name,device.ip,device.model])if(value&&value!=='UNKNOWN')assert(get('detailDeviceGroups').innerHTML.includes(value));
+get('detailDeviceSearch').value='OPMS';get('detailDeviceSearch').listeners.input();
+const filteredDeviceTable=get('detailDeviceGroups').innerHTML;assert.equal((filteredDeviceTable.match(/data-l1-device=/g)||[]).length,1);
+get('deviceCardsMode').listeners.click();assert.equal(get('detailDeviceSearch').value,'OPMS');assert.equal((get('detailDeviceGroups').innerHTML.match(/data-l1-device=/g)||[]).length,1);
+get('deviceTableMode').listeners.click();assert.equal(get('detailDeviceGroups').innerHTML,filteredDeviceTable);
+context.window.NETAUTO_POP_DETAIL.refreshInventory(previewCode);assert.equal(get('detailDeviceGroups').innerHTML,filteredDeviceTable,'Async inventory refresh keeps the table mode and filter');
+let launchedDevice=null;context.window.NETAUTO_POP_DETAIL.setDeviceHandler((p,d)=>{assert.equal(p.code,previewCode);launchedDevice=d;});
+const filteredDeviceIndex=Number(filteredDeviceTable.match(/data-l1-device="(\d+)"/)[1]);
+get('detailDeviceGroups').listeners.click({target:{closest:()=>({dataset:{l1Device:String(filteredDeviceIndex)}})}});
+assert.strictEqual(launchedDevice,previewRecords[filteredDeviceIndex],'Table row uses the same Layer 2 handler and exact source object as cards');
+get('detailDeviceSearch').value='NO-MATCH-___';get('detailDeviceSearch').listeners.input();assert(!get('detailDeviceGroups').innerHTML.includes('data-l1-device='));
+get('detailDeviceSearch').value='';get('detailDeviceSearch').listeners.input();get('deviceCardsMode').listeners.click();assert.equal(get('detailDeviceGroups').innerHTML,firstDeviceCards);
+get('deviceTableMode').listeners.click();
+vm.runInNewContext(fs.readFileSync(path.join(mockup,'shared/netauto-pop-detail.js'),'utf8'),context,{filename:'netauto-pop-detail.js (device table preference)'});
+context.window.NETAUTO_POP_DETAIL.open(previewSource);assert.equal(get('deviceTableMode').attrs['aria-pressed'],'true','Device view preference survives reload');
+assert.equal(get('detailDeviceSearch').value,'');
+const viewStorage=context.localStorage;context.localStorage={getItem(){throw new Error('Denied');},setItem(){throw new Error('Denied');}};
+get('deviceCardsMode').listeners.click();assert.equal(get('deviceCardsMode').attrs['aria-pressed'],'true');context.localStorage=viewStorage;
+const previewFixture={code:'TEST-PREVIEW',devices:[{type:'POWER',name:'<img src=x>',ip:'192.0.2.1',model:'EN1U',vendor:'UNKNOWN',function:'<script>bad</script>'},{type:'POWER',name:'DELTA-TEST',ip:'192.0.2.2',model:'DE01',vendor:'UNKNOWN',function:'POWER'}]};
+const previewFixtureBefore=JSON.stringify(previewFixture);context.window.NETAUTO_POP_DETAIL.preview(previewFixture,previewTrigger);
+assert(previewHost.innerHTML.includes('ENATEL · EN1U')&&previewHost.innerHTML.includes('DELTA · DE01'));
+assert(previewHost.innerHTML.includes('&lt;img')&&previewHost.innerHTML.includes('&lt;script&gt;'));assert(!previewHost.innerHTML.includes('<img')&&!previewHost.innerHTML.includes('<script>'));
+assert(!previewHost.innerHTML.includes('data-l1-device=')&&!previewHost.innerHTML.includes('<button'));
+context.window.NETAUTO_POP_DETAIL.closePreview();assert.equal(JSON.stringify(previewFixture),previewFixtureBefore);assert.equal(JSON.stringify(previewRecords),previewSourceBefore);
+const queuedPreviewCloses=[],normalPreviewClose=popPreview.close;
+popPreview.close=function(){this.open=false;queuedPreviewCloses.push(()=>this.listeners.close());};
+context.window.NETAUTO_POP_DETAIL.preview(previewFixture,previewTrigger);context.window.NETAUTO_POP_DETAIL.closePreview();
+context.window.NETAUTO_POP_DETAIL.preview(previewSource,previewTrigger);queuedPreviewCloses.shift()();
+assert.equal(popPreview.open,true);assert.equal(get('popPreviewName').textContent,previewCode);assert(previewHost.innerHTML.includes(previewRecords[0].name));
+assert.equal(document.body.style.overflow,'hidden','An old queued close cannot clear/unlock a newly opened preview');
+popPreview.close=normalPreviewClose;context.window.NETAUTO_POP_DETAIL.closePreview();
+context.window.NETAUTO_POP_DETAIL.preview({code:'TEST-EMPTY-PREVIEW',devices:[]},previewTrigger);assert(previewHost.innerHTML.includes('Chưa có thiết bị trong POP này.'));context.window.NETAUTO_POP_DETAIL.closePreview();
+assert(html.includes('shared/netauto-pop-device-views.css'));assert(html.indexOf('id="popPreviewDialog"')>html.indexOf('id="popDetailPage"'));
+const deviceViewsCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-device-views.css'),'utf8');
+assert(deviceViewsCSS.includes('::backdrop')&&deviceViewsCSS.includes('overscroll-behavior:contain')&&deviceViewsCSS.includes('@media(pointer:coarse)'));
+assert(deviceViewsCSS.includes('cursor:default')&&deviceViewsCSS.includes('grid-template-columns:repeat(4'));
+console.log('PASS: explicit Layer 0 detail actions vs read-only native preview, original grouped device cards, route/inventory isolation, close/backdrop/Escape/history/focus/scroll, Layer 1 cards/table parity/search/order/navigation/persistence and EN/DE/XSS/source safety.');
+
+// Table location choices are column visibility controls, never data filters.
+context.location.hash='#pop';context.window.listeners.hashchange();mode('many');reset();get('popTableMode').listeners.click();
+assert.equal(get('popLocationColumns').hidden,false);
+for(const [key,shown]of [['area',false],['zone',true],['province',true],['branch',false]]){
+  assert.equal(get('popColumn-'+key).checked,shown);assert.equal(get('popTableView').attrs['data-hide-'+key],String(!shown));
+}
+const changeColumn=(key,checked)=>get('popLocationColumns').listeners.change({target:{dataset:{popColumn:key},checked}});
+const columnsBeforeHTML=get('popTableRows').innerHTML,columnsBeforeCount=get('popPageCount').textContent,columnsBeforeSummary=get('deviceTotal').textContent;
+get('popTableView').scrollTop=370;get('popTableView').scrollLeft=52;
+changeColumn('area',true);changeColumn('branch',true);
+assert.equal(get('popTableView').attrs['data-location-count'],'4');assert.equal(get('popTableRows').innerHTML,columnsBeforeHTML,'Checkboxes do not rerender rows');
+assert.equal(get('popPageCount').textContent,columnsBeforeCount);assert.equal(get('deviceTotal').textContent,columnsBeforeSummary);
+assert.equal(get('popTableView').scrollTop,370);assert.equal(get('popTableView').scrollLeft,52);
+for(const key of ['area','zone','province','branch'])changeColumn(key,false);
+assert.equal(get('popTableView').attrs['data-location-count'],'0');assert.equal(storage.get('netauto.pop.locationColumns'),'[]');
+get('popLoadMore').listeners.click();assert.equal(tableRows().length,200);
+assert(tableRows().every(row=>(row.body.match(/data-pop-column=/g)||[]).length===4),'Appended rows use the same hideable column attributes');
+get('popCardsMode').listeners.click();assert.equal(get('popLocationColumns').hidden,true,'Location choices only appear in Table');
+assert.equal((get('popGrid').innerHTML.match(/class="na-pop-properties"/g)||[]).length,cardHues().size);
+for(const key of ['popType','popFunction','customerCount'])assert.equal((get('popGrid').innerHTML.match(new RegExp('data-pop-field="'+key+'"','g'))||[]).length,cardHues().size);
+get('popTableMode').listeners.click();assert.equal(tableRows().length,200);assert.equal(get('popLocationColumns').hidden,false);
+for(const row of tableRows())for(const [key,value]of [['popType','Outdoor'],['popFunction','POP AON+PON'],['customerCount','727']])assert(row.body.includes(`data-pop-field="${key}" data-demo="true" title="Dữ liệu giả lập để minh hoạ Interface">${key==='customerCount'?`<span class="na-pop-table-value">${value}</span>`:value}</td>`));
+const suppliedMeta={...allPops[0],popType:'Indoor',popFunction:'AON',customerCount:0},suppliedMetaBefore=JSON.stringify(suppliedMeta);
+const suppliedFields=context.window.NETAUTO_POP_DETAIL.metadata(suppliedMeta);
+assert.equal(suppliedFields.popType.value,'Indoor');assert.equal(suppliedFields.customerCount.value,0);assert.equal(suppliedFields.customerCount.demo,false);
+const suppliedRow=context.window.__testPopTableRow(suppliedMeta),suppliedCard=context.window.__testPopCard(suppliedMeta,'province');
+for(const [key,value]of [['popType','Indoor'],['popFunction','AON'],['customerCount','0']]){
+  assert(suppliedRow.includes(`data-pop-field="${key}" data-demo="false">${key==='customerCount'?`<span class="na-pop-table-value${Number(value)===0?' is-zero':''}">${value}</span>`:value}</td>`));
+  assert(new RegExp(`data-pop-field="${key}" data-demo="false"><small>[^<]+</small><b>${value}</b>`).test(suppliedCard));
+}
+assert.equal(JSON.stringify(suppliedMeta),suppliedMetaBefore);
+context.window.NETAUTO_POP_DETAIL.open(suppliedMeta);assert(get('detailPopFields').innerHTML.includes('<dd>Indoor</dd>')&&get('detailPopFields').innerHTML.includes('<dd>AON</dd>')&&get('detailPopFields').innerHTML.includes('<dd>0</dd>'),'Layer 0 and Layer 1 use the same real-value precedence');
+const unsafeMeta={...allPops[0],popType:'<img src=x>',popFunction:'"><script>bad</script>',customerCount:'<svg onload=bad>'};
+for(const markup of [context.window.__testPopTableRow(unsafeMeta),context.window.__testPopCard(unsafeMeta,'province')]){
+  assert(markup.includes('&lt;img')&&markup.includes('&lt;script&gt;')&&markup.includes('&lt;svg'));
+  assert(!markup.includes('<img')&&!markup.includes('<script>')&&!markup.includes('<svg onload'));
+}
+context.location.hash='#pop';context.window.listeners.hashchange();
+vm.runInNewContext(fs.readFileSync(path.join(mockup,'shared/netauto-app.js'),'utf8'),context,{filename:'netauto-app.js (empty location preferences)'});
+assert.equal(get('popTableView').attrs['data-location-count'],'0','An intentionally empty selection persists');
+storage.set('netauto.pop.locationColumns','["area","__proto__"]');
+vm.runInNewContext(fs.readFileSync(path.join(mockup,'shared/netauto-app.js'),'utf8'),context,{filename:'netauto-app.js (invalid location preferences)'});
+assert.equal(get('popColumn-area').checked,false);assert.equal(get('popColumn-zone').checked,true);assert.equal(get('popColumn-province').checked,true);assert.equal(get('popColumn-branch').checked,false);
+const columnsStorage=context.localStorage;context.localStorage={getItem(){throw new Error('Denied');},setItem(){throw new Error('Denied');}};
+changeColumn('area',true);assert.equal(get('popTableView').attrs['data-hide-area'],'false');context.localStorage=columnsStorage;
+for(const key of ['area','zone','province','branch'])assert(popTableCSS.includes(`[data-hide-${key}=true] [data-pop-column=${key}]`));
+assert(popTableCSS.includes('{display:none}')&&popTableCSS.includes('.na-pop-column-picker label:focus-within'));
+assert(!html.includes('id="closePopPreview"')&&!html.includes('pop-preview-readonly')&&!html.includes('>Chỉ xem<'));
+const popupTargetA=allPops.find(p=>p.code==='AGGM001'),popupTargetB=allPops.find(p=>p.code==='HCMP001')||previewSource;
+context.window.NETAUTO_POP_DETAIL.preview(popupTargetA,previewTrigger);assert.equal(get('popPreviewDetails').dataset.popDetail,popupTargetA.code);
+context.window.NETAUTO_POP_DETAIL.preview(popupTargetB,previewTrigger);assert.equal(get('popPreviewDetails').dataset.popDetail,popupTargetB.code,'Popup action always follows the latest visible POP');
+assert.equal(document.activeElement,get('popPreviewDetails'));
+get('popPreviewDetails').listeners.click();assert.equal(popPreview.open,false);assert.equal(context.location.hash,'#pop/'+popupTargetB.code);assert.equal(get('detailPopName').textContent,popupTargetB.code);
+assert.equal(get('popDetailPage').hidden,false);assert.equal(get('popPreviewDetails').dataset.popDetail,undefined);
+const closedPreviewRoute=context.location.hash;get('popPreviewDetails').listeners.click();assert.equal(context.location.hash,closedPreviewRoute,'A closed popup cannot navigate with a stale action');
+assert.equal(JSON.stringify(allPops),tableSourceBefore);
+console.log('PASS: Table-only location column picker defaults Vùng/Tỉnh, independent visibility/persistence/append/scroll, shared three-field metadata with real/zero/XSS safety, popup Details targets current POP and no readonly label/close-X.');
+
+// Compact landscape cards: one identity header, horizontal metadata and aligned counters.
+const landscapeCard=context.window.__testPopCard(allPops[0],'province');
+const previewButtonStart=landscapeCard.indexOf('class="na-pop-preview"'),identityStart=landscapeCard.indexOf('class="na-pop-head"');
+assert(previewButtonStart>=0&&identityStart>previewButtonStart&&landscapeCard.includes('class="na-pop-title-block"'));
+assert(landscapeCard.indexOf('class="na-pop-card-name"')<landscapeCard.indexOf('class="na-pop-meta"'));
+assert(landscapeCard.indexOf('class="na-pop-detail-action"')>landscapeCard.indexOf('</button>'),'Details stays a sibling of the preview button, positioned at the top-right by CSS');
+const landscapeCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-table.css'),'utf8');
+assert(landscapeCSS.includes('#popPage .na-pop-card>.na-pop-detail-action{position:absolute;top:12px;right:12px;z-index:2}'));
+assert(landscapeCSS.includes('.na-pop-properties{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr) minmax(0,1.1fr)'));
+assert(landscapeCSS.includes('.na-pop-preview .na-pop-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;'));
+assert(/\.na-pop-preview \.na-pop-metrics>span\{[^}]*display:flex;flex-direction:column;align-items:center;justify-content:center;/.test(landscapeCSS));
+assert(/\.na-pop-preview \.na-pop-metrics b\{[^}]*text-align:center;[^}]*font-variant-numeric:tabular-nums/.test(landscapeCSS));
+assert(landscapeCSS.includes('overflow-wrap:anywhere'),'Long source values remain readable without forcing a fixed card height');
+console.log('PASS: compact horizontal POP card composition, aligned four-cell device metrics, separate accessible preview/detail actions, same four-card responsive grid and unchanged data.');
+
+// Sparse corner dots and circuit traces replace the rings without an interactive overlay.
+const cornerBaseRule=landscapeCSS.match(/#popPage \.na-pop-card:before,#popPage \.na-pop-card:after\{([^}]+)\}/)[1];
+const cornerDotsRule=landscapeCSS.match(/#popPage \.na-pop-card:before\{([^}]+)\}/)[1];
+const cornerCircuitRule=landscapeCSS.match(/^#popPage \.na-pop-card:after\{([^}]+)\}/m)[1];
+assert(cornerBaseRule.includes('top:0;right:0;width:180px;height:112px;'));
+assert(cornerBaseRule.includes('pointer-events:none')&&cornerBaseRule.includes('z-index:0;'));
+assert(cornerDotsRule.includes('16px 16px')&&cornerDotsRule.includes('mask-image:linear-gradient(225deg,'));
+assert(cornerCircuitRule.includes('var(--na-pop-accent) 13%')&&cornerCircuitRule.includes('mask-size:100% 100%'));
+const circuitVector=decodeURIComponent(cornerCircuitRule.match(/data:image\/svg\+xml,([^\"]+)/)[1]);
+assert(circuitVector.includes('<path d="M180')&&circuitVector.includes('<circle'));
+assert(!landscapeCSS.includes('radial-gradient(circle closest-side,'),'Concentric corner arcs are removed');
+assert(/\.na-pop-card\{[^}]*isolation:isolate/.test(landscapeCSS));
+assert(landscapeCSS.includes('.na-pop-preview{position:relative;z-index:1;'));
+assert(landscapeCSS.includes('@media(forced-colors:active){#popPage .na-pop-card:before,#popPage .na-pop-card:after{display:none}}'));
+console.log('PASS: sparse fading dot grid and thin vector circuit/node corner motif beneath preview/details, no pointer interference and forced-color fallback.');
+
+// Card-only painterly highlights use one POP tone, never four category colors.
+const metricTileCSS=landscapeCSS.match(/#popPage \.na-pop-preview \.na-pop-metrics>span\{([^}]+)\}/)[1];
+assert(metricTileCSS.includes('border:0;')&&!metricTileCSS.includes('border-right'));
+assert(metricTileCSS.includes('background:transparent'));
+assert(!landscapeCSS.includes('--na-metric-tone'),'All four brush marks share the POP accent instead of category colors');
+assert(/\.na-pop-preview \.na-pop-metrics>span>span\{[^}]*color:var\(--na-muted\)/.test(landscapeCSS));
+const paintedSelector='#popPage .na-pop-preview :is(.na-pop-metrics b,[data-pop-field=customerCount] b)';
+const paintedBase=landscapeCSS.split(paintedSelector+'{')[1].split('}')[0];
+assert(paintedBase.includes('color:var(--na-text)')&&paintedBase.includes('border:0;')&&paintedBase.includes('background:transparent'),'Customer total and device counts share neutral ink, with no rectangular tag');
+const brushBefore=landscapeCSS.split(paintedSelector+':before{')[1].split('}')[0];
+assert(brushBefore.includes('pointer-events:none')&&brushBefore.includes('z-index:-1'));
+assert(brushBefore.includes('var(--na-pop-accent) 12%')&&!brushBefore.includes('repeating-linear-gradient'));
+assert(brushBefore.includes('height:30px;')&&brushBefore.includes('rotate(-3deg)'));
+assert(!landscapeCSS.includes('--na-brush-tilt')&&!brushBefore.includes('clip-path:polygon('),'No per-counter rotation or angular polygon edges');
+assert.equal((brushBefore.match(/radial-gradient\(/g)||[]).length,5,'Three soft color blooms and just two tiny satellite splashes');
+assert(brushBefore.includes('ellipse at 38% 48%')&&brushBefore.includes('ellipse at 68% 55%')&&brushBefore.includes('ellipse at 46% 68%'),'Asymmetric overlapping washes have softly fading edges');
+assert(brushBefore.includes('ellipse 1.4px 1.1px')&&brushBefore.includes('ellipse 1px 1.4px'));
+assert(!/mask-image|clip-path|border-radius|data:image/.test(brushBefore),'The wash fades naturally, with no hard silhouette, bristle texture or external asset');
+assert(paintedBase.includes('isolation:isolate'));
+assert(landscapeCSS.includes('@media(forced-colors:active){'+paintedSelector+':before{display:none}}'));
+assert(!/<script|<image|href=|<foreignObject/.test(circuitVector),'The retained circuit mask is a self-contained vector without external assets');
+const metadataTagCSS=landscapeCSS.match(/#popPage \.na-pop-properties \[data-pop-field=popType\] b\{([^}]+)\}/)[1];
+assert(metadataTagCSS.includes('border-radius:6px;')&&metadataTagCSS.includes('currentColor 8%'));
+assert(!metadataTagCSS.includes('popFunction'),'Function remains plain text, POP type keeps its original tag');
+assert(landscapeCSS.includes('min-height:24px;box-sizing:border-box;max-width:100%'),'Tagged and plain property values remain aligned and can wrap');
+console.log('PASS: one identical card watercolor wash for device counts/customer total, three asymmetrical fading blooms plus two faint micro-splashes, neutral readable ink, no external assets and unchanged corner circuits, metadata and data.');
+
+// Table presentation: no action divider, proportional columns and compact watercolor numbers.
+const balancedTableCSS=fs.readFileSync(path.join(mockup,'shared/netauto-pop-table.css'),'utf8');
+const actionRule=balancedTableCSS.match(/#popPage \.na-pop-table \.na-pop-row-actions\{([^}]+)\}/)[1];
+assert(actionRule.includes('position:sticky;right:0;text-align:center;border-left:0;box-shadow:none'));
+assert(balancedTableCSS.includes('table-layout:fixed;'));
+assert(balancedTableCSS.includes('.na-pop-table .na-pop-number{text-align:center;'));
+assert(balancedTableCSS.includes('.na-pop-info-cell[data-pop-field=customerCount]{text-align:center;'));
+assert(balancedTableCSS.includes('--na-table-weight:calc(110 + var(--na-area-weight) + var(--na-zone-weight) + var(--na-province-weight) + var(--na-branch-weight))'));
+const locationWeights={area:10,zone:7,province:8,branch:12};
+for(const [key,weight] of Object.entries(locationWeights)){
+  assert(balancedTableCSS.includes(`[data-hide-${key}=true]{--na-${key}-weight:0}`));
+  assert(balancedTableCSS.includes(`thead [data-pop-column=${key}]{width:calc(100% / var(--na-table-weight) * ${weight})}`));
+}
+// All 16 picker combinations preserve the base-column ratios and normalize to 100%.
+for(let mask=0;mask<16;mask++){
+  const visible=Object.values(locationWeights).filter((_,i)=>mask&(1<<i));
+  const weights=[18,10,18,12,8,8,8,8,10,10,...visible];
+  const total=110+visible.reduce((sum,n)=>sum+n,0);
+  assert(Math.abs(weights.reduce((sum,n)=>sum+100*n/total,0)-100)<1e-10);
+}
+const tableWashSelector='#popPage .na-pop-table :is(.na-pop-table-metric,.na-pop-table-value,.na-pop-row-total)';
+const tableWashBase=balancedTableCSS.split(tableWashSelector+'{')[1].split('}')[0];
+assert(tableWashBase.includes('border:0;')&&tableWashBase.includes('background:transparent;')&&tableWashBase.includes('border-radius:0;'));
+assert(tableWashBase.includes('--na-table-wash-tone:var(--na-row-accent)')&&tableWashBase.includes('color:var(--na-text)'),'All six numeric values share the POP row hue and neutral theme-aware ink');
+assert(tableWashBase.includes('min-height:26px;')&&tableWashBase.includes('font-variant-numeric:tabular-nums'));
+assert(tableWashBase.includes('position:relative;isolation:isolate;'));
+const tableWashPaint=balancedTableCSS.split(tableWashSelector+':before{')[1].split('}')[0];
+assert.equal((tableWashPaint.match(/radial-gradient\(/g)||[]).length,5);
+for(const center of ['38% 48%','68% 55%','46% 68%'])assert(tableWashPaint.includes('ellipse at '+center));
+assert(tableWashPaint.includes('height:24px;')&&tableWashPaint.includes('var(--na-table-wash-tone) 8%')&&!tableWashPaint.includes(' 12%'),'Table washes are smaller and lighter than card washes');
+assert(tableWashPaint.includes('pointer-events:none')&&tableWashPaint.includes('z-index:-1;'));
+assert(balancedTableCSS.includes('@media(forced-colors:active){'+tableWashSelector+':before{display:none}}'));
+const tableZeroWash=balancedTableCSS.split(tableWashSelector+'.is-zero{')[1].split('}')[0];
+assert(tableZeroWash.includes('--na-table-wash-tone:var(--na-muted)')&&tableZeroWash.includes('color:var(--na-muted)'),'Every zero count uses neutral gray ink and wash');
+assert(balancedTableCSS.includes('.na-pop-table .na-pop-row-total{font-weight:800}'));
+assert(/tbody td,#popPage \.na-pop-table tbody th\{[^}]*var\(--na-row-accent\) 1%/.test(balancedTableCSS));
+assert(/tbody tr:nth-child\(even\) td\{[^}]*var\(--na-row-accent\) 2%/.test(balancedTableCSS));
+assert(/tbody tr:focus-within th\{[^}]*var\(--na-row-accent\) 5%/.test(balancedTableCSS));
+const tableZeroCard={...allPops[0],customerCount:0,counts:{switch:0,olt:0,power:0,pi:0}};
+const pastelZeroRow=context.window.__testPopTableRow(tableZeroCard);
+assert.equal((pastelZeroRow.match(/na-pop-table-metric na-pop-\w+ is-zero">0<\/span>/g)||[]).length,4);
+assert(pastelZeroRow.includes('<span class="na-pop-table-value is-zero">0</span>'));
+assert(pastelZeroRow.includes('<b class="na-pop-row-total is-zero">0</b>'));
+assert.equal((pastelZeroRow.match(/ is-zero"/g)||[]).length,6,'Zero styling covers customer total, four device types and device total');
+assert(!context.window.__testPopCard(tableZeroCard,'province').includes('na-pop-table-value'),'Table-only badge markup does not change cards');
+console.log('PASS: compact watercolor washes on all six Table counts, one POP hue per row, neutral zero styling including both totals, centered readable ink, balanced columns, forced-color fallback and unchanged card/navigation behavior.');
+
+// A fresh visit gets only Vùng/Tỉnh; navigation never resets the user's choices.
+storage.delete('netauto.pop.locationColumns');storage.delete('netauto.pop.listView');
+context.window.listeners={};context.location.hash='#pop';context.history.scrollRestoration='auto';
+context.window.scrollX=0;context.window.scrollY=0;
+context.window.scrollTo=position=>{context.window.scrollX=position.left;context.window.scrollY=position.top;};
+vm.runInNewContext(fs.readFileSync(path.join(mockup,'shared/netauto-pop-detail.js'),'utf8'),context,{filename:'netauto-pop-detail.js (scroll navigation)'});
+vm.runInNewContext(fs.readFileSync(path.join(mockup,'shared/netauto-app.js'),'utf8'),context,{filename:'netauto-app.js (scroll navigation)'});
+assert.equal(context.history.scrollRestoration,'manual','Browser automatic window scrolling cannot compete with the portal router');
+get('popTableMode').click();
+for(const [key,shown] of [['area',false],['zone',true],['province',true],['branch',false]]){
+  assert.equal(get('popColumn-'+key).checked,shown);assert.equal(get('popTableView').attrs['data-hide-'+key],String(!shown));
+}
+changeColumn('area',true);changeColumn('zone',false);changeColumn('province',false);changeColumn('branch',true);
+const savedColumnChoice=storage.get('netauto.pop.locationColumns');
+const assertColumnChoice=()=>{
+  assert.equal(storage.get('netauto.pop.locationColumns'),savedColumnChoice);
+  for(const [key,shown] of [['area',true],['zone',false],['province',false],['branch',true]])assert.equal(get('popColumn-'+key).checked,shown);
+};
+const scrollViewport=get('portalContent'),scrollTable=get('popTableView');
+const setViewport=(top,left,windowTop,windowLeft)=>{scrollViewport.scrollTop=top;scrollViewport.scrollLeft=left;context.window.scrollY=windowTop;context.window.scrollX=windowLeft;};
+const viewportPosition=()=>[scrollViewport.scrollTop,scrollViewport.scrollLeft,context.window.scrollY,context.window.scrollX];
+get('popLoadMore').click();assert.equal(tableRows().length,200);
+setViewport(380,17,220,11);scrollTable.scrollTop=714;scrollTable.scrollLeft=96;
+const rememberedTablePosition=viewportPosition();
+openDetail('AGGP006');assert.deepEqual(viewportPosition(),[0,0,0,0],'A new detail page starts at the top, without overwriting its parent position');
+const nestedDeviceScrolls=[element('networkTableScroll'),element('powerTableScroll')];
+get('popDetailPage').querySelectorAll=selector=>selector==='.l1-device-table-scroll,.l1-table-wrap,.l2-table-wrap'?nestedDeviceScrolls:[];
+setViewport(900,7,145,3);nestedDeviceScrolls[0].scrollLeft=220;nestedDeviceScrolls[1].scrollLeft=80;
+const rememberedDetailPosition=viewportPosition();
+get('detailDeviceGroups').listeners.click({target:{closest:()=>({dataset:{l1Device:'0'}})}});
+assert.equal(get('deviceDetailPage').hidden,false);assert.deepEqual(viewportPosition(),[0,0,0,0]);
+setViewport(300,0,80,0);get('backToPopDetail').click();
+assert.deepEqual(viewportPosition(),rememberedDetailPosition,'Layer 2 back restores the Layer 1 viewport');
+assert.equal(nestedDeviceScrolls[0].scrollLeft,220);assert.equal(nestedDeviceScrolls[1].scrollLeft,80);
+get('backToPopList').click();
+assert.deepEqual(viewportPosition(),rememberedTablePosition,'Layer 1 back restores both portal and responsive window scroll');
+assert.equal(scrollTable.scrollTop,714);assert.equal(scrollTable.scrollLeft,96);
+assert.equal(tableRows().length,200,'Back retains the accumulated rows needed to restore the original position');assertColumnChoice();
+
+// Each mode owns its own position; a first switch never uses the old footer anchor.
+get('popCardsMode').click();assert.deepEqual(viewportPosition(),[0,0,0,0],'Returning to the initial card view uses its own top position, never the table footer');
+assert(balancedTableCSS.includes('#popPage{container:pop-cards / inline-size;overflow-anchor:none}'));
+setViewport(1700,5,340,4);const rememberedCardPosition=viewportPosition();
+openDetail('AGGP006');get('backToPopList').click();assert.deepEqual(viewportPosition(),rememberedCardPosition);assertColumnChoice();
+get('popTableMode').click();assert.deepEqual(viewportPosition(),rememberedTablePosition);assert.equal(scrollTable.scrollTop,714);assert.equal(scrollTable.scrollLeft,96);
+get('popCardsMode').click();assert.deepEqual(viewportPosition(),rememberedCardPosition);
+const cardsMarkupBeforeSameMode=get('popGrid').innerHTML;get('popCardsMode').click();
+assert.equal(get('popGrid').innerHTML,cardsMarkupBeforeSameMode);assert.deepEqual(viewportPosition(),rememberedCardPosition);
+
+// Native Back/Forward (including duplicate popstate/hashchange) uses the same memory.
+openDetail('AGGP006');setViewport(1120,2,170,1);
+const historyDetailPosition=viewportPosition();
+const historyDevice=context.window.NETAUTO_POP_DETAIL_DATA.pops.AGGP006[0];
+context.location.hash=`#pop/AGGP006/device/${encodeURIComponent(historyDevice.name)}`;context.window.listeners.popstate();
+setViewport(240,1,60,2);const historyDevicePosition=viewportPosition();
+context.location.hash='#pop/AGGP006';context.window.listeners.popstate();context.window.listeners.hashchange();
+assert.deepEqual(viewportPosition(),historyDetailPosition);
+context.location.hash='#pop';context.window.listeners.popstate();context.window.listeners.hashchange();
+assert.deepEqual(viewportPosition(),rememberedCardPosition);assertColumnChoice();
+context.location.hash=`#pop/AGGP006/device/${encodeURIComponent(historyDevice.name)}`;context.window.listeners.popstate();
+assert.deepEqual(viewportPosition(),historyDevicePosition,'History forward restores a previously visited device');
+get('backToPopDetail').click();get('backToPopList').click();
+
+// Late inventory refresh may rebuild inner tables but cannot reset their offsets.
+const scrollStore=context.window.NETAUTO_POP_DETAIL_DATA,realEnsurePop=scrollStore.ensurePop;
+let pendingInventory;
+scrollStore.ensurePop=(_code,callback)=>{pendingInventory=callback;};
+openDetail('AGGP006');setViewport(1500,6,180,2);nestedDeviceScrolls[0].scrollLeft=170;
+const beforeLateInventory=viewportPosition(),realRefreshInventory=context.window.NETAUTO_POP_DETAIL.refreshInventory;
+context.window.NETAUTO_POP_DETAIL.refreshInventory=code=>{nestedDeviceScrolls.forEach(node=>{node.scrollTop=0;node.scrollLeft=0;});realRefreshInventory(code);};
+pendingInventory(null);
+assert.deepEqual(viewportPosition(),beforeLateInventory);assert.equal(nestedDeviceScrolls[0].scrollLeft,170);
+context.window.NETAUTO_POP_DETAIL.refreshInventory=realRefreshInventory;
+get('backToPopList').click();setViewport(1830,0,390,0);pendingInventory(null);
+assert.deepEqual(viewportPosition(),[1830,0,390,0],'A late response for an inactive layer cannot scroll the current list');
+scrollStore.ensurePop=realEnsurePop;
+
+// Deferred layout repair is canceled by newer navigation and never undoes user scrolling.
+const scrollFrames=[],instantScrollFrame=context.requestAnimationFrame;
+context.requestAnimationFrame=callback=>{scrollFrames.push(callback);return scrollFrames.length;};
+get('popTableMode').click();get('popCardsMode').click();openDetail('AGGP006');
+for(const callback of scrollFrames.splice(0))callback();
+assert.deepEqual(viewportPosition(),[0,0,0,0]);assert.equal(get('popDetailPage').hidden,false);
+get('backToPopList').click();setViewport(2110,0,420,0);
+for(const callback of scrollFrames.splice(0))callback();
+assert.deepEqual(viewportPosition(),[2110,0,420,0],'A user scroll after the immediate restoration wins over a queued layout frame');
+context.requestAnimationFrame=instantScrollFrame;
+get('popTableMode').click();search('AGGP006');get('popCardsMode').click();get('popTableMode').click();
+assert.equal(scrollTable.scrollTop,0);assert.equal(scrollTable.scrollLeft,0,'New filtered results discard offsets from the old result set');assertColumnChoice();
+console.log('PASS: first-use Vùng/Tỉnh defaults, unchanged custom columns across all layers, independent card/table viewport memory, nested scroll offsets, app/browser Back/Forward, retained batches, late inventory, duplicate routes and stale-frame/user-scroll safety.');
