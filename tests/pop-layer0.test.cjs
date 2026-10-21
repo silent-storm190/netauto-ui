@@ -41,6 +41,7 @@ for (const match of referenceScript.matchAll(/id="([^"]+)"/g)) {
   nodes.set(match[1],element(match[1]));
 }
 const get = id => { assert(nodes.has(id), `Missing real HTML element: ${id}`); return nodes.get(id); };
+const deviceFieldsHTML=()=>get('deviceDetailFields').innerHTML.replace(/<span class="l2-meta-icon"[^>]*>[\s\S]*?<\/svg><\/span>/g,'');
 const modes = ['many', 'three', 'one'].map(popScope => element('', {popScope}));
 const regions = ['MB', 'MN'].map(area => element('', {area}));
 const pages = [...html.matchAll(/<section\b[^>]*id="([^"]+)"[^>]*data-page="([^"]+)"/g)].map(match => {
@@ -586,11 +587,11 @@ assert.equal(get('deviceDetailPage').hidden,false);
 assert.equal(get('popDetailPage').hidden,true);
 assert.equal(context.location.hash,'#pop/AGGP006/device/CE701001AGGP00601HW63');
 assert.equal(get('deviceDetailName').textContent,'CE701001AGGP00601HW63');
-assert(get('deviceDetailFields').innerHTML.includes('102255807334'));
+assert(deviceFieldsHTML().includes('102255807334'));
 assert(get('deviceDetailRows').innerHTML.includes('20180105F4575'));
 assert(!html.includes('detailDeviceInspector'));
 get('deviceDetailMaterialSearch').value='20180105F4575';get('deviceDetailMaterialSearch').listeners.input();
-assert.equal((get('deviceDetailRows').innerHTML.match(/<tr>/g)||[]).length,1);
+assert.equal((get('deviceDetailRows').innerHTML.match(/class="l2-material-item"/g)||[]).length,1);
 get('backToPopDetail').listeners.click();
 assert.equal(get('popDetailPage').hidden,false);
 assert.equal(get('deviceDetailPage').hidden,true);
@@ -866,15 +867,16 @@ assert(portCss.includes('#deviceHardwarePanel,#devicePortWorkspace{overflow-anch
 for(const state of ['up','down','empty','unknown'])assert(portCss.includes(`.l2-port-tile[data-state=${state}]`));
 const emptyStyle=portCss.match(/\.l2-port-tile\[data-state=empty\]\{([^}]+)\}/)[1];
 assert(emptyStyle.includes('background-image:radial-gradient('),'Empty list ports use a subtle dot pattern');
-assert(emptyStyle.includes('background-size:7px 7px'));
+assert(emptyStyle.includes('background-size:8px 8px'));
 assert(emptyStyle.includes('color:var(--na-text)'),'Empty port names retain the high-contrast text color');
 assert(portCss.includes('.l2-port-tile[data-state=empty] .l2-port-open b{background:var(--list-empty-bg)'),'Dots are masked directly behind each port name');
-assert(portCss.includes('light-dark(#0bbf7b,#52dda7)'),'Fresh list UP palette supports light/dark mode');
-assert(portCss.includes('light-dark(#f58b35,#ffad66)'),'Fresh list DOWN palette supports light/dark mode');
+assert(portCss.includes('light-dark(#00cfa5,#35e7bf)'),'Fresh mint list UP palette supports light/dark mode');
+assert(portCss.includes('light-dark(#ff775f,#ffa28d)'),'Fresh coral list DOWN palette supports light/dark mode');
 assert.equal((get('deviceHardware').innerHTML.match(/class="pw-chassis-unit"/g)||[]).length,1);
 assert.equal((get('deviceHardware').innerHTML.match(/data-select-port=/g)||[]).length,22);
 assert(get('deviceHardware').style['--face-port-width'],'Every faceplate bank consumes the same port-width token');
 assert(get('devicePortSummary').innerHTML.includes('<b>22</b>'));
+assert.deepEqual(Array.from(get('devicePortSummary').innerHTML.matchAll(/<span[^>]*>([^<]+)<b>/g),m=>m[1].trim()),['Port','UP','DOWN'],'Top port summary omits the unknown statistic without changing port states');
 assert(get('deviceDetailStats').innerHTML.includes('Module card'));
 const selectPort=(name,menu=false)=>{
   get('devicePortBanks').listeners.click({target:{closest:selector=>selector==='[data-select-port]'?{dataset:{selectPort:name}}:null}});
@@ -884,11 +886,14 @@ const runPortTool=action=>get('devicePortMenu').listeners.click({target:{closest
 const metadataFixture={...realGcom,type:'SWITCH',model:'HW57',vendor:'HUAWEI',name:'TEST-METADATA',area:'MB',zone:'V1',province:'HN',branch:'HN11',firmware:{version:'TEST-V1',patch:'PATCH<&>',epld:'EPLD-TEST'},totalMac:0,chassisSerials:['CHASSIS-1','CHASSIS-2'],ports:[{name:'XGigabitEthernet0/0/1',capabilities:{speeds:['1 Gbps','10 Gbps']},description:'PORT<&>',module:{status:'UP',vendor:'VENDOR<&>',serial:'SERIAL-TEST',transceiver_type:'SFP+',part_number:'PN-TEST',speed:10000,transfer_distance:0,manu_date:'2026-01-02',temperature:0,wavelength:1310,connector:'LC',port_type:'NNI',RX:0,TX:0,RXH:-1,RXL:-20,TXH:4,TXL:1,description:'DESC<&>',voltage:3.3,channels:[{lane:1,RX:-2,TX:1}]}}]};
 const metadataBefore=JSON.stringify(metadataFixture);
 devicePage.open(popForMetadata,metadataFixture);
-const metadataHtml=get('deviceDetailFields').innerHTML;
-const metadataOrder=['Tên thiết bị','IP thiết bị','Vendor','Model','Serial chassis','POP','Miền','Vùng','Tỉnh','Chi nhánh','Chức năng','Firmware','Total MAC','Ngày cập nhật','Số port','Số transceiver','Module nguồn','Module quạt','Card'];
-assert.deepEqual(Array.from(metadataHtml.matchAll(/<dt>([^<]+)<\/dt>/g),match=>match[1]),metadataOrder,'Complete device information is grouped into identity, exact location order, operations and hardware');
+const metadataHtml=deviceFieldsHTML();
+const metadataOrder=['Tên thiết bị','IP thiết bị','Vendor · Model','Serial chassis','Chức năng','Firmware','Total MAC','Ngày cập nhật'];
+assert.deepEqual(Array.from(metadataHtml.matchAll(/<dt>([^<]+)<\/dt>/g),match=>match[1]),metadataOrder,'Compact device information merges vendor/model and does not repeat top statistics');
+assert(metadataHtml.includes('<dt>Vendor · Model</dt><dd>HUAWEI · HW57</dd>'));
 assert.equal(get('deviceDetailName').textContent,'TEST-METADATA');
-for(const value of ['TEST-V1','PATCH&lt;&amp;&gt;','EPLD-TEST','CHASSIS-1 · CHASSIS-2','<dd>Miền Bắc</dd>','<dd>V1</dd>','<dd>0</dd>'])assert(metadataHtml.includes(value));
+for(const value of ['TEST-V1','PATCH&lt;&amp;&gt;','EPLD-TEST','CHASSIS-1 · CHASSIS-2','<dd>0</dd>'])assert(metadataHtml.includes(value));
+assert.deepEqual(Array.from(get('deviceDetailLocation').innerHTML.matchAll(/<dt>([^<]+)<\/dt>/g),m=>m[1]),['POP','Miền','Vùng','Tỉnh','Chi nhánh']);
+assert(get('deviceDetailLocation').innerHTML.includes('<dd>Miền Bắc</dd>')&&get('deviceDetailLocation').innerHTML.includes('<dd>V1</dd>'),'Compact location retains source precedence and all five values');
 selectPort('XGigabitEthernet0/0/1');
 const fullPortInfo=get('devicePortInfo').innerHTML;
 for(const label of ['Speed','Vendor module','Serial module','Transceiver type','Part number','Nhiệt độ (°C)','Bước sóng (nm)','Connector','Transfer distance','Ngày sản xuất','Rx / Tx','Rx ngưỡng cao (dBm)','Rx ngưỡng thấp (dBm)','Tx ngưỡng cao (dBm)','Tx ngưỡng thấp (dBm)','voltage','channels'])assert(fullPortInfo.includes(label),`Preserve job field: ${label}`);
@@ -928,8 +933,8 @@ devicePage.open(popForMetadata,{...metadataFixture,vendor:'DASAN',model:'TEST-DA
 selectPort('GigabitEthernet1/1');assert(get('devicePortMenu').innerHTML.includes('Đổi Port Speed'),'Dasan switch exposes the speed tool');
 runPortTool('speed');assert.equal(get('devicePortSpeedForm').hidden,true,'Missing capabilities never invent compatible speed choices');
 assert(get('devicePortResult').innerHTML.includes('Cần dữ liệu capability'));
-assert(!get('deviceDetailFields').innerHTML.includes('Miền Nam'),'Unknown area is not invented as Miền Nam');
-assert(get('deviceDetailFields').innerHTML.includes('<dt>Firmware</dt><dd>—</dd>')&&get('deviceDetailFields').innerHTML.includes('<dt>Total MAC</dt><dd>—</dd>'));
+assert(!get('deviceDetailLocation').innerHTML.includes('Miền Nam'),'Unknown area is not invented as Miền Nam');
+assert(deviceFieldsHTML().includes('<dt>Firmware</dt><dd>—</dd>')&&deviceFieldsHTML().includes('<dt>Total MAC</dt><dd>—</dd>'));
 devicePage.open(popForMetadata,realGcom);
 selectPort('G0/1',true);
 assert.equal(get('deviceSelectedPortName').textContent,'G0/1');
@@ -1004,8 +1009,8 @@ get('deviceInventoryTab').listeners.click();
 devicePage.open(popForMetadata,realGcom,true);
 assert.equal(get('devicePortSearch').value,'G0/1');assert.equal(get('deviceInventoryPanel').hidden,false);
 assert(get('devicePortNote').innerHTML.includes('Snapshot: 22 port'));
-get('devicePortsRefresh').listeners.click();
-assert.equal(get('devicePortSearch').value,'');assert.equal(get('devicePortInspector').hidden,true,'Reset closes the dock and clears filters');
+devicePage.open(popForMetadata,realGcom);
+assert.equal(get('devicePortSearch').value,'');assert.equal(get('devicePortInspector').hidden,true,'Opening a fresh device closes the dock and clears filters');
 const selectFace=(name,contextMenu=false)=>get('deviceHardware').listeners[contextMenu?'contextmenu':'click']({preventDefault(){},target:{closest:selector=>selector==='[data-select-port]'?{dataset:{selectPort:name}}:null}});
 selectFace('G0/1');assert.equal(get('devicePortInspector').hidden,false);
 assert.equal(get('devicePortActionSelect').value,'');
@@ -1151,8 +1156,8 @@ assert.equal(storage.get('netauto-device-port-view'),'grid');
 devicePage.open(popForMetadata,realGcom);
 assert.equal(get('deviceHardwarePanel').hidden,true,'List preference survives opening another device');
 assert.equal(get('devicePortGridContent').hidden,false);
-get('devicePortsRefresh').listeners.click();
-assert.equal(get('devicePortGridContent').hidden,false,'Resetting filters does not reset the preferred view');
+devicePage.open(popForMetadata,realGcom);
+assert.equal(get('devicePortGridContent').hidden,false,'Opening a fresh device does not reset the preferred view');
 const portControllerSource=fs.readFileSync(path.join(mockup,'shared/netauto-device-ports.js'),'utf8');
 vm.runInNewContext(portControllerSource,context);
 devicePage.open(stackPop,groupedSwitch);
@@ -1577,6 +1582,10 @@ assert.equal(document.activeElement,get('popPreviewDetails'));
 get('popPreviewDetails').listeners.click();assert.equal(popPreview.open,false);assert.equal(context.location.hash,'#pop/'+popupTargetB.code);assert.equal(get('detailPopName').textContent,popupTargetB.code);
 assert.equal(get('popDetailPage').hidden,false);assert.equal(get('popPreviewDetails').dataset.popDetail,undefined);
 const closedPreviewRoute=context.location.hash;get('popPreviewDetails').listeners.click();assert.equal(context.location.hash,closedPreviewRoute,'A closed popup cannot navigate with a stale action');
+assert(/class="pop-preview-title-row"><h2 id="popPreviewTitle">[\s\S]*?<strong id="popPreviewName"><\/strong><\/h2><button id="popPreviewDetails" class="na-pop-detail-action" type="button">Chi tiết<\/button><\/div><span id="popPreviewCount">/.test(html),'Popup Details sits immediately beside the POP title/tag, above the count');
+assert(popTableCSS.includes(':is(#popPage,#popPreviewDialog) .na-pop-detail-action{'),'Popup and outside cards share exactly the same Details styling');
+assert(!/id="popPreviewDetails"[^>]*is-primary/.test(html),'Popup no longer uses the filled primary-button style');
+assert(deviceViewsCSS.includes('.pop-preview-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}'),'Popup title/action align vertically and wrap safely on narrow screens');
 assert.equal(JSON.stringify(allPops),tableSourceBefore);
 console.log('PASS: Table-only location column picker defaults Vùng/Tỉnh, independent visibility/persistence/append/scroll, shared three-field metadata with real/zero/XSS safety, popup Details targets current POP and no readonly label/close-X.');
 
@@ -1877,16 +1886,19 @@ launchContext('deviceContextTools','reboot');get('backToPopDetail').click();asse
 const factsDevice={...toolDevice('SWITCH','CE'),name:'FACTS',area:'MB',zone:'V2',province:'HN',branch:'HN11',portCount:0,total_mac:0,firmware:{version:'V1',patch:'<&>'},chassisSerials:['C1','C2'],updatedAt:'2026-10-21 09:10:00',inventoryCounts:{power:0,fan:0,transceiver:0,card:0},ports:[{name:'Ethernet0/1',module:null}]};
 const factsBefore=JSON.stringify(factsDevice);
 toolsDeviceController.open(toolsPop,factsDevice);
-const factsHtml=get('deviceDetailFields').innerHTML;
+const factsHtml=deviceFieldsHTML();
 for(const label of metadataOrder)assert(factsHtml.includes(`<dt>${label}</dt>`));
-for(const label of ['Số port','Số transceiver','Module nguồn','Module quạt','Card','Total MAC'])assert(factsHtml.includes(`<dt>${label}</dt><dd>0</dd>`),`${label} retains explicit zero`);
+assert(factsHtml.includes('<dt>Total MAC</dt><dd>0</dd>'),'Total MAC retains explicit zero');
+for(const label of ['Số port','Số transceiver','Module nguồn','Module quạt','Card'])assert(!factsHtml.includes(`<dt>${label}</dt>`),'Hardware counts only appear in the top statistics');
+for(const label of ['Module quang','Module nguồn','Module quạt','Module card'])assert(get('deviceDetailStats').innerHTML.includes(`<span>${label}</span><b>0</b>`),`${label} retains explicit zero in the top statistics`);
 assert(factsHtml.includes('2026-10-21 09:10:00')&&factsHtml.includes('C1 · C2')&&factsHtml.includes('&lt;&amp;&gt;'));
 assert.equal(JSON.stringify(factsDevice),factsBefore);
 const missingFacts=toolDevice('OLT','ACN');toolsDeviceController.open(toolsPop,missingFacts);
-for(const label of ['Số port','Số transceiver','Module nguồn','Module quạt','Card','Total MAC','Ngày cập nhật','Firmware','Serial chassis'])assert(get('deviceDetailFields').innerHTML.includes(`<dt>${label}</dt><dd>—</dd>`));
+for(const label of ['Total MAC','Ngày cập nhật','Firmware','Serial chassis'])assert(deviceFieldsHTML().includes(`<dt>${label}</dt><dd>—</dd>`));
+for(const label of ['Module quang','Module nguồn','Module quạt','Module card'])assert(get('deviceDetailStats').innerHTML.includes(`<span>${label}</span><b>—</b>`),'Missing counts remain missing in the top statistics');
 for(const vendor of ['DASAN','FiberHome','Juniper','H3C']){
   const record={...missingFacts,vendor,model:'PENDING-PROFILE'};
-  toolsDeviceController.open(toolsPop,record);assert(get('deviceDetailFields').innerHTML.includes('<dt>Số port</dt><dd>—</dd>'),'Unsupported models do not gain invented installed ports');
+  toolsDeviceController.open(toolsPop,record);assert(deviceFieldsHTML().includes(' · PENDING-PROFILE</dd>'),'Combined identity retains the source model even without a known port profile');
 }
 
 // Module refresh reloads only the local snapshot, preserves port state and has race guards.

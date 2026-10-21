@@ -1,4 +1,5 @@
 /* Layer 2 uses the existing portal tokens in both light and dark mode. */
+#deviceDetailPage{--l2-port-up:light-dark(#00cfa5,#35e7bf);--l2-port-up-ink:light-dark(#087766,#72f4d4);--l2-port-down:light-dark(#ff775f,#ffa28d);--l2-port-down-ink:light-dark(#b23f2b,#ffc4b6);--l2-port-unknown:light-dark(#5b9bfa,#94bdff);--l2-port-unknown-ink:light-dark(#315fae,#bfd7ff)}
 #deviceDetailPage .l2-device-heading{margin-bottom:16px}
 #deviceDetailPage .l2-device-heading p{color:var(--na-muted);font-size:12px;margin:7px 0 0}
 #deviceDetailPage .l2-overview-stats{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-bottom:1px solid var(--na-line);padding-bottom:18px;margin-bottom:18px}
@@ -6,8 +7,8 @@
 #deviceDetailPage .l2-port-summary span,#deviceDetailPage .l2-inventory-stats article{display:flex;align-items:center;gap:8px;border:1px solid var(--na-line);border-radius:8px;padding:7px 10px;background:var(--na-panel-soft);font-size:12px;color:var(--na-muted)}
 #deviceDetailPage .l2-inventory-stats span{display:inline;margin:0;font-size:12px}
 #deviceDetailPage .l2-inventory-stats b,#deviceDetailPage .l2-port-summary b{font-size:15px;color:var(--l2-accent)}
-#deviceDetailPage .l2-port-summary .up b{color:var(--na-green)}
-#deviceDetailPage .l2-port-summary .down b{color:var(--na-orange)}
+#deviceDetailPage .l2-port-summary .up b{color:var(--l2-port-up-ink)}
+#deviceDetailPage .l2-port-summary .down b{color:var(--l2-port-down-ink)}
 #deviceDetailPage .l2-port-summary .unknown b{color:var(--na-muted)}
 #deviceDetailPage .l2-device-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 #deviceDetailPage .l2-metadata-group{min-width:0;padding:14px 16px;background:var(--na-panel-soft);border:1px solid var(--na-line);border-radius:10px}
@@ -42,13 +43,13 @@
 #deviceDetailPage .l2-bank-head b{color:var(--na-text);font-size:12px}
 #deviceDetailPage .l2-bank-head .l2-kind{font-size:10px;padding:3px 6px}
 #deviceDetailPage .l2-port-tiles{display:grid;grid-template-columns:repeat(var(--list-columns,8),minmax(0,var(--list-port-width,110px)));gap:6px}
-#deviceDetailPage .l2-port-tile{position:relative;min-width:0;border:1px solid var(--na-line);border-radius:6px;color:var(--na-muted);background:var(--na-panel)}
-#deviceDetailPage .l2-port-tile[data-state=up]{--list-state-accent:light-dark(#0bbf7b,#52dda7);border-color:color-mix(in srgb,var(--list-state-accent) 60%,var(--na-line));background:color-mix(in srgb,var(--list-state-accent) 20%,var(--na-panel));color:color-mix(in srgb,var(--list-state-accent) 50%,var(--na-text))}
-#deviceDetailPage .l2-port-tile[data-state=down]{--list-state-accent:light-dark(#f58b35,#ffad66);border-color:color-mix(in srgb,var(--list-state-accent) 60%,var(--na-line));background:color-mix(in srgb,var(--list-state-accent) 24%,var(--na-panel));color:color-mix(in srgb,var(--list-state-accent) 45%,var(--na-text))}
+#deviceDetailPage .l2-port-tile{position:relative;min-width:0;border:1px solid var(--na-line);border-radius:8px;color:var(--na-muted);background:var(--na-panel)}
+#deviceDetailPage .l2-port-tile[data-state=up]{border-color:color-mix(in srgb,var(--l2-port-up) 58%,var(--na-line));background:linear-gradient(145deg,color-mix(in srgb,var(--l2-port-up) 10%,var(--na-panel)),color-mix(in srgb,#06b6d4 12%,var(--na-panel)));color:var(--l2-port-up-ink)}
+#deviceDetailPage .l2-port-tile[data-state=down]{border-color:color-mix(in srgb,var(--l2-port-down) 58%,var(--na-line));background:color-mix(in srgb,var(--l2-port-down) 14%,var(--na-panel));color:var(--l2-port-down-ink)}
 /* Low-contrast dots identify empty slots without crossing the port label. */
-#deviceDetailPage .l2-port-tile[data-state=empty]{--list-empty-bg:color-mix(in srgb,var(--na-faint) 13%,var(--na-panel));border-color:color-mix(in srgb,var(--na-faint) 45%,var(--na-line));background-color:var(--list-empty-bg);background-image:radial-gradient(circle,color-mix(in srgb,var(--na-muted) 24%,transparent) .75px,transparent 1px);background-size:7px 7px;color:var(--na-text)}
+#deviceDetailPage .l2-port-tile[data-state=empty]{--list-empty-bg:color-mix(in srgb,var(--na-faint) 6%,var(--na-panel));border-color:color-mix(in srgb,var(--na-faint) 32%,var(--na-line));background-color:var(--list-empty-bg);background-image:radial-gradient(circle,color-mix(in srgb,var(--na-muted) 12%,transparent) .75px,transparent 1px);background-size:8px 8px;color:var(--na-text)}
 #deviceDetailPage .l2-port-tile[data-state=empty] .l2-port-open b{background:var(--list-empty-bg);border-radius:3px;padding:1px 2px;font-weight:700}
-#deviceDetailPage .l2-port-tile[data-state=unknown]{border-style:dashed;border-color:color-mix(in srgb,var(--na-blue) 35%,var(--na-line));background:color-mix(in srgb,var(--na-blue) 9%,var(--na-panel));color:var(--na-blue)}
+#deviceDetailPage .l2-port-tile[data-state=unknown]{border-style:dashed;border-color:color-mix(in srgb,var(--l2-port-unknown) 45%,var(--na-line));background:color-mix(in srgb,var(--l2-port-unknown) 8%,var(--na-panel));color:var(--l2-port-unknown-ink)}
 #deviceDetailPage .l2-port-tile:hover{box-shadow:0 2px 6px color-mix(in srgb,var(--na-text) 8%,transparent)}
 #deviceDetailPage .l2-port-tile.is-selected{outline:2px solid var(--l2-accent);outline-offset:2px}
 #deviceDetailPage .l2-port-tile button{color:inherit;font:inherit;border:0;background:transparent;cursor:pointer}

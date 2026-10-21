@@ -71,14 +71,14 @@
 #popPage .na-pop-preview:focus-visible{outline:2px solid var(--na-pop-accent);outline-offset:4px}
 #popPage .na-pop-preview .na-pop-meta{display:block}
 #popPage .na-pop-card-name{display:inline-block;max-width:100%;padding:3px 6px;border-radius:5px;background:color-mix(in srgb,var(--na-pop-accent) 7%,var(--na-panel));color:var(--na-pop-accent);font-size:13px;font-weight:850;overflow-wrap:anywhere}
-#popPage .na-pop-detail-action{display:inline-flex;align-items:center;justify-content:center;min-height:29px;padding:4px 9px;border:1px solid color-mix(in srgb,var(--na-blue) 22%,var(--na-line));border-radius:6px;background:var(--na-blue-soft);color:var(--na-blue);font:inherit;font-size:11px;font-weight:650;white-space:nowrap;cursor:pointer}
-#popPage .na-pop-detail-action:hover{background:color-mix(in srgb,var(--na-blue) 15%,var(--na-panel));border-color:var(--na-blue)}
-#popPage .na-pop-detail-action:focus-visible{outline:2px solid var(--na-blue);outline-offset:2px}
+:is(#popPage,#popPreviewDialog) .na-pop-detail-action{display:inline-flex;align-items:center;justify-content:center;min-height:29px;padding:4px 9px;border:1px solid color-mix(in srgb,var(--na-blue) 22%,var(--na-line));border-radius:6px;background:var(--na-blue-soft);color:var(--na-blue);font:inherit;font-size:11px;font-weight:650;white-space:nowrap;cursor:pointer}
+:is(#popPage,#popPreviewDialog) .na-pop-detail-action:hover{background:color-mix(in srgb,var(--na-blue) 15%,var(--na-panel));border-color:var(--na-blue)}
+:is(#popPage,#popPreviewDialog) .na-pop-detail-action:focus-visible{outline:2px solid var(--na-blue);outline-offset:2px}
 #popPage .na-pop-table{min-width:1100px}
 #popPage .na-pop-table .na-pop-row-actions{position:sticky;right:0;text-align:center;border-left:0;box-shadow:none}
 #popPage .na-pop-table thead .na-pop-row-actions{z-index:3}
 #popPage .na-pop-table tbody .na-pop-row-actions{z-index:1}
-@media(pointer:coarse){#popPage .na-pop-detail-action{min-height:44px}}
+@media(pointer:coarse){:is(#popPage,#popPreviewDialog) .na-pop-detail-action{min-height:44px}}
 
 /* Location toggles affect columns, never the result filters or loaded row count. */
 #popPage .na-pop-column-picker{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}

@@ -181,7 +181,8 @@ Chỉ nút Chi tiết mới mở trang POP. Nhấn phần còn lại của hàng
 tên POP bằng bàn phím) mở native popup xem thiết bị, không đổi route/trang.
 Popup dùng chung renderer nhóm Thiết bị mạng / Nguồn & Giám sát với Layer 1,
 nhưng các thiết bị là article tĩnh, không có nút, link hay hành động mở Layer 2.
-Header popup có nút Chi tiết mở đúng Layer 1 của POP đang xem. Đã bỏ nhãn
+Header popup có nút Chi tiết ngay cạnh tag tên POP, dùng chung style nền xanh
+nhạt/viền mảnh với nút trên thẻ ngoài; mở đúng Layer 1 của POP đang xem. Đã bỏ nhãn
 “Chỉ xem” và nút ×; đóng bằng Esc / backdrop, trả focus về nút mở và khôi phục
 cuộn nền. Mở popup focus vào nút Chi tiết; đóng xóa POP đích để tránh route cũ.
 Không tải thêm inventory chỉ để xem popup; dùng metadata thiết bị đã có.
@@ -249,20 +250,40 @@ Các thẻ mở native dialog theo đúng POP/thiết bị/IP, đóng bằng Đ�
 giữ focus và scroll lock chung với các popup hiện có. Đây là launcher UI chưa kết nối
 backend: nút Thực thi bị vô hiệu hóa; không gửi lệnh, reboot hay cấu hình.
 
-Layer 2 có bốn nhóm thông tin: Nhận diện (tên, IP, vendor, model, serial chassis),
-Vị trí (POP, Miền → Vùng → Tỉnh → Chi nhánh), Vận hành (chức năng, firmware,
-Total MAC, ngày cập nhật), Phần cứng (số port/transceiver, nguồn/quạt/card).
+Layer 2 có 8 ô thông tin kiểu POP (4/3/2/1 cột theo chiều rộng
+nội dung), icon pastel và tag tên thiết bị; 5 trường Location gom thành dải nhỏ
+ngay dưới tên: tag POP → Miền → Vùng → Tỉnh → Chi nhánh. Location không lặp
+thành thẻ riêng. Vendor · Model gộp một ô; Serial chassis tự xuống dòng khi dài.
+Không lặp Số port, Số transceiver, Module nguồn, Module quạt, Card trong các ô
+chi tiết: chỉ giữ số lượng ở dải thống kê phía trên. Trạng thái port/tổng vật tư
+vẫn dùng dữ liệu nguồn; đổi màu chỉ là trình bày, không đổi trạng thái.
+Không hiển thị mục tổng Rectifier cho SWITCH/OLT; thiết bị nguồn vẫn giữ mục
+này và giá trị nguồn. Không xóa hay thay đổi bản ghi vật tư thô.
 Giữ giá trị nguồn/kể cả 0; trường thiếu là “—”, không lấy thời gian hiện tại làm ngày cập nhật.
-Số port ưu tiên count nguồn; nếu thiếu chỉ đếm tên port quan sát được, làm sạch và khử trùng;
-không lấy profile giả lập làm số port đã lắp. Firmware/Total MAC chưa có trong snapshot
+Không lấy profile giả lập làm số port đã lắp. Firmware/Total MAC chưa có trong snapshot
 vẫn để thiếu, không tự sinh dữ liệu. Layout/profile port không đổi, chờ dữ liệu bổ sung
 cho những dòng Dasan/FiberHome/Juniper/H3C còn thiếu.
 
 Nút **Làm mới dữ liệu** ở góc phải Quản lý Port có tooltip **Quét lại các module thuộc thiết bị**.
-Nút Đặt lại cũ vẫn riêng biệt. Hiện nút mới dùng `reloadPop` để tải lại chunk snapshot
+Đã bỏ nút Đặt lại và dòng hướng dẫn chọn/nhấn lại port. Nút làm mới có icon
+refresh cyan trên nền pastel; dùng `reloadPop` để tải lại chunk snapshot
 của POP (không quét trực tiếp), giữ bộ lọc, mode port, port đang chọn và tìm kiếm inventory.
 Có trạng thái tải/lỗi, chống click lặp, coalesce các yêu cầu đồng thời, giữ cache khi lỗi
 và bỏ qua callback khi người dùng đã chuyển thiết bị. Không bổ sung endpoint hay API scan giả.
+
+Vật tư thiết bị dùng các nhóm details/summary native thay bảng dài lặp loại vật
+tư. Nhóm ít mục/Chassis mở sẵn, nhóm nhiều mục thu gọn; mỗi mục giữ Slot/Port,
+Model, Serial (kể cả bản ghi trùng). Danh sách 2 cột, về 1 khi hẹp, cuộn nội bộ
+tối đa 360px. Tìm kiếm tự mở nhóm khớp; xóa từ khóa khôi phục lựa chọn trước,
+refresh giữ trạng thái mở/đóng và hai trục cuộn bằng khóa nhóm ổn định. Tổng
+backend không bị thay bằng số dòng đã tải; thiếu/lỗi/tải dữ liệu có trạng thái
+riêng. Tên file nguồn nằm trong mục Nguồn dữ liệu thu gọn. Kiểm tra thêm bằng
+`node mockup_ui/tests/device-overview.test.cjs`.
+
+Port Mô phỏng dùng mint/cyan sáng cho UP, coral cho DOWN, lam nhạt nét đứt cho
+chưa rõ; khe trống nền gần trắng với chấm nhỏ thưa hơn. Palette có light/dark,
+đồng bộ nhãn tổng và LED Giả lập, giữ nguyên phân biệt telemetry/missing/module
+và mọi hình học bank/slot/port. Không đổi màu cảnh báo nghiệp vụ hoặc Layer 0.
 
 Môi trường tủ: bốn ô T1–T4 giữ bố cục 2×2 với nền xám nhạt và viền mảnh đồng nhất;
 nhãn 12px đậm màu chữ chính, số đọc đậm hơn, chỉ giá trị/đơn vị đổi màu theo ramp nhiệt độ

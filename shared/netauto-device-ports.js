@@ -4,7 +4,7 @@
   const esc=value=>String(value==null||value===''?'—':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stateLabels={up:'UP',down:'DOWN',empty:'Chưa có module',unknown:'Chưa rõ trạng thái'};
   const actions={crc:['≋','CRC Check'],lacp:['⇄','LACP Check'],speed:['↔','Đổi Port Speed'],clearOffline:['⌫','Clear Offline Index']};
-  let layout=null,device=null,selected=null,tool='',loadState='idle',refreshHandler=null,view='face',lastListWidth=0;
+  let layout=null,device=null,selected=null,tool='',loadState='idle',view='face',lastListWidth=0;
   const viewStorageKey='netauto-device-port-view';
   try { const saved=localStorage.getItem(viewStorageKey);if(saved==='face'||saved==='grid')view=saved; } catch { /* Storage is optional; keep the in-memory preference. */ }
   function setMenu(open) {
@@ -13,10 +13,10 @@
   }
   function summary() {
     const s=layout.summary;
-    get('devicePortSummary').innerHTML=`<span>Port <b>${s.total}</b></span><span class="up">UP <b>${s.up}</b></span><span class="down">DOWN <b>${s.down}</b></span><span class="unknown">Chưa rõ <b>${s.unknown}</b></span>`;
+    get('devicePortSummary').innerHTML=`<span>Port <b>${s.total}</b></span><span class="up">UP <b>${s.up}</b></span><span class="down">DOWN <b>${s.down}</b></span>`;
     get('devicePortLayoutType').textContent=layout.hardware.stack?'Stack':layout.hardware.modular?'Chassis / Card':s.pon?'PON / NNI':'NNI / Link';
     const loading=!Array.isArray(device.ports);
-    const note=loading?loadState==='error'?'Không tải được snapshot port. Nhấn Làm mới snapshot để thử lại; trạng thái chưa có dữ liệu.':'Đang nạp snapshot port. Trạng thái và module sẽ cập nhật khi có dữ liệu.':`Snapshot: ${s.observed} port được ghi nhận${s.profile?`; ${s.profile} vị trí bổ sung từ profile, chưa có dữ liệu`:''}. ${layout.normalizedNames?'Tên port đã làm sạch ký tự xuống dòng trong nguồn. ':''}Không có module không đồng nghĩa port DOWN.`;
+    const note=loading?loadState==='error'?'Không tải được snapshot port. Nhấn Làm mới dữ liệu để thử lại; trạng thái chưa có dữ liệu.':'Đang nạp snapshot port. Trạng thái và module sẽ cập nhật khi có dữ liệu.':`Snapshot: ${s.observed} port được ghi nhận${s.profile?`; ${s.profile} vị trí bổ sung từ profile, chưa có dữ liệu`:''}. ${layout.normalizedNames?'Tên port đã làm sạch ký tự xuống dòng trong nguồn. ':''}Không có module không đồng nghĩa port DOWN.`;
     get('devicePortNote').innerHTML=`${esc(note)}<br>Vị trí giả lập theo bank/slot, không phải sơ đồ mặt trước chính xác.${layout.profile.note?` ${esc(layout.profile.note)}`:''}${layout.profile.source?` <a href="${esc(layout.profile.source)}" target="_blank" rel="noopener noreferrer">Tài liệu model ↗</a>`:''}`;
   }
   function filtered(port) {
@@ -218,7 +218,6 @@
     get('devicePortResult').innerHTML=`<h4>Xem trước · ${esc(get('devicePortSpeed').value)}</h4><p class="l2-note">Mô phỏng cho ${esc(port.name)}. Chưa áp dụng thay đổi; dữ liệu snapshot giữ nguyên.</p>`;
   });
   for(const [id,event] of [['devicePortSearch','input'],['devicePortType','change'],['devicePortState','change']])get(id).addEventListener(event,()=>{setMenu(false);renderBanks();});
-  get('devicePortsRefresh').addEventListener('click',()=>{if(device){open(device,false,loadState);if(refreshHandler)refreshHandler();}});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!get('devicePortMenu').hidden){setMenu(false);get('devicePortMenuToggle').focus();}});
   document.addEventListener('click',event=>{if(!event.target.closest('#devicePortInspector'))setMenu(false);});
   if(typeof window.ResizeObserver==='function'){
@@ -226,5 +225,5 @@
     observer.observe(get('deviceHardwareScroll'));observer.observe(get('devicePortBanks'));
   }
   window.addEventListener('resize',fitPortViews);
-  window.NETAUTO_DEVICE_PORTS={open,closeMenu:()=>setMenu(false),setRefreshHandler:handler=>{refreshHandler=handler;}};
+  window.NETAUTO_DEVICE_PORTS={open,closeMenu:()=>setMenu(false)};
 })();
