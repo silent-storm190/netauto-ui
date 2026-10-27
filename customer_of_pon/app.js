@@ -122,7 +122,8 @@
       if(!$('oltInput').value.trim()&&parsed.result){$('oltInput').value=M.text(parsed.result.olt.olt_name??parsed.result.olt.name??parsed.result.olt.olt_ip??parsed.result.olt.ip).replace(/^—$/,'');draftDevice=$('oltInput').value.trim().toLowerCase();}
       renderPicker();renderOltSelect();
       $('emptyState').hidden=true;$('resultSection').hidden=false;
-      $('importStatus').textContent=`Đã nạp ${parsed.rows.length} khách và ${parsed.conflicts.length} cảnh báo từ ${name}. ${name.startsWith('Phản hồi người dùng')?'Dữ liệu cung cấp ngày 26/10/2026, không phải kết quả kiểm tra mới.':'Chưa xác minh độ mới của dữ liệu.'}`;
+      const suppliedDate=window.NETAUTO_PON_SAMPLE_DATES?.[parsed.result?.olt?.olt_name]??'26/10/2026';
+      $('importStatus').textContent=`Đã nạp ${parsed.rows.length} khách và ${parsed.conflicts.length} cảnh báo từ ${name}. ${name.startsWith('Phản hồi người dùng')?`Dữ liệu cung cấp ngày ${suppliedDate}, không phải kết quả kiểm tra mới.`:'Chưa xác minh độ mới của dữ liệu.'}`;
       error('');return true;
     }catch(e){error(`Không nạp được phản hồi: ${e.message}${current?' Kết quả trước đó vẫn được giữ, chưa thay bằng tệp lỗi.':''}`);return false;}
   }

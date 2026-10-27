@@ -34,7 +34,18 @@ có MAC/SN trên PON, 3 Offline và 0 Conflict data. `sample-hue-response.js`
 giữ nguyên nội dung phản hồi và đăng ký cùng mẫu cũ trong `NETAUTO_PON_SAMPLES`.
 Không thay thế mẫu HCMP45608GC16; khi mở trực tiếp vẫn mặc định mẫu cũ.
 
-Trường OLT có danh sách chọn hai thiết bị. Chọn OLT tự nạp dữ liệu đúng mẫu,
+Đã thêm **HUEP13106GC16 / g0/9**, IP `11.75.123.34`, từ tệp
+`e55ecf7c-bfcf-4d07-b742-665a032538c1/Pasted text.txt` ngày **27/10/2026**:
+**79 khách**, gồm 76 có MAC/SN trên PON, 1 Offline, 2 kết nối nơi khác,
+0 chưa đủ dữ liệu và 1 chênh lệch hợp đồng với CDP. `sample-huep131-response.js`
+giữ nguyên phản hồi và thêm mẫu vào danh sách hiện tại. Cảnh báo này liên kết
+về khách đã có, không cộng thêm vào tổng 79; vị trí mới g0/13 vẫn được hiển
+thị trong nhóm kết nối nơi khác. Hai mẫu trước và lựa chọn mặc định được giữ.
+Phản hồi này có cùng một định danh trong nhóm có MAC/SN và nhóm kết nối nơi
+khác; bản mẫu giữ nguyên hai dòng nguồn, không tự gộp hoặc đổi tổng 79. Một
+cảnh báo hợp đồng được liên kết với cả hai dòng nhưng vẫn chỉ tính 1 cảnh báo.
+
+Trường OLT có danh sách chọn ba thiết bị. Chọn OLT tự nạp dữ liệu đúng mẫu,
 chuyển về Port đã kiểm tra của mẫu, xóa bộ lọc/từ khóa cũ và đóng hộp Chi tiết.
 Port còn có sẵn khác chỉ là phạm vi lựa chọn, không tự tạo kết quả cho Port
 chưa có dữ liệu. Nút **Xem mẫu** nạp lại mẫu của OLT đang chọn. **Nhập OLT
