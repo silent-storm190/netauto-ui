@@ -44,6 +44,7 @@ const get = id => { assert(nodes.has(id), `Missing real HTML element: ${id}`); r
 const deviceFieldsHTML=()=>get('deviceDetailFields').innerHTML.replace(/<span class="l2-meta-icon"[^>]*>[\s\S]*?<\/svg><\/span>/g,'');
 const modes = ['many', 'three', 'one'].map(popScope => element('', {popScope}));
 const regions = ['MB', 'MN'].map(area => element('', {area}));
+const businessTabs=[...html.matchAll(/data-business-page="([^"]+)"/g)].map(m=>element('',{businessPage:m[1]}));
 const pages = [...html.matchAll(/<section\b[^>]*id="([^"]+)"[^>]*data-page="([^"]+)"/g)].map(match => {
   const page = get(match[1]); page.dataset.page = match[2]; return page;
 });
@@ -62,6 +63,7 @@ const document = {
     if (selector === '[data-pop-scope]') return modes;
     if (selector === '#popPage .na-region-name') return regions;
     if (selector === '.na-page') return pages;
+    if (selector === '#businessSubnav button') return businessTabs;
     return [];
   },
   querySelector(selector) { return selector==='.na-content'?get('portalContent'):element(); },
@@ -252,6 +254,34 @@ get('themeButton').listeners.click(); assert.equal(root.dataset.theme, 'dark');
 mode('three'); assert.equal(root.dataset.theme, 'dark');
 get('themeButton').listeners.click(); assert.equal(root.dataset.theme, 'light');
 assert.equal(get('planTableBody').innerHTML, plansBefore, 'POP operations must not change plan results');
+
+// All five suffixes work through the picker, manual entry, input and paste.
+assert.deepEqual([...html.matchAll(/data-suffix="([^"]+)"/g)].map(match=>match[1]),['/HO','/HW','/HU','/HF','/HB']);
+get('dropPointInput').value='HNIP246.0096';
+get('dropPointInput').listeners.input({target:get('dropPointInput')});
+assert.equal(get('dropPointSuggestions').hidden,false);
+get('dropPointSuggestions').listeners.click({target:{closest:()=>element('',{suffix:'/HB'})}});
+assert(get('dropPointQueue').innerHTML.includes('HNIP246.0096/HB'));
+get('resetDropPoint').listeners.click();
+get('dropPointInput').value='hnip246.0096/hb';
+get('addDropPoint').listeners.click();
+assert(get('dropPointQueue').innerHTML.includes('HNIP246.0096/HB'));
+get('resetDropPoint').listeners.click();
+get('dropPointInput').value='HNIP246.0096/HB, HNIP246.0097/HO';
+get('dropPointInput').listeners.input({target:get('dropPointInput')});
+assert(get('dropPointQueue').innerHTML.includes('HNIP246.0096/HB'));
+assert(get('dropPointQueue').innerHTML.includes('HNIP246.0097/HO'));
+get('resetDropPoint').listeners.click();
+let hbPastePrevented=false;
+get('dropPointInput').listeners.paste({target:get('dropPointInput'),clipboardData:{getData:()=> 'hnip246.0096/hb'},preventDefault(){hbPastePrevented=true;}});
+assert(hbPastePrevented);
+assert(get('dropPointQueue').innerHTML.includes('HNIP246.0096/HB'));
+get('resetDropPoint').listeners.click();
+get('dropPointInput').value='HNIP246.0096/HX';
+get('addDropPoint').listeners.click();
+assert.equal(get('dropPointQueue').hidden,true,'Unsupported suffixes stay rejected');
+get('resetDropPoint').listeners.click();
+console.log('PASS: /HB suffix picker, lowercase/manual entry, mixed batch input and paste; previous suffixes preserved.');
 
 // Regression smoke test: the real check-drop-point response still renders.
 get('dropPointInput').value = context.window.NETAUTO_DROP_POINT_RESPONSE.result.drop_point;
@@ -946,6 +976,11 @@ assert(!get('devicePortMenu').innerHTML.includes('Đổi Port Speed'));
 assert(get('devicePortResult').innerHTML.includes('Chọn công cụ để bắt đầu'),'Default action placeholder matches the standalone workspace');
 assert(get('devicePortInfo').innerHTML.includes('Rx / Tx'));
 assert(get('devicePortInfo').innerHTML.includes(String(realGcom.ports.find(port=>port.name==='G0/1').module.TX)));
+assert(get('devicePortMenu').innerHTML.includes('data-port-action="customers"'),'PON inspector exposes the new customer review UI');
+runPortTool('customers');
+assert(get('devicePortResult').innerHTML.includes('customer_of_pon/mockup.html?olt='+encodeURIComponent(realGcom.name)+'&amp;pon=G0%2F1'));
+assert(get('devicePortResult').innerHTML.includes('rel="noopener noreferrer"')&&get('devicePortResult').innerHTML.includes('chưa gửi yêu cầu kiểm tra'),'Launching the review passes context without executing a live check');
+runPortTool('');
 const revealAnimations=[];
 let cancelledReveal=0;
 get('devicePortResult').animate=(frames,options)=>{revealAnimations.push({frames,options});};
@@ -1983,3 +2018,11 @@ assert(heroCSS.includes('.l1-pop-field dd{font-size:14px;font-weight:750;line-he
 assert(heroCSS.includes('@media(forced-colors:active){#popDetailPage .l1-pop-field{border-color:CanvasText;background:Canvas;box-shadow:none}}'),'Raised metadata has a high-contrast fallback');
 assert.equal(JSON.stringify(allPops),tableSourceBefore,'Tools and module reloads never mutate imported POP metadata');
 console.log('PASS: Layer 1 six-tool footer, Layer 2 OLT/CE-specific tools, safe native previews, complete source-backed metadata/zero/missing states and snapshot-only module reload with preserved port state, coalescing, failure recovery and stale-device isolation.');
+// New read-only workspace follows the established business-frame routing.
+businessTabs.find(button=>button.dataset.businessPage==='customerpon').click();
+assert.equal(get('workflowFrame').src,'customer_of_pon/mockup.html');
+assert.equal(get('workflowTitle').textContent,'Khách hàng theo PON');
+assert.equal(get('workflowCase').hidden,true);assert.equal(get('workflowCase').disabled,true);assert.equal(get('createPlanButton').hidden,true);
+businessTabs.find(button=>button.dataset.businessPage==='olt').click();
+assert.equal(get('workflowCase').hidden,false);assert.equal(get('workflowCase').disabled,false);assert.equal(get('createPlanButton').hidden,false,'Existing configuration workspaces retain their controls');
+console.log('PASS: Customer-of-PON business navigation and context-aware PON launcher; no device execution or unrelated controls.');

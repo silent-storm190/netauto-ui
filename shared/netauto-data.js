@@ -13,6 +13,7 @@ window.NETAUTO_DATA = {
     bandwidth:{title:"Bandwidth Upgrade",mark:"↗",kicker:"Configuration workflow",description:"Mở rộng aggregate port và đồng bộ hai đầu liên kết.",base:"bandwidth_upgrade"},
     stack:{title:"Switch Stack Join",mark:"⧉",kicker:"Configuration workflow",description:"Kiểm tra khả năng stack, chọn master/slave và join stack.",base:"switch_stack_join"},
     power:{title:"Power Monitoring",mark:"ϟ",kicker:"Configuration workflow",description:"Cấp phát đường giám sát nguồn qua OLT và xác minh topology.",base:"power_monitoring"},
-    service:{title:"Kiểm tra dịch vụ",mark:"◎",kicker:"Read-only service workspace",description:"Đối chiếu Switch CE, PON và ONU; tìm kiếm và rà soát dữ liệu khách hàng trên toàn bộ response.",base:"service_checking"}
+    service:{title:"Kiểm tra dịch vụ",mark:"◎",kicker:"Read-only service workspace",description:"Đối chiếu Switch CE, PON và ONU; tìm kiếm và rà soát dữ liệu khách hàng trên toàn bộ response.",base:"service_checking"},
+    customerpon:{title:"Khách hàng theo PON",mark:"⌁",kicker:"Đối soát dữ liệu khách hàng",description:"Đối chiếu sự hiện diện trên cổng, vị trí hiện tại và bằng chứng theo từng nguồn. Chỉ nạp phản hồi, chưa gọi thiết bị.",base:"customer_of_pon"}
   }
 };

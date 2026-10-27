@@ -3,7 +3,7 @@
   const get=id=>document.getElementById(id);
   const esc=value=>String(value==null||value===''?'—':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stateLabels={up:'UP',down:'DOWN',empty:'Chưa có module',unknown:'Chưa rõ trạng thái'};
-  const actions={crc:['≋','CRC Check'],lacp:['⇄','LACP Check'],speed:['↔','Đổi Port Speed'],clearOffline:['⌫','Clear Offline Index']};
+  const actions={crc:['≋','CRC Check'],lacp:['⇄','LACP Check'],speed:['↔','Đổi Port Speed'],clearOffline:['⌫','Clear Offline Index'],customers:['⌁','Khách hàng theo PON']};
   let layout=null,device=null,selected=null,tool='',loadState='idle',view='face',lastListWidth=0;
   const viewStorageKey='netauto-device-port-view';
   try { const saved=localStorage.getItem(viewStorageKey);if(saved==='face'||saved==='grid')view=saved; } catch { /* Storage is optional; keep the in-memory preference. */ }
@@ -104,7 +104,7 @@
     const speeds=port.snapshot?.capabilities?.speeds ?? device.portCapabilities?.[port.name]?.speeds;
     return Array.isArray(speeds)?[...new Set(speeds.filter(value=>typeof value==='string'&&value.trim()))]:[];
   }
-  function toolsFor(port){return window.NETAUTO_PORT_MODELS.portTools(device,layout,port);}
+  function toolsFor(port){const tools=window.NETAUTO_PORT_MODELS.portTools(device,layout,port);return device.type==='OLT'&&port.kind==='PON'?[...tools,{key:'customers',enabled:true}]:tools;}
   function portValue(value){return value&&typeof value==='object'?`<code class="l2-value-json">${esc(JSON.stringify(value,null,2))}</code>`:esc(value);}
   function renderPortInfo(port){
     const module=port.module || {},used=new Set();
@@ -139,6 +139,9 @@
     get('devicePortActionDescription').textContent=tool?'Dữ liệu snapshot · công cụ chưa kết nối thiết bị.':'Chọn một công cụ trong danh sách để xem nội dung chi tiết.';
     if(!tool) {
       get('devicePortResult').innerHTML='<div class="pw-tool-placeholder"><svg viewBox="0 0 96 72" aria-hidden="true"><rect x="18" y="14" width="60" height="44" rx="10"></rect><path d="M30 29h36M30 43h24"></path><circle cx="67" cy="43" r="8"></circle><path d="m73 49 8 8"></path></svg><b>Chọn công cụ để bắt đầu</b><p>Kiểm tra trạng thái hoặc thực hiện thao tác phù hợp trên port đang chọn.</p></div>';
+    } else if(tool==='customers') {
+      const url=`customer_of_pon/mockup.html?olt=${encodeURIComponent(device.name||device.ip||'')}&pon=${encodeURIComponent(port.name)}`;
+      get('devicePortResult').innerHTML=`<h4>Khách hàng theo PON</h4><p class="l2-note">Mở giao diện đối chiếu cho ${esc(port.name)}. Chỉ điền sẵn phạm vi; chưa gửi yêu cầu kiểm tra.</p><a class="pw-button" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Mở giao diện đối soát ↗</a>`;
     } else {
       const messages={crc:'Snapshot chưa có bộ đếm CRC, thời điểm đo hoặc delta lỗi. Công cụ chưa kết nối thiết bị.',lacp:'Snapshot chưa có nhóm LAG, actor/partner hoặc trạng thái thành viên. Công cụ chưa kết nối thiết bị.',speed:'Chỉ xem trước thao tác. Chưa có kiểm tra compatibility với module/cấu hình đang chạy; không gửi lệnh tới thiết bị.',clearOffline:'Dọn các ONU index Offline trên port PON đang chọn. Cần truy vấn danh sách Offline và xác nhận trước khi thực hiện; mockup chưa kết nối thiết bị.'};
       get('devicePortResult').innerHTML=`<h4>${actions[tool][1]}</h4><p class="l2-note">${messages[tool]}</p>`;

@@ -604,9 +604,9 @@
       input.focus();
       return false;
     }
-    const invalid = values.find(value => !/^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF)$/.test(value));
+    const invalid = values.find(value => !/^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF|HB)$/.test(value));
     if (invalid) {
-      showToast(/^[A-Z0-9]+\.\d{4}$/.test(invalid) ? 'Chọn hậu tố /HO, /HW, /HU hoặc /HF cho mã đang nhập.' : `Mã tập điểm chưa đúng định dạng: ${invalid}`);
+      showToast(/^[A-Z0-9]+\.\d{4}$/.test(invalid) ? 'Chọn hậu tố /HO, /HW, /HU, /HF hoặc /HB cho mã đang nhập.' : `Mã tập điểm chưa đúng định dạng: ${invalid}`);
       updateDropPointSuggestions();
       input.focus();
       return false;
@@ -773,6 +773,7 @@
 
   const caseFile = (workflow, state) => {
     if (workflow === 'service') return 'service_checking/mockup.html';
+    if (workflow === 'customerpon') return 'customer_of_pon/mockup.html';
     if (workflow === 'stack') return 'switch_stack_join/mockup.html';
     const prefixes = {success:'07_config_thanh_cong.html',failed:'06_config_khong_thanh_cong.html',precheck:'05_precheck_thanh_cong.html',allocated:'02_cap_phat_thanh_cong.html',created:'01_tao_ke_hoach_thanh_cong.html'};
     return `${DATA.workflows[workflow].base}/${prefixes[state] || prefixes.success}`;
@@ -781,7 +782,7 @@
   function openBusinessPage(key, state='success') {
     document.querySelectorAll('#businessSubnav button').forEach(button => button.classList.toggle('is-active', button.dataset.businessPage === key));
     const plans = key === 'plans';
-    document.getElementById('createPlanButton').hidden = key === 'service';
+    document.getElementById('createPlanButton').hidden = key === 'service' || key === 'customerpon';
     document.getElementById('planListView').hidden = !plans;
     document.getElementById('workflowView').hidden = plans;
     document.querySelector('.na-content').scrollTo({top:0,behavior:'auto'});
@@ -793,8 +794,8 @@
     document.getElementById('workflowTitle').textContent = workflow.title;
     document.getElementById('workflowDescription').textContent = workflow.description;
     const select = document.getElementById('workflowCase');
-    select.disabled = key === 'stack' || key === 'service';
-    select.hidden = key === 'service';
+    select.disabled = key === 'stack' || key === 'service' || key === 'customerpon';
+    select.hidden = key === 'service' || key === 'customerpon';
     select.value = key === 'stack' ? 'success' : state;
     loadWorkflowFrame();
   }
@@ -887,7 +888,7 @@
     const input = event.target;
     input.value = input.value.toUpperCase();
     const values = input.value.split(/[,;\r\n]+/).map(normalizeDropPoint).filter(Boolean);
-    if (/[,;\r\n]/.test(input.value) && values.length && values.every(value => /^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF)$/.test(value))) {
+    if (/[,;\r\n]/.test(input.value) && values.length && values.every(value => /^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF|HB)$/.test(value))) {
       addDropPoints();
     } else {
       updateDropPointSuggestions();
@@ -896,7 +897,7 @@
   document.getElementById('dropPointInput').addEventListener('keydown', event => { if (['Enter',',',';'].includes(event.key)) { event.preventDefault(); addDropPoints(); } });
   document.getElementById('dropPointInput').addEventListener('paste', event => {
     const pasted = event.clipboardData?.getData('text') || '';
-    if (!/[,;\r\n]/.test(pasted) && !/^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF)$/.test(normalizeDropPoint(pasted))) return;
+    if (!/[,;\r\n]/.test(pasted) && !/^[A-Z0-9]+\.\d{4}\/(HO|HW|HU|HF|HB)$/.test(normalizeDropPoint(pasted))) return;
     event.preventDefault();
     const input = event.target;
     const start = input.selectionStart ?? input.value.length;

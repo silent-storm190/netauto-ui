@@ -2,6 +2,13 @@
 
 Mở `index.html` để xem mockup tổng thể của nền tảng NetAuto.
 
+Giao diện **Khách hàng theo PON** mới: mở `customer_of_pon/mockup.html` hoặc
+**Quản lý Nghiệp vụ → Khách hàng theo PON**. Có chọn nhiều cổng/tìm kiếm,
+nạp phản hồi, bốn nhóm khách và danh sách mâu thuẫn riêng theo cấu trúc phẳng
+mới. Có phản hồi thật mới nhất HCMP45608GC16 / g0/1: 103 khách và 6 cảnh báo tham chiếu,
+không cộng cảnh báo vào tổng khách. Chưa gọi thiết bị. Xem cách dùng, hợp đồng dữ liệu,
+thuật ngữ và kiểm thử tại [tài liệu giao diện](customer_of_pon/README.md).
+
 ## Phạm vi hiện tại
 
 - App shell bám screenshot production: global rail, global toolbar và Portal Vận hành.
@@ -23,6 +30,9 @@ Mở `index.html` để xem mockup tổng thể của nền tảng NetAuto.
 - Các subpage tái sử dụng trực tiếp những bộ `ui_review_case` mới nhất.
 
 ## File vào chính
+
+Nhập tập điểm hỗ trợ `/HO`, `/HW`, `/HU`, `/HF` và `/HB` ở cả nút chọn
+hậu tố, nhập mã đầy đủ và dán danh sách nhiều mã.
 
 Tool Kiểm tra tập điểm gom trạng thái HĐ và ONU vào cột “Trạng thái”, gồm
 hai dòng có nhãn HĐ/ONU. Tag Online/Offline chỉ thể hiện ONU, không gộp ý
