@@ -8,18 +8,17 @@
 <body class="cp-page">
   <header class="cp-topbar"><a href="../index.html" class="cp-brand"><span>N</span>NetAuto</a><span>Vận hành / Khách hàng theo PON</span><button id="themeToggle" class="na-button" type="button" aria-label="Đổi giao diện sáng tối">◐</button></header>
   <main class="cp-wrap">
-    <header class="cp-heading"><div><span class="cp-eyebrow">ĐỐI SOÁT KHÁCH HÀNG</span><h1>Khách hàng theo PON</h1><p>Phân biệt khách đang thấy trên Port, khách đã chuyển vị trí và dữ liệu cần xác minh.</p></div><span class="cp-badge">Chỉ xem dữ liệu · Chưa kết nối hệ thống</span></header>
+    <header class="cp-heading"><div><span class="cp-eyebrow">ĐỐI SOÁT KHÁCH HÀNG</span><h1>Khách hàng theo PON</h1></div><span class="cp-badge">Chỉ xem dữ liệu · Chưa kết nối hệ thống</span></header>
     <div class="cp-summary-row">
     <section class="cp-panel cp-request-panel" aria-labelledby="requestTitle">
-      <header class="cp-panel-head"><div><h2 id="requestTitle">Chọn thiết bị và Port PON</h2><p>Chọn phạm vi cần xem, mở dữ liệu đã lưu hoặc xem mẫu có sẵn.</p></div><div class="cp-actions"><button id="loadSample" type="button" class="na-button" title="Xem dữ liệu mẫu của OLT đang chọn">Xem mẫu</button><label class="na-button cp-file">Mở tệp dữ liệu<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Mở tệp dữ liệu"></label></div></header>
+      <header class="cp-panel-head cp-selection-header"><div><h2 id="requestTitle">Chọn thiết bị và Port PON</h2><p>Chọn phạm vi cần xem, mở dữ liệu đã lưu hoặc xem mẫu có sẵn.</p></div><div class="cp-olt-field"><label for="oltSelect">Thiết bị OLT</label><select id="oltSelect" aria-label="Chọn OLT"><option value="">Chọn OLT</option></select><input id="oltInput" type="text" placeholder="Tên hoặc IP của OLT khác" aria-label="Tên hoặc IP của OLT khác" autocomplete="off" spellcheck="false" aria-describedby="ponCatalogNote" hidden></div><div class="cp-actions"><button id="loadSample" type="button" class="na-button" title="Xem dữ liệu mẫu của OLT đang chọn">Xem mẫu</button><label class="na-button cp-file">Mở tệp dữ liệu<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Mở tệp dữ liệu"></label></div></header>
       <div class="cp-form">
-        <div class="cp-olt-field"><label for="oltSelect">Thiết bị OLT</label><select id="oltSelect" aria-label="Chọn OLT"><option value="">Chọn OLT</option></select><input id="oltInput" type="text" placeholder="Tên hoặc IP của OLT khác" aria-label="Tên hoặc IP của OLT khác" autocomplete="off" spellcheck="false" aria-describedby="ponCatalogNote" hidden></div>
-        <div class="cp-port-field"><span id="ponSelectLabel">Port PON cần kiểm tra</span>
-          <div id="ponPicker" class="cp-picker"><button id="ponToggle" type="button" aria-expanded="false" aria-controls="ponPanel" aria-labelledby="ponSelectLabel ponSelectionLabel"><span id="ponSelectionLabel">Chọn một hoặc nhiều Port</span><span aria-hidden="true">⌄</span></button>
-            <div id="ponPanel" class="cp-picker-panel" hidden><label class="cp-sr" for="ponSearch">Tìm Port PON</label><input id="ponSearch" type="search" placeholder="Tìm Port…" autocomplete="off"><div class="cp-picker-actions"><button id="selectVisiblePorts" type="button">Chọn các Port đang lọc</button><button id="clearSelectedPorts" type="button">Bỏ chọn tất cả</button></div><div id="ponOptions" class="cp-picker-options" role="group" aria-labelledby="ponSelectLabel"></div><p id="ponOptionsCount" class="cp-note" role="status" aria-live="polite"></p></div>
+        <div class="cp-port-field"><div class="cp-device-face">
+            <div class="cp-port-heading"><span id="ponSelectLabel" class="cp-port-type">PON</span><span id="ponSelectionLabel">Chọn tối đa 2 Port PON</span></div>
+            <div id="ponOptions" class="cp-port-simulator" role="group" aria-labelledby="ponSelectLabel"></div>
+            <div class="cp-device-face-footer"><span class="cp-port-legend"><i aria-hidden="true"></i>Đã chọn</span></div>
           </div>
           <div id="selectedPorts" class="cp-selected-ports" aria-label="Các Port đã chọn"></div><small id="ponCatalogNote" class="cp-note"></small><input id="portsInput" type="hidden">
-          <details class="cp-manual-ports"><summary>Nhập thủ công khi chưa có danh sách</summary><label class="cp-sr" for="manualPorts">Danh sách Port nhập thủ công</label><textarea id="manualPorts" rows="2" placeholder="Dán các Port, phân cách bằng dấu phẩy hoặc xuống dòng" spellcheck="false"></textarea><button id="addManualPorts" type="button" class="na-button">Thêm Port</button><small class="cp-note">Port ngoài danh sách nguồn được đánh dấu chưa xác minh; hệ thống sẽ kiểm tra khi tích hợp.</small></details>
         </div>
       </div>
       <p id="inputError" class="cp-error" role="alert" hidden></p><p id="importStatus" class="cp-sr" role="status" aria-live="polite"></p>
@@ -33,20 +32,33 @@
           </div>
         </header>
         <div id="sourceStats" class="cp-stats"></div>
-        <footer class="cp-overview-footer"><span id="sourceName" class="cp-note"></span></footer>
         <p id="resultError" class="cp-error" role="alert" hidden></p>
     </section>
     </div>
       <section id="customerWorkspace" class="cp-panel" hidden aria-labelledby="customerTitle">
-        <header class="cp-panel-head"><div><h2 id="customerTitle">Danh sách khách hàng</h2><p>Có MAC/SN trên PON chưa bảo đảm đang kết nối hoặc có công suất. Mâu thuẫn là cảnh báo tham chiếu, không cộng vào tổng khách.</p></div></header>
-        <nav id="groupTabs" class="cp-tabs" aria-label="Lọc nhóm khách hàng"><button type="button" data-group="all" aria-pressed="true">Tất cả khách</button><button type="button" data-group="observed_on_requested_pon" aria-pressed="false">Có MAC/SN trên PON</button><button type="button" data-group="confirmed_offline" aria-pressed="false">Khách hàng Offline</button><button type="button" data-group="online_elsewhere" aria-pressed="false">Khách hàng kết nối nơi khác</button><button type="button" data-group="unconfirmed" aria-pressed="false">Chưa đủ dữ liệu</button><button type="button" data-group="conflicts" aria-pressed="false">Conflict data</button><button type="button" data-group="unclassified" aria-pressed="false" hidden>Chưa phân loại</button></nav>
-        <div class="cp-filters"><label class="cp-search"><span class="cp-sr">Tìm khách hàng trên toàn bộ dữ liệu</span><input id="customerSearch" type="search" placeholder="Tìm hợp đồng, Port, serial, MAC, nguồn…"></label><select id="portFilter" aria-label="Lọc Port PON"><option value="">Tất cả Port</option></select><select id="moveFilter" aria-label="Lọc kết luận vị trí"><option value="">Mọi kết luận đối chiếu</option></select><label class="cp-check"><input id="conflictFilter" type="checkbox"> Chỉ dữ liệu mâu thuẫn</label><button id="resetFilters" type="button" class="na-button">Bỏ lọc</button></div>
+        <header class="cp-panel-head"><div><h2 id="customerTitle">Danh sách khách hàng</h2><p>Tra cứu hồ sơ, trạng thái và thông số ONU.</p></div></header>
+        <nav id="portTabs" class="cp-port-tabs" aria-label="Chuyển Port PON" hidden></nav>
+        <nav id="groupTabs" class="cp-tabs" aria-label="Lọc nhóm khách hàng"><button type="button" data-group="all" aria-pressed="true">Tất cả khách</button><button type="button" data-group="observed_on_requested_pon" aria-pressed="false">Có MAC/SN trên PON</button><button type="button" data-group="confirmed_offline" aria-pressed="false">Khách hàng Offline</button><button type="button" data-group="online_elsewhere" aria-pressed="false">Khách hàng kết nối nơi khác</button><button type="button" data-group="unconfirmed" aria-pressed="false">Chưa đủ dữ liệu</button><button type="button" data-group="conflicts" aria-pressed="false">Cần kiểm tra</button><button type="button" data-group="unclassified" aria-pressed="false" hidden>Chưa phân loại</button></nav>
+        <div class="cp-filters"><label class="cp-search"><span class="cp-sr">Tìm khách hàng trên toàn bộ dữ liệu</span><input id="customerSearch" type="search" placeholder="Tìm hợp đồng, Port, serial, MAC, nguồn…"></label><input id="portFilter" type="hidden"><select id="moveFilter" aria-label="Lọc kết luận vị trí"><option value="">Mọi kết luận đối chiếu</option></select><label class="cp-check"><input id="conflictFilter" type="checkbox"> Chỉ dữ liệu mâu thuẫn</label><button id="resetFilters" type="button" class="na-button">Bỏ lọc</button></div>
         <div class="cp-table-heading"><span id="viewCount" role="status" aria-live="polite"></span></div>
-        <div id="customerTable" class="cp-table-scroll" tabindex="0" role="region" aria-label="Bảng khách hàng; cuộn ngang để xem tất cả thông tin"><table class="cp-table cp-customer-table"><thead><tr><th scope="col">Khách hàng</th><th scope="col">Thiết bị ONU</th><th scope="col">Port PON / Đối chiếu</th><th scope="col">Thông số ONU</th><th scope="col">Chi tiết</th></tr></thead><tbody id="customerRows"></tbody></table></div>
-        <div id="conflictTable" class="cp-table-scroll" tabindex="0" role="region" aria-label="Mâu thuẫn dữ liệu theo từng nguồn" hidden><table class="cp-table cp-conflict-table"><thead><tr><th scope="col">Khách hàng / Định danh</th><th scope="col">Khóa ghép / Mức độ</th><th scope="col">Trường khác nhau</th><th scope="col" id="conflictLeftLabel">Giá trị phía System Radius</th><th scope="col" id="conflictRightLabel">Giá trị phía CDP</th><th scope="col">Bằng chứng</th></tr></thead><tbody id="conflictRows"></tbody></table></div>
+        <div id="customerTableShell" class="cp-table-shell">
+        <div id="customerFixedHeader" class="cp-fixed-header" aria-hidden="true"><table class="cp-table cp-customer-table"><colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup><thead id="customerVisualHead"></thead></table></div>
+        <div id="customerTable" class="cp-table-scroll" tabindex="0" role="region" aria-label="Bảng khách hàng; cuộn ngang để xem tất cả thông tin">
+          <table class="cp-table cp-customer-table"><colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup><thead id="customerHeadSource" class="cp-accessible-head"><tr>
+            <th scope="col">Hợp đồng</th><th scope="col">Trạng thái HĐ</th><th scope="col">Trạng thái ONU</th><th scope="col" class="cp-presence-heading">Có MAC trên<br>Port PON</th>
+            <th scope="col">Port PON</th><th scope="col">ONU index</th><th scope="col">Model ONU</th><th scope="col">MAC</th><th scope="col">SN</th><th scope="col">IP WAN</th>
+            <th scope="col" data-onu-metric="rx">Rx<br><span class="cp-metric-unit">(dBm)</span></th><th scope="col" data-onu-metric="tx">Tx<br><span class="cp-metric-unit">(dBm)</span></th><th scope="col" data-onu-metric="temperature">Nhiệt độ<br><span class="cp-metric-unit">(°C)</span></th><th scope="col" data-onu-metric="distance">Khoảng cách<br><span class="cp-metric-unit">(m)</span></th>
+            <th scope="col">Đối chiếu</th>
+          </tr></thead><tbody id="customerRows"></tbody></table>
+        </div>
+        </div>
+        <div id="conflictTableShell" class="cp-table-shell" hidden>
+        <div id="conflictFixedHeader" class="cp-fixed-header" aria-hidden="true"><table class="cp-table cp-conflict-table"><colgroup><col><col><col><col><col><col></colgroup><thead id="conflictVisualHead"></thead></table></div>
+        <div id="conflictTable" class="cp-table-scroll" tabindex="0" role="region" aria-label="Mâu thuẫn dữ liệu theo từng nguồn" hidden><table class="cp-table cp-conflict-table"><colgroup><col><col><col><col><col><col></colgroup><thead id="conflictHeadSource" class="cp-accessible-head"><tr><th scope="col">Khách hàng / Định danh</th><th scope="col">Khóa ghép / Mức độ</th><th scope="col">Trường khác nhau</th><th scope="col" id="conflictLeftLabel">Giá trị phía System Radius</th><th scope="col" id="conflictRightLabel">Giá trị phía CDP</th><th scope="col">Bằng chứng</th></tr></thead><tbody id="conflictRows"></tbody></table></div>
+        </div>
       </section>
   </main>
   <dialog id="evidenceDialog" aria-labelledby="evidenceTitle"><header><h2 id="evidenceTitle"></h2><button id="closeEvidence" type="button" class="na-button">Đóng</button></header><div id="evidenceContent"></div></dialog>
-  <script src="model.js"></script><script src="sample-response.js"></script><script src="sample-hue-response.js"></script><script src="sample-huep131-response.js"></script><script src="app.js"></script>
+  <script src="model.js"></script><script src="sample-current-response.js"></script><script src="app.js"></script>
 </body>
 </html>
