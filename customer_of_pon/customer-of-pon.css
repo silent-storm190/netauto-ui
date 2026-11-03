@@ -251,3 +251,13 @@
 @media(max-width:600px){.cp-port-simulator{grid-template-columns:repeat(4,minmax(0,1fr))}.cp-device-face{padding:10px}.cp-port-number{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.cp-port-simulator .cp-pon-port{transition:none}}
 @media(forced-colors:active){.cp-port-simulator .cp-pon-port.is-selected{border-color:Highlight;outline:1px solid Highlight}.cp-port-legend i{background:CanvasText}}
+#jsonDialog{width:min(760px,calc(100vw - 24px));max-height:90vh;overflow:auto;color:var(--na-text);background:var(--na-panel);border:1px solid var(--na-line);border-radius:12px;padding:20px}
+#jsonDialog::backdrop{background:#10243b66}
+#jsonForm>header,#jsonForm>footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#jsonForm>header h2{margin:0;font-size:20px}
+#jsonForm>p,#jsonHint{font-size:12px;color:var(--na-muted)}
+#jsonForm>label{display:block;margin:16px 0 6px;font-weight:600}
+#jsonInput{box-sizing:border-box;display:block;width:100%;min-height:240px;resize:vertical;border:1px solid var(--na-line);border-radius:8px;padding:12px;font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--na-text);background:var(--na-panel-soft)}
+#jsonInput:focus-visible{outline:2px solid var(--na-blue);outline-offset:2px}
+#jsonInput[aria-invalid=true]{border-color:var(--na-red)}
+#jsonForm>footer{justify-content:flex-end;margin-top:18px}

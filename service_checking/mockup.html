@@ -6,24 +6,37 @@
   <link rel="stylesheet" href="../shared/netauto-shell.css"><link rel="stylesheet" href="service-checking.css">
 </head>
 <body class="svc-page">
-  <header class="svc-topbar"><a href="../index.html" class="svc-brand" aria-label="Về NetAuto"><span>N</span>NetAuto</a><span class="svc-breadcrumb">Vận hành <span>/</span> Kiểm tra dịch vụ</span><span class="svc-pill">Bản duyệt UI · Dữ liệu thật</span></header>
+  <header class="svc-topbar">
+    <a href="../index.html" class="svc-brand" aria-label="Về NetAuto"><span>N</span>NetAuto</a>
+    <span class="svc-breadcrumb">Vận hành <span>/</span> Kiểm tra dịch vụ</span>
+    <div id="mockupTools" class="svc-preview-tools" data-mockup-only>
+      <button id="openPayload" type="button" class="na-button" aria-haspopup="dialog" aria-controls="payloadDialog">Dán kết quả</button>
+      <details id="snapshotPicker" class="svc-snapshot-picker">
+        <summary class="na-button">Đổi thiết bị</summary>
+        <section class="svc-snapshot-panel" aria-labelledby="requestTitle">
+          <header class="svc-panel-head"><h2 id="requestTitle">Chọn thiết bị</h2><label class="svc-file na-button">Nạp JSON<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Nạp kết quả JSON"></label></header>
+          <form id="deviceForm" class="svc-request"><label class="svc-field"><span>IP / Tên thiết bị</span><input id="deviceInput" type="text" autocomplete="off" spellcheck="false" placeholder="IP hoặc tên thiết bị"></label><label class="svc-field svc-sample"><span>Kết quả đã lưu</span><select id="sampleSelect" aria-label="Chọn thiết bị"><option value="gc16">OLT GC16 · HCMP626</option><option value="ha58">OLT HA58 · BDGP016</option><option value="hw24">Huawei HW24 · Đạt</option><option value="cv52">H3C CV52 · Đạt</option><option value="hw67">Huawei HW67 · Không đạt</option></select></label><button type="submit" class="na-button is-primary">Mở kết quả </button></form>
+          <p id="requestError" class="svc-error" role="alert" hidden></p>
+        </section>
+      </details>
+    </div>
+  </header>
   <main class="svc-wrap" id="serviceApp">
-    <div class="svc-page-heading"><div><small class="svc-eyebrow">SERVICE CHECKING</small><h1>Kiểm tra dịch vụ</h1><p>Kiểm tra thiết bị, rà soát PON / ONU và đối chiếu các hạng mục dịch vụ.</p></div><span class="svc-readonly">Chỉ đọc · Chưa kết nối API</span></div>
-    <section class="svc-panel svc-command" aria-labelledby="requestTitle">
-      <header class="svc-panel-head"><div><h2 id="requestTitle">Thiết bị kiểm tra</h2><p>Dùng response đã cung cấp hoặc nạp JSON từ API. Không gửi lệnh tới thiết bị.</p></div><label class="svc-file na-button">Nạp JSON<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Nạp response JSON"></label></header>
-      <form id="deviceForm" class="svc-request"><label class="svc-field"><span>IP / Tên thiết bị</span><input id="deviceInput" type="text" autocomplete="off" spellcheck="false" placeholder="Nhập IP hoặc hostname từ response mẫu"></label><label class="svc-field svc-sample"><span>Response mẫu · Format hiện tại</span><select id="sampleSelect" aria-label="Chọn response mẫu"><option value="gc16">OLT GC16 · HCMP626</option><option value="ha58">OLT HA58 · BDGP016</option><option value="hw24">Huawei HW24 · Đạt</option><option value="cv52">H3C CV52 · Đạt</option><option value="hw67">Huawei HW67 · Không đạt</option></select></label><button type="submit" class="na-button is-primary">Mở kết quả <span aria-hidden="true">→</span></button></form>
-      <p id="requestError" class="svc-error" role="alert" hidden></p>
-    </section>
-    <div id="resultEmpty" class="svc-empty" hidden><b>Chưa có kết quả kiểm tra</b><span>Chọn response mẫu hoặc nạp JSON của thiết bị.</span></div>
-    <section id="resultSection" aria-label="Kết quả kiểm tra">
+    <div class="svc-page-heading"><h1>Kiểm tra dịch vụ</h1></div>
+    <div id="resultEmpty" class="svc-empty" hidden><b>Chưa có kết quả kiểm tra</b></div>
+    <section id="resultSection" class="svc-result-layout" aria-label="Kết quả kiểm tra">
+      <section class="svc-summary-section" aria-label="Thông tin thiết bị và thống kê">
       <section class="svc-panel svc-device-panel">
-        <header class="svc-device-head"><div><div class="svc-device-label"><span id="deviceKind" class="svc-eyebrow"></span><span class="svc-pill" id="resultStatus"></span></div><h2 id="deviceName"></h2><p id="deviceMeta"></p></div><div class="svc-actions"><button id="exportJson" type="button" class="na-button">Xuất JSON gốc</button><button id="clearResult" type="button" class="na-button">Xóa kết quả</button></div></header>
-        <p id="resultMessage" class="svc-result-message"></p>
-        <div class="svc-result-summary">
+        <header class="svc-device-head"><div class="svc-device-identity"><div class="svc-device-title"><h2 id="deviceName"></h2><span id="deviceKind" class="svc-pill svc-device-type"></span></div><p id="deviceMeta"></p></div><div class="svc-actions"><button id="exportJson" type="button" class="na-button">Xuất JSON gốc</button><button id="clearResult" type="button" class="na-button">Xóa kết quả</button></div></header>
+        <section class="svc-service-verdict" aria-label="Đánh giá dịch vụ"><span class="svc-pill" id="resultStatus" hidden></span><div id="resultMessage" class="svc-result-message" hidden></div></section>
+        <div id="resultSummary" class="svc-result-summary">
           <section class="svc-stat-section" aria-label="Thống kê"><h3>Thống kê</h3><div id="sourceStats" class="svc-source-stats"></div></section>
-          <section class="svc-options" aria-label="Phạm vi và tham số đã chạy"><h3>Phạm vi &amp; tham số đã chạy</h3><div id="requestOptions"></div></section>
+          <section id="runOptions" class="svc-run-options" aria-labelledby="runOptionsTitle" hidden><h3 id="runOptionsTitle">Tùy chọn kiểm tra</h3><dl id="runOptionsContent"></dl></section>
         </div>
+        <section id="switchAttention" class="svc-switch-attention" aria-label="Hạng mục cần kiểm tra" hidden></section>
       </section>
+      </section>
+      <div class="svc-detail-section">
       <nav id="resultTabs" class="svc-tabs" role="tablist" aria-label="Hạng mục kết quả"></nav>
       <section id="onuWorkspace" class="svc-panel" role="tabpanel" aria-label="Quản lý kết quả PON và ONU">
         <div id="customerSignals" class="svc-signals" aria-label="Chú ý khách hàng"></div>
@@ -39,13 +52,25 @@
         <div id="backendWarnings" class="svc-backend-warnings" hidden></div>
         <div id="onuTableHost"></div>
         <footer id="onuPager" class="svc-data-footer" hidden><label><span id="pageSizeLabel">ONU / trang</span><select id="pageSize" aria-label="Số ONU mỗi trang"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select></label><span id="pageInfo"></span><div><button id="prevPage" type="button" class="na-button">← Trước</button><button id="nextPage" type="button" class="na-button">Sau →</button></div></footer>
-        <p class="svc-footnote">Tìm kiếm và bộ lọc áp dụng trên toàn bộ bản ghi đã trả, không chỉ trang đang xem. Tổng đếm nguồn được giữ nguyên. Thiếu IP WAN / trạng thái HĐ không đồng nghĩa ONU Offline.</p>
       </section>
       <section id="checkWorkspace" class="svc-panel svc-check-workspace" role="tabpanel" hidden><div id="checkContent"></div><footer id="checkPager" class="svc-data-footer" hidden><span id="checkPageInfo"></span><div><button id="checkPrev" type="button" class="na-button">← Trước</button><button id="checkNext" type="button" class="na-button">Sau →</button></div></footer></section>
+      </div>
     </section>
-    <p class="svc-handoff-note">UI review · Nguồn: 5 response thật do người dùng cung cấp. Chưa có kết nối production, không suy diễn trạng thái hoặc tạo dữ liệu để bù trường thiếu.</p>
     <div id="svcNotice" role="status" aria-live="polite" class="svc-notice" hidden></div>
   </main>
-  <script src="responses.js"></script><script src="service-model.js"></script><script src="service-checking.js"></script>
+  <dialog id="onuReviewDialog" class="svc-payload-dialog svc-onu-review-dialog" aria-labelledby="onuReviewTitle" aria-describedby="onuReviewMeta">
+    <header><div><h2 id="onuReviewTitle">Đối chiếu ONU</h2><p id="onuReviewMeta"></p></div><button id="closeOnuReview" type="button" class="na-button" autofocus>Đóng</button></header>
+    <div id="onuReviewContent" class="svc-onu-review-content"></div>
+  </dialog>
+  <dialog id="payloadDialog" class="svc-payload-dialog" aria-labelledby="payloadTitle" aria-describedby="payloadHint" data-mockup-only>
+    <header><div><h2 id="payloadTitle">Nhập kết quả từ API</h2><p id="payloadHint">Dán toàn bộ object phản hồi dạng JSON, gồm status, device_type và result.</p></div><button id="closePayload" type="button" class="na-button">Đóng</button></header>
+    <form id="payloadForm">
+      <label for="payloadInput">Nội dung phản hồi</label>
+      <textarea id="payloadInput" rows="12" placeholder="Dán phản hồi JSON tại đây…" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="payloadError" aria-invalid="false"></textarea>
+      <p id="payloadError" class="svc-error" role="alert" hidden></p>
+      <footer><small>Tối đa 20 MB · Ctrl + Enter để hiển thị</small><div class="svc-actions"><button id="cancelPayload" type="button" class="na-button">Hủy</button><button type="submit" class="na-button is-primary">Hiển thị kết quả</button></div></footer>
+    </form>
+  </dialog>
+  <script src="../shared/customer-status.js"></script><script src="responses.js"></script><script src="service-model.js"></script><script src="service-checking.js"></script>
 </body>
 </html>

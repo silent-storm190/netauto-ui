@@ -1,6 +1,33 @@
 # Khách hàng theo PON — giao diện bản mẫu
 
+### Nhãn trạng thái dùng chung
+
+Trang nạp `../shared/customer-status.js`, dùng chung bộ định dạng với Kiểm tra
+dịch vụ. Tệp này được sinh bởi `scripts/generate-customer-status.py` từ
+`CONTRACT_STATUS_LABELS` của máy chủ; không sửa nhãn thủ công trong JavaScript.
+Trong Python, `format_customer_contract_status` tiếp tục dùng lại bộ định dạng
+gốc. `prepare_cdp_rows` trong reconciliation.py là phần chuẩn bị CDP dùng chung
+cho workflow và Kiểm tra dịch vụ; quy tắc chọn khách hàng không bị sao chép.
+
 ## Mục tiêu và cách mở
+
+### Load Json và cảnh báo số hợp đồng · 30/10/2026
+
+Bấm **Load Json** cạnh **Xem mẫu**, dán nguyên phản hồi API rồi bấm
+**Nạp dữ liệu** hoặc Ctrl/Cmd+Enter. Nhận JSON hoặc khối mã fenced JSON, tối đa
+8 MB UTF-8. Nhập sai giữ kết quả trước, hủy/đóng xóa nội dung đã dán. Không gọi
+API/thiết bị hoặc lưu hồ sơ vào trình duyệt; vẫn giữ chức năng mở tệp riêng.
+
+Thiếu số hợp đồng được hiển thị cảnh báo ngay tại ô Hợp đồng và đưa vào
+**Cần kiểm tra**, kèm Port/index/MAC/SN và lý do tại Đối chiếu. Nhận cảnh báo
+`customers.warnings` từ backend mới hoặc chiếu từ contract bị thiếu trong
+phản hồi cũ. Không sửa dữ liệu gốc, không đếm thêm khách và không tạo trùng cảnh
+báo máy chủ đã trả. `count.conflicts` của dữ liệu gốc vẫn là số mâu thuẫn vật
+lý; con số Cần kiểm tra trên màn hình gồm cả cảnh báo thiếu hợp đồng.
+
+Đã kiểm chứng bộ đọc bằng case BRUP04001ZA62/G1/2/5 được người dùng cung cấp:
+14 khách giữ nguyên, 5 cảnh báo thiếu hợp đồng và 1 MAC không khớp. Tệp dữ liệu
+khách của case này không được chép thêm vào mẫu đóng gói.
 
 Mở [mockup.html](mockup.html) trực tiếp hoặc chọn **Quản lý Nghiệp vụ → Khách
 hàng theo PON** trong `../index.html`. Tại chi tiết thiết bị, chọn một Port PON

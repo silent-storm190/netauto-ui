@@ -5,7 +5,7 @@
   const MAX_PORTS=2;
   const filled=value=>value!==null&&value!==undefined&&!(typeof value==='string'&&['','—','-','none','null','unknown','n/a','unavailable'].includes(value.trim().toLowerCase()));
   function contractTag(c){
-    const value=c.net_status??c.contract_status;
+    const value=window.NETAUTO_CUSTOMER_STATUS.format(c.net_status??c.contract_status);
     const key=String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[đĐ]/g,'d').toLowerCase().trim().replace(/\s+/g,' ');
     const tone=key==='chu thue bao di vang'?' is-away':key==='ngung vi ly do thanh toan'?' is-payment':'';
     return filled(value)?`<span class="cp-contract-tag${tone}" aria-label="Trạng thái hợp đồng: ${E(value)}">${E(value)}</span>`:'';
@@ -98,7 +98,7 @@
       const macSeen=membership==='observed_on_requested_pon'&&c.seen_on_device!==false&&identity.source!=='cdp_csoc'&&filled(identity.onu_mac);
       const presenceLabel=macSeen?'Có MAC trên Port PON':'Chưa ghi nhận MAC trên Port PON';
       return `<tr data-customer="${id}" data-conflict="${conflicted}">
-        <td data-column="customer"><strong class="cp-contract-name">${filled(c.contract)?E(c.contract):'-'}</strong></td>
+        <td data-column="customer"><strong class="cp-contract-name">${M.missingContract(c)?'<span class="cp-issue-tag">Chưa có số hợp đồng</span>':E(c.contract)}</strong></td>
         <td data-column="contract-state">${contractTag(c)||'-'}</td>
         <td data-column="state">${filled(stateLabel)?`<span class="cp-state-tag is-${stateTone}">${E(stateLabel)}</span>`:'-'}</td>
         <td data-column="presence"><span class="cp-presence ${macSeen?'is-seen':'is-absent'}" role="img" aria-label="${presenceLabel}" title="${presenceLabel}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${macSeen?'<path d="m5 12 4 4L19 6"/>':'<path d="m6 6 12 12M18 6 6 18"/>'}</svg></span></td>
@@ -140,6 +140,7 @@
     try{
       if(typeof raw==='string'&&raw.length>MAX_BYTES)throw Error('Nội dung vượt giới hạn 8 MB.');
       const parsed=M.parse(raw);
+      ++importTicket;
       if(parsed.result){
         $('oltInput').value=M.text(parsed.result.olt.olt_name??parsed.result.olt.name??parsed.result.olt.olt_ip??parsed.result.olt.ip).replace(/^[-—]$/,'');
         draftDevice=$('oltInput').value.trim().toLowerCase();manualDevice=false;
@@ -199,7 +200,8 @@
   }
   function conflictEvidence(records){
     const fields={contract:'Hợp đồng',mac:'MAC',onu_mac:'MAC',serial:'SN',onu_sn:'SN',onu_index:'ONU index',location:'Vị trí',olt_name:'OLT',pon_port:'Port',port_name:'Port',port:'Port'};
-    return M.list(records).flatMap(({record:c})=>M.list(c.different_fields).filter(M.object).map(d=>{
+    return M.list(records).flatMap(({record:c})=>c.type==='missing_contract'?
+      [`<section class="cp-detail-alert"><h3>Chưa lấy được số hợp đồng</h3><p>${E(c.message||'Cần kiểm tra hồ sơ CDP của ONU này.')}</p>${detailFacts([['Port PON',c.pon_port],['ONU index',c.onu_index],['Lý do',c.reason==='no_matching_cdp_record'?'Không có hồ sơ CDP khớp ONU':c.reason==='cdp_unavailable'?'Không lấy được dữ liệu CDP':'Hồ sơ CDP thiếu số hợp đồng']])}</section>`]:M.list(c.different_fields).filter(M.object).map(d=>{
       const field=Object.hasOwn(fields,d.field)?fields[d.field]:M.text(d.field);
       const missing=d.reason==='missing_on_one_source'&&!filled(d.csoc_value);
       return differenceCard(missing?`CDP thiếu ${field}`:`${field} không khớp`,M.isDeviceConflict(c)?'Thiết bị OLT':'Giá trị phía System Radius',d.device_value,'Giá trị phía CDP',missing?'-':d.csoc_value);
@@ -219,6 +221,7 @@
     const scoped=port?current.conflicts.filter(({id,ponPort})=>ponPort===port||!ponPort&&current.rows.some(row=>row.conflicts.some(c=>c.id===id)&&rowPort(row)===port)):[];
     const records=scoped.filter(({record})=>!q||JSON.stringify(record).toLowerCase().includes(q));
     $('conflictRows').innerHTML=records.map(({id,record:c})=>{
+      if(c.type==='missing_contract')return `<tr><td><strong>Chưa có số hợp đồng</strong><small>ONU index · ${E(c.onu_index)}</small><small>MAC · ${E(c.onu_mac)}</small><small>SN · ${E(c.onu_sn)}</small></td><td><b>Cảnh báo</b><small>Thiếu số hợp đồng</small></td><td>${E(c.message)}</td><td>${E(c.pon_port)}<small>Thiết bị OLT</small></td><td>Chưa lấy được số hợp đồng<small>CDP</small></td><td><button class="na-button" type="button" data-conflict-evidence="${id}" aria-haspopup="dialog" aria-controls="evidenceDialog">Đối chiếu</button></td></tr>`;
       const differences=M.list(c.different_fields).filter(M.object);
       const names={contract:'Hợp đồng',onu_mac:'MAC',onu_sn:'SN',onu_index:'ONU index',olt_name:'OLT',pon_port:'Port'};
       return `<tr><td><strong>${E(c.contract)}</strong><small>MAC · ${E(c.onu_mac)}</small><small>SN · ${E(c.onu_sn)}</small></td><td><b>${E(c.matched_by==='mac'?'MAC':c.matched_by)}</b><small>${E(c.severity==='warning'?'Chú ý':c.severity)}</small>${c.selected_for_profile===false?'<small>Bản ghi CDP khác</small>':''}</td><td>${differences.map(d=>`<span>${E(names[d.field]??d.field)}</span>`).join('')||'-'}</td><td>${differences.map(d=>`<span>${E(d.device_value)}</span>`).join('')||'-'}<small>${E(M.isDeviceConflict(c)?'Thiết bị OLT':source(c.sources))}</small></td><td>${differences.map(d=>`<span>${E(d.reason==='missing_on_one_source'&&!filled(d.csoc_value)?'-':Array.isArray(d.csoc_value)?d.csoc_value.join(' · '):d.csoc_value)}</span><small>${E(source(d.conflicting_source))}</small>`).join('')||'-'}</td><td><button class="na-button" type="button" data-conflict-evidence="${id}" aria-haspopup="dialog" aria-controls="evidenceDialog" aria-label="Đối chiếu thông tin của ${E(c.contract)}">Đối chiếu</button></td></tr>`;
@@ -253,8 +256,19 @@
       const raw=await file.text();if(ticket!==importTicket)return;
       if(!load(raw,file.name))$('importStatus').textContent='Nạp tệp không thành công; xem thông báo lỗi.';
     }catch(e){if(ticket===importTicket){error(e.message);$('importStatus').textContent='Không đọc được tệp.';}}
-    finally{if(ticket===importTicket)$('responseFile').value='';}
+    finally{if($('responseFile').files?.[0]===file)$('responseFile').value='';}
   });
+  function jsonError(message){$('jsonError').textContent=message||'';$('jsonError').hidden=!message;$('jsonInput').setAttribute('aria-invalid',String(!!message));}
+  function submitJson(){
+    if(load($('jsonInput').value,'Load Json · Phản hồi API')){$('jsonDialog').close();}
+    else jsonError($('inputError').textContent);
+  }
+  $('openJson').addEventListener('click',()=>{jsonError('');$('jsonDialog').showModal();$('jsonInput').focus();});
+  for(const id of ['closeJson','cancelJson'])$(id).addEventListener('click',()=>$('jsonDialog').close());
+  $('jsonDialog').addEventListener('close',()=>{$('jsonInput').value='';jsonError('');$('openJson').focus();});
+  $('jsonForm').addEventListener('submit',event=>{event.preventDefault();submitJson();});
+  $('jsonInput').addEventListener('input',()=>jsonError(''));
+  $('jsonInput').addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();submitJson();}});
   $('groupTabs').addEventListener('click',event=>{const button=event.target.closest('[data-group]');if(!button)return;group=button.dataset.group;renderRows();});
   $('portTabs').addEventListener('click',event=>{
     const button=event.target.closest('[data-port-tab]');if(!button)return;

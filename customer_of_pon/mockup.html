@@ -11,7 +11,7 @@
     <header class="cp-heading"><div><span class="cp-eyebrow">ĐỐI SOÁT KHÁCH HÀNG</span><h1>Khách hàng theo PON</h1></div><span class="cp-badge">Chỉ xem dữ liệu · Chưa kết nối hệ thống</span></header>
     <div class="cp-summary-row">
     <section class="cp-panel cp-request-panel" aria-labelledby="requestTitle">
-      <header class="cp-panel-head cp-selection-header"><div><h2 id="requestTitle">Chọn thiết bị và Port PON</h2><p>Chọn phạm vi cần xem, mở dữ liệu đã lưu hoặc xem mẫu có sẵn.</p></div><div class="cp-olt-field"><label for="oltSelect">Thiết bị OLT</label><select id="oltSelect" aria-label="Chọn OLT"><option value="">Chọn OLT</option></select><input id="oltInput" type="text" placeholder="Tên hoặc IP của OLT khác" aria-label="Tên hoặc IP của OLT khác" autocomplete="off" spellcheck="false" aria-describedby="ponCatalogNote" hidden></div><div class="cp-actions"><button id="loadSample" type="button" class="na-button" title="Xem dữ liệu mẫu của OLT đang chọn">Xem mẫu</button><label class="na-button cp-file">Mở tệp dữ liệu<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Mở tệp dữ liệu"></label></div></header>
+      <header class="cp-panel-head cp-selection-header"><div><h2 id="requestTitle">Chọn thiết bị và Port PON</h2><p>Chọn phạm vi cần xem, mở dữ liệu đã lưu hoặc xem mẫu có sẵn.</p></div><div class="cp-olt-field"><label for="oltSelect">Thiết bị OLT</label><select id="oltSelect" aria-label="Chọn OLT"><option value="">Chọn OLT</option></select><input id="oltInput" type="text" placeholder="Tên hoặc IP của OLT khác" aria-label="Tên hoặc IP của OLT khác" autocomplete="off" spellcheck="false" aria-describedby="ponCatalogNote" hidden></div><div class="cp-actions"><button id="loadSample" type="button" class="na-button" title="Xem dữ liệu mẫu của OLT đang chọn">Xem mẫu</button><button id="openJson" type="button" class="na-button" aria-haspopup="dialog" aria-controls="jsonDialog">Load Json</button><label class="na-button cp-file">Mở tệp dữ liệu<input id="responseFile" type="file" accept=".json,.txt,application/json,text/plain" aria-label="Mở tệp dữ liệu"></label></div></header>
       <div class="cp-form">
         <div class="cp-port-field"><div class="cp-device-face">
             <div class="cp-port-heading"><span id="ponSelectLabel" class="cp-port-type">PON</span><span id="ponSelectionLabel">Chọn tối đa 2 Port PON</span></div>
@@ -59,6 +59,17 @@
       </section>
   </main>
   <dialog id="evidenceDialog" aria-labelledby="evidenceTitle"><header><h2 id="evidenceTitle"></h2><button id="closeEvidence" type="button" class="na-button">Đóng</button></header><div id="evidenceContent"></div></dialog>
-  <script src="model.js"></script><script src="sample-current-response.js"></script><script src="app.js"></script>
+  <dialog id="jsonDialog" aria-labelledby="jsonTitle">
+    <form id="jsonForm">
+      <header><h2 id="jsonTitle">Load Json</h2><button id="closeJson" type="button" class="na-button" aria-label="Đóng Load Json">Đóng</button></header>
+      <p>Dán nguyên phản hồi API của tool Khách hàng theo PON để xem kết quả.</p>
+      <label for="jsonInput">Phản hồi JSON</label>
+      <textarea id="jsonInput" rows="14" spellcheck="false" aria-describedby="jsonHint jsonError" placeholder='{"status": true, "result": {...}}'></textarea>
+      <small id="jsonHint">Tối đa 8 MB. Nhấn Ctrl + Enter để nạp dữ liệu.</small>
+      <p id="jsonError" class="cp-error" role="alert" hidden></p>
+      <footer><button id="cancelJson" type="button" class="na-button">Hủy</button><button type="submit" class="na-button">Nạp dữ liệu</button></footer>
+    </form>
+  </dialog>
+  <script src="../shared/customer-status.js"></script><script src="model.js"></script><script src="sample-current-response.js"></script><script src="app.js"></script>
 </body>
 </html>

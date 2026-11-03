@@ -21,6 +21,11 @@
     return {onu_mac:customer.onu_mac,onu_sn:customer.onu_sn,onu_index:customer.onu_index,source:null};
   }
   const validValue=v=>typeof v==='number'?Number.isFinite(v):typeof v==='string'&&!['','none','null','n/a','unknown','unavailable','unbound','chưa bind','—','-'].includes(v.trim().toLowerCase());
+  const missingContract=c=>!validValue(c.contract);
+  const contractWarning=(customer,ponPort)=>({type:'missing_contract',code:'missing_contract',severity:'warning',
+    message:'Chưa lấy được số hợp đồng.',reason:customer.membership==='device_only'?'no_matching_cdp_record':'cdp_contract_missing',
+    contract:null,pon_port:ponPort,onu_index:customer.onu_index,onu_mac:customer.onu_mac,onu_sn:customer.onu_sn,
+    matched_by:'onu_index',sources:['olt_device','cdp_csoc']});
   function conflictDifferences(record){
     if(record.type==='multiple_contracts_for_mac')return [];
     return list(record.different_fields).filter(d=>{
@@ -39,7 +44,14 @@
     return [name,!missing(port)?`Port ${text(port)}`:null,!missing(v.slot)?`Slot ${text(v.slot)}`:null,!missing(v.onu_index)?`Index ${text(v.onu_index)}`:null].filter(x=>!missing(x)).join(' · ')||'-';
   }
   function parse(raw){
-    const data=typeof raw==='string'?JSON.parse(raw):raw;
+    if(typeof raw==='string'){
+      if(new TextEncoder().encode(raw).length>8*1024*1024)throw Error('Nội dung vượt giới hạn 8 MB.');
+      raw=raw.replace(/^\uFEFF/,'').trim();
+      const fenced=raw.match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);if(fenced)raw=fenced[1].trim();
+      if(!raw)throw Error('Bạn chưa dán phản hồi JSON.');
+    }
+    let data;
+    try{data=typeof raw==='string'?JSON.parse(raw):raw;}catch{throw Error('JSON chưa hợp lệ. Hãy dán nguyên phản hồi API.');}
     if(!object(data)||typeof data.status!=='boolean'||!Object.hasOwn(data,'result'))throw Error('Cần phản hồi có status dạng boolean và result từ check-customer-of-pon.');
     if(data.result!==null&&!object(data.result))throw Error('result phải là đối tượng hoặc null.');
     const result=data.result;
@@ -53,6 +65,7 @@
       for(const section of sections){
         if(!object(section.customers)||[...customerGroups,'conflicts'].some(key=>!Array.isArray(section.customers[key])))throw Error('Cần các nhóm observed_on_requested_pon, confirmed_offline, online_elsewhere, unconfirmed và conflicts trong customers hoặc từng pon_results. Không dùng online/offline cũ.');
         for(const rows of [...customerGroups.map(key=>section.customers[key]),section.customers.conflicts,section.unclassified_customers??[]])if(!Array.isArray(rows)||rows.some(row=>!object(row)))throw Error('Danh sách khách hàng và mâu thuẫn phải gồm các đối tượng hợp lệ.');
+        if(section.customers.warnings!=null&&(!Array.isArray(section.customers.warnings)||section.customers.warnings.some(row=>!object(row))))throw Error('Danh sách cảnh báo phải gồm các đối tượng hợp lệ.');
       }
       if(Object.hasOwn(result,'pon_results')&&(!Array.isArray(result.unclassified_customers??[])||list(result.unclassified_customers).some(row=>!object(row))))throw Error('Danh sách chưa phân loại không hợp lệ.');
     }
@@ -61,6 +74,9 @@
       const different_fields=conflictDifferences(record);
       if(different_fields.length)conflicts.push({id:conflicts.length,ponPort:section.pon_port,record:{...record,different_fields}});
     }
+    for(const section of sections)for(const record of list(section.customers.warnings)){
+      if(record.type==='missing_contract')conflicts.push({id:conflicts.length,ponPort:section.pon_port??record.pon_port,record});
+    }
     for(const section of sections)for(const group of [...customerGroups,'unclassified'])for(const customer of list(group==='unclassified'?section.unclassified_customers:section.customers[group])){
       const fallbackPort=list(result?.ports?.valid_ports).length===1?result.ports.valid_ports[0]:undefined;
       const customerPort=customer.requested_location?.port_name??customer.port_name;
@@ -68,11 +84,17 @@
       rows.push({id:rows.length,group,ponPort,customer,conflicts:conflicts.filter(item=>(!item.ponPort||item.ponPort===ponPort)&&matchesConflict(customer,item.record))});
     }
     if(Array.isArray(result?.pon_results))for(const customer of list(result.unclassified_customers))rows.push({id:rows.length,group:'unclassified',customer,conflicts:[]});
+    for(const row of rows)if(missingContract(row.customer)){
+      let warning=conflicts.find(item=>item.record.type==='missing_contract'&&(!item.ponPort||item.ponPort===row.ponPort)&&matchesConflict(row.customer,item.record));
+      if(!warning){warning={id:conflicts.length,ponPort:row.ponPort,record:contractWarning(row.customer,row.ponPort)};if(result?.data_quality?.csoc==='unavailable')warning.record.reason='cdp_unavailable';conflicts.push(warning);}
+      if(!row.conflicts.some(item=>item.id===warning.id))row.conflicts.push(warning);
+    }
     return {raw:data,result,rows,conflicts};
   }
   function matchesConflict(c,record){
     const normalize=(v,key)=>v==null?'':key==='mac'?String(v).replace(/[:.\-\s]/g,'').toUpperCase():String(v).trim().toUpperCase();
-    const fields={mac:'onu_mac',serial:'onu_sn',contract:'contract'};
+    const fields={mac:'onu_mac',serial:'onu_sn',contract:'contract',onu_index:'onu_index'};
+    if(record.type==='missing_contract'&&!record.onu_index)return ['onu_mac','onu_sn'].some(field=>validValue(c[field])&&normalize(c[field],field=== 'onu_mac'?'mac':'serial')===normalize(record[field],field==='onu_mac'?'mac':'serial'));
     const keys=Object.hasOwn(fields,record.matched_by)?[record.matched_by]:Object.keys(fields);
     return keys.some(key=>{const field=fields[key],a=normalize(c[field],key),b=normalize(record[field],key);return !!a&&!!b&&a===b;});
   }
@@ -99,7 +121,7 @@
     const ports=[...new Set(list(full?result.ports.available_pon_ports:result?.ports?.valid_ports).filter(v=>typeof v==='string'&&v.trim()).map(v=>v.trim()))];
     return {matches:true,ports,kind:full?'available':'validated'};
   }
-  const api={object,list,text,esc,sources,moves,customerGroups,groupLabels,sourceLabel,moveLabel,location,parse,filter,request,hasConflict,rowHasConflict,matchesConflict,portCatalog,isDeviceConflict,identityValues};
+  const api={object,list,text,esc,sources,moves,customerGroups,groupLabels,sourceLabel,moveLabel,location,parse,filter,request,hasConflict,rowHasConflict,matchesConflict,portCatalog,isDeviceConflict,identityValues,missingContract};
   if(typeof module==='object'&&module.exports)module.exports=api;
   if(root)root.NETAUTO_CUSTOMER_PON=api;
 })(typeof window==='undefined'?null:window);
